@@ -103,7 +103,6 @@ const parseEnumParam = (
 const USER_ROLE_VALUES = [USER_ROLE.ADMIN, USER_ROLE.USER] as const;
 const USER_STATUS_VALUES = [USER_STATUS.ACTIVE, USER_STATUS.BLOCKED] as const;
 
-// get all users
 const getAllUsers = async (query: Record<string, unknown>) => {
   // Whitelisted keys only: QueryBuilder.filter() splices the query object into
   // the Mongo filter, so unvetted keys could carry operators.
@@ -143,7 +142,6 @@ const getAllUsers = async (query: Record<string, unknown>) => {
   return { result, meta };
 };
 
-// get single user by username
 const getSingleUserByUsername = async (username: string) => {
   const user = await User.findOne({ username });
   if (!user) {
@@ -153,7 +151,6 @@ const getSingleUserByUsername = async (username: string) => {
   return user;
 };
 
-// update user profile
 const updateProfile = async (userData: JwtPayload, payload: IUser) => {
   const updatedUser = await User.findOneAndUpdate(
     { email: userData.email },
@@ -171,7 +168,6 @@ const updateProfile = async (userData: JwtPayload, payload: IUser) => {
   return updatedUser;
 };
 
-// update user profile social links
 const updateSocialLinks = async (
   userData: JwtPayload,
   payload: TSocialLink[],
@@ -192,7 +188,6 @@ const updateSocialLinks = async (
   return updatedUser;
 };
 
-// block a user (admin only)
 const blockUser = async (id: string, adminEmail?: string) => {
   const user = await User.findById(id);
   if (!user) {
@@ -220,7 +215,6 @@ const blockUser = async (id: string, adminEmail?: string) => {
   return result;
 };
 
-// unblock a user (admin only)
 const unBlockUser = async (id: string, adminEmail?: string) => {
   const user = await User.findById(id);
   if (!user) {
@@ -248,7 +242,6 @@ const unBlockUser = async (id: string, adminEmail?: string) => {
   return result;
 };
 
-// make a user to admin (admin only)
 const makeAdmin = async (id: string, adminEmail?: string) => {
   const user = await User.findById(id);
   if (!user) {
@@ -284,7 +277,6 @@ const makeAdmin = async (id: string, adminEmail?: string) => {
   return result;
 };
 
-// delete user account (admin only)
 const deleteUserAccount = async (id: string, adminEmail?: string) => {
   const user = await User.findById(id);
   if (!user) {
@@ -305,11 +297,9 @@ const deleteUserAccount = async (id: string, adminEmail?: string) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    // 1. Delete user's blogs
     await Blog.deleteMany({ author: user._id }, { session });
 
-    // 2. Delete user's comments and decrement totalComments for each blog
-    // (`comment.post` is the stored field name.)
+    // `comment.post` is the stored field name.
     const userComments = await Comment.find({ user: user._id });
     for (const comment of userComments) {
       await Blog.findByIdAndUpdate(
@@ -320,8 +310,7 @@ const deleteUserAccount = async (id: string, adminEmail?: string) => {
     }
     await Comment.deleteMany({ user: user._id }, { session });
 
-    // 3. Delete user's views and decrement totalViews for each blog
-    // (`view.post` is the stored field name.)
+    // `view.post` is the stored field name.
     const userViews = await View.find({ user: user._id });
     for (const view of userViews) {
       await Blog.findByIdAndUpdate(
@@ -332,8 +321,7 @@ const deleteUserAccount = async (id: string, adminEmail?: string) => {
     }
     await View.deleteMany({ user: user._id }, { session });
 
-    // 4. Delete user's votes and decrement upVotes or downVotes for each blog
-    // (`vote.post` is the stored field name.)
+    // `vote.post` is the stored field name.
     const userVotes = await Vote.find({ user: user._id });
     for (const vote of userVotes) {
       if (vote.type === "upvote") {
@@ -352,11 +340,9 @@ const deleteUserAccount = async (id: string, adminEmail?: string) => {
     }
     await Vote.deleteMany({ user: user._id }, { session });
 
-    // 5. Delete user's followers and following relationships
     await Follower.deleteMany({ follower: user._id }, { session });
     await Follower.deleteMany({ following: user._id }, { session });
 
-    // 6. Mark the user as deleted
     user.isDeleted = true;
     await user.save({ session });
 
@@ -462,14 +448,12 @@ const restoreUser = async (id: string, adminEmail?: string) => {
   return result;
 };
 
-// Follow a user with transaction
 const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
-  const session = await mongoose.startSession(); // Start a session
+  const session = await mongoose.startSession();
 
   try {
-    session.startTransaction(); // Start a transaction
+    session.startTransaction();
 
-    // Find current logged-in user
     const currentLoggedInUser = await User.findOne({
       email: userData.email,
     }).session(session);
@@ -478,18 +462,15 @@ const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
       throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }
 
-    // Find the user to follow
     const userToFollow = await User.findById(userIdToFollow).session(session);
     if (!userToFollow) {
       throw new AppError(httpStatus.NOT_FOUND, "User to follow not found");
     }
 
-    // Prevent self-following
     if (currentLoggedInUser._id.equals(userToFollow._id)) {
       throw new AppError(httpStatus.BAD_REQUEST, "You cannot follow yourself");
     }
 
-    // Check if the follow relationship already exists
     const existingFollow = await Follower.findOne({
       follower: currentLoggedInUser._id,
       following: userToFollow._id,
@@ -502,7 +483,6 @@ const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
       );
     }
 
-    // Create a new follower relationship
     await Follower.create(
       [
         {
@@ -522,25 +502,22 @@ const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
     currentLoggedInUser.totalFollowing += 1;
     await currentLoggedInUser.save({ session, validateModifiedOnly: true });
 
-    // Commit the transaction
     await session.commitTransaction();
   } catch (err) {
-    // Rollback transaction if any error occurs
     await session.abortTransaction();
     throw err;
   } finally {
-    session.endSession(); // Always end the session
+    session.endSession();
   }
 };
 
 // Unfollow a user with transaction
 const unfollowUser = async (userData: JwtPayload, userIdToUnfollow: string) => {
-  const session = await mongoose.startSession(); // Start a session
+  const session = await mongoose.startSession();
 
   try {
-    session.startTransaction(); // Start a transaction
+    session.startTransaction();
 
-    // Find the current logged-in user
     const currentLoggedInUser = await User.findOne({
       email: userData.email,
     }).session(session);
@@ -549,14 +526,12 @@ const unfollowUser = async (userData: JwtPayload, userIdToUnfollow: string) => {
       throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }
 
-    // Find the user to unfollow
     const userToUnfollow =
       await User.findById(userIdToUnfollow).session(session);
     if (!userToUnfollow) {
       throw new AppError(httpStatus.NOT_FOUND, "User to unfollow not found");
     }
 
-    // Prevent self-unfollowing
     if (currentLoggedInUser._id.equals(userToUnfollow._id)) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
@@ -564,7 +539,6 @@ const unfollowUser = async (userData: JwtPayload, userIdToUnfollow: string) => {
       );
     }
 
-    // Check if the follow relationship exists
     const existingFollow = await Follower.findOne({
       follower: currentLoggedInUser._id,
       following: userToUnfollow._id,
@@ -577,28 +551,23 @@ const unfollowUser = async (userData: JwtPayload, userIdToUnfollow: string) => {
       );
     }
 
-    // Remove the follower relationship
     await Follower.deleteOne({
       follower: currentLoggedInUser._id,
       following: userToUnfollow._id,
     }).session(session);
 
-    // Decrement totalFollowers for userToUnfollow
     userToUnfollow.totalFollowers -= 1;
     await userToUnfollow.save({ session, validateModifiedOnly: true });
 
-    // Decrement totalFollowing for currentLoggedInUser
     currentLoggedInUser.totalFollowing -= 1;
     await currentLoggedInUser.save({ session, validateModifiedOnly: true });
 
-    // Commit the transaction
     await session.commitTransaction();
   } catch (err) {
-    // Rollback the transaction if any error occurs
     await session.abortTransaction();
     throw err;
   } finally {
-    session.endSession(); // Always end the session
+    session.endSession();
   }
 };
 
@@ -607,7 +576,6 @@ const getFollowStatus = async (
   userData: JwtPayload,
   userIdToFollow: string,
 ) => {
-  // Find current logged-in user
   const currentLoggedInUser = await User.findOne({
     email: userData.email,
   });
@@ -616,19 +584,16 @@ const getFollowStatus = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // Find the user to follow
   const userToFollow = await User.findById(userIdToFollow);
   if (!userToFollow) {
     throw new AppError(httpStatus.NOT_FOUND, "User to follow not found");
   }
 
-  // Check if the current logged-in user is following the userToFollow
   const followStatus = await Follower.findOne({
     follower: currentLoggedInUser._id,
     following: userIdToFollow,
   });
 
-  // Return true if the follow relationship exists, otherwise false
   return !!followStatus;
 };
 
@@ -654,10 +619,8 @@ const getLoggedInUserFollowers = async (
     query,
   );
 
-  // Await the filter() method
   await followersQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   followersQuery.sort().paginate().fields();
 
   const result = await followersQuery.modelQuery;
@@ -671,7 +634,6 @@ const getLoggedInUserFollowing = async (
   userData: JwtPayload,
   query: Record<string, unknown>,
 ) => {
-  // Find the current logged-in user
   const currentLoggedInUser = await User.findOne({
     email: userData.email,
   });
@@ -680,7 +642,6 @@ const getLoggedInUserFollowing = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // Build a query to get all users that the current user is following
   const followingQuery = new QueryBuilder(
     Follower.find({ follower: currentLoggedInUser._id })
       .populate(
@@ -691,10 +652,8 @@ const getLoggedInUserFollowing = async (
     query,
   );
 
-  // Await the filter() method
   await followingQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   followingQuery.sort().paginate().fields();
 
   const result = await followingQuery.modelQuery;
@@ -708,14 +667,12 @@ const getFollowersByUserId = async (
   userId: string,
   query: Record<string, unknown>,
 ) => {
-  // Find the user by ID
   const user = await User.findById(userId);
 
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // Build a query to get all followers of the specified user
   const followersQuery = new QueryBuilder(
     Follower.find({ following: user._id })
       .populate(
@@ -726,10 +683,8 @@ const getFollowersByUserId = async (
     query,
   );
 
-  // Await the filter() method
   await followersQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   followersQuery.sort().paginate().fields();
 
   const result = await followersQuery.modelQuery;
@@ -743,14 +698,12 @@ const getFollowingByUserId = async (
   userId: string,
   query: Record<string, unknown>,
 ) => {
-  // Find the user by ID
   const user = await User.findById(userId);
 
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // Build a query to get all users followed by the specified user
   const followingQuery = new QueryBuilder(
     Follower.find({ follower: user._id })
       .populate(
@@ -761,10 +714,8 @@ const getFollowingByUserId = async (
     query,
   );
 
-  // Await the filter() method
   await followingQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   followingQuery.sort().paginate().fields();
 
   const result = await followingQuery.modelQuery;

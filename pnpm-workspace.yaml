@@ -1,7 +1,8 @@
 packages:
   - apps/*
+  - packages/*
 
-# Build scripts pnpm may run. Both apps' allowances live here now that they
+# Build scripts pnpm may run. The apps' allowances live here now that they
 # share one store and one install.
 allowBuilds:
   bcrypt: true

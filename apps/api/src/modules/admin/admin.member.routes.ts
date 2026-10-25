@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { TAppBindings } from "../../interface/bindings";
-import { validateRequest } from "../../middlewares";
+import { validate } from "../../middlewares";
 import { commentController } from "../comment/comment.controller";
 import { contactController } from "../contact/contact.controller";
 import { contactValidationSchema } from "../contact/contact.validation";
@@ -35,7 +35,7 @@ adminMessageRouter.get("/", contactController.getAll);
 adminMessageRouter.get("/:id", contactController.getSingle);
 adminMessageRouter.patch(
   "/:id/status",
-  validateRequest(contactValidationSchema.updateStatus),
+  validate({ json: contactValidationSchema.updateStatus }),
   contactController.updateStatus,
 );
 

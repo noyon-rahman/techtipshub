@@ -32,7 +32,6 @@ export const useCreateBlog = () => {
   });
 };
 
-// vote on blog
 export const useVoteOnBlog = () => {
   return useMutation<
     any,
@@ -57,7 +56,6 @@ export const useVoteOnBlog = () => {
   });
 };
 
-// comment on blog
 export const useCommentOnBlog = () => {
   return useMutation<any, Error, { blogId: string; payload: FormData }>({
     mutationKey: ["COMMENT_ON_BLOG"],
@@ -88,7 +86,6 @@ export const useGetAllBlogs = (params?: Record<string, string>) => {
   });
 };
 
-// delete a blog by admin using id with reason
 export const useDeleteBlogByAdminUsingId = () => {
   return useMutation<any, Error, { blogId: string; reason: string }>({
     mutationKey: ["DELETE_BLOG_BY_ADMIN"],
@@ -148,7 +145,6 @@ export const useUpdateBlogByUserUsingId = () => {
   });
 };
 
-// update blog by admin
 export const useUpdateBlogByAdmin = () => {
   return useMutation<any, Error, { blogId: string; payload: FormData }>({
     mutationKey: ["UPDATE_BLOG_BY_ADMIN"],
@@ -169,7 +165,6 @@ export const useUpdateBlogByAdmin = () => {
   });
 };
 
-// delete comment by user
 export const useDeleteCommentByUser = () => {
   return useMutation<any, Error, string>({
     mutationKey: ["DELETE_COMMENT_BY_USER"],
@@ -189,7 +184,6 @@ export const useDeleteCommentByUser = () => {
   });
 };
 
-// update comment by user
 export const useUpdateCommentByUser = () => {
   return useMutation<any, Error, { commentId: string; payload: FormData }>({
     mutationKey: ["UPDATE_COMMENT_BY_USER"],

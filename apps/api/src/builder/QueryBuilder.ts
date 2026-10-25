@@ -87,7 +87,6 @@ class QueryBuilder<T> {
     this.query = query;
   }
 
-  // all methods
   search(searchableFields: string[], valueFields: string[] = []) {
     const searchTerm = this?.query?.searchTerm;
     if (searchTerm) {
@@ -126,16 +125,13 @@ class QueryBuilder<T> {
     return this;
   }
 
-  // New method to get the ObjectId for a category name
   private async getCategoryIdByName(category: string) {
     const foundedCategory = await Category.findOne({ name: category });
     return foundedCategory;
   }
 
-  // Make filter async to await category ID resolution
   async filter() {
     const queryObj = { ...this.query }; // copy
-    // Filtering
     const excludeFields = ["searchTerm", "sort", "limit", "page", "fields"];
 
     excludeFields.forEach((el) => delete queryObj[el]);

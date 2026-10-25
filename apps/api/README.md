@@ -93,31 +93,22 @@
 Every admin endpoint lives under `/api/v1/admin` and requires the Admin role. See the
 header of `src/modules/admin/admin.routes.ts` for the full list.
 
-### Subscriptions Routes:
+### Auth Routes:
 
-
-- `/api/v1/subscriptions/subscribe` - **POST** - Subscribe to a premium plan (requires user authentication)
-
-### Payments Routes:
-
-- `/api/v1/payments/confirmation` - **POST** - Check payment confirmation
-- `/api/v1/payments/failed` - **POST** - Handle payment failure
-- `/api/v1/payments/canceled` - **GET** - Handle payment cancellation
+- `/api/v1/auth/google` - **GET** - Start Google sign-in
+- `/api/v1/auth/google/callback` - **GET** - Google redirect target; sets the session cookies
 
 ### Tech Stack
 
 | Icon                                                                                                                   | Technology Name |
 | ---------------------------------------------------------------------------------------------------------------------- | --------------- |
-| ![Node.js](https://img.shields.io/static/v1?label=&message=Node.js&color=339933&logo=nodedotjs&logoColor=white)        | Node.js         |
-| ![Express](https://img.shields.io/static/v1?label=&message=Express&color=404D59)                                       | Express         |
+| ![Hono](https://img.shields.io/static/v1?label=&message=Hono&color=E36002&logo=hono&logoColor=white)                    | Hono            |
 | ![TypeScript](https://img.shields.io/static/v1?label=&message=TypeScript&color=007ACC&logo=typescript&logoColor=white) | TypeScript      |
 | ![MongoDB](https://img.shields.io/static/v1?label=&message=MongoDB&color=47A248&logo=mongodb&logoColor=white)          | MongoDB         |
 | ![Bcrypt](https://img.shields.io/static/v1?label=&message=Bcrypt&color=EFCA00)                                         | Bcrypt          |
 | ![Zod](https://img.shields.io/static/v1?label=&message=Zod&color=3068b7&logo=zod&logoColor=white)                      | Zod             |
 | ![Nodemailer](https://img.shields.io/static/v1?label=&message=Nodemailer&color=005571&logo=npm&logoColor=white)        | Nodemailer      |
-| ![Multer](https://img.shields.io/static/v1?label=&message=Multer&color=34B7F1)                                         | Multer          |
 | ![Cloudinary](https://img.shields.io/static/v1?label=&message=Cloudinary&color=3A8E4D)                                 | Cloudinary      |
-| ![Axios](https://img.shields.io/static/v1?label=&message=Axios&color=5A29E3&logo=axios&logoColor=white)                | Axios           |
 | ![JWT](https://img.shields.io/static/v1?label=&message=JWT&color=000000&logo=json-web-tokens&logoColor=white)          | JWT             |
 
 ## 💻 Running locally:
@@ -166,11 +157,12 @@ JWT_REFRESH_TOKEN_EXPIRES_IN="your_jwt_refresh_token_expiration_duration"
 # reset password configuration
 JWT_RESET_PASSWORD_SECRET="your_jwt_reset_password_secret"
 JWT_RESET_PASSWORD_EXPIRES_IN="your_jwt_reset_password_expiration_duration"
-RESET_PASSWORD_UI_URL="your_reset_password_ui_url"
 
 # SMTP authentication
 SMTP_AUTH_USER="your_smtp_auth_user_email"
 SMTP_AUTH_PASSWORD="your_smtp_auth_password"
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="465"
 
 # nodemailer
 NODEMAILER_EMAIL_FROM="your_nodemailer_email"
@@ -187,9 +179,10 @@ CLOUDINARY_API_SECRET="your_cloudinary_api_secret"
 API_BASE_URL="your_applications_api_base_url"
 CLIENT_BASE_URL="your_applications_client_base_url"
 
-AAMARPAY_GATEWAY_BASE_URL="aamarpay_gateway_base_url"
-AAMARPAY_STORE_ID="aamarpay_store_id"
-AAMARPAY_SIGNATURE_KEY="aamarpay_signature_key"
+# Google sign-in. The OAuth client must list this redirect URI:
+#   <API_BASE_URL>/auth/google/callback
+GOOGLE_CLIENT_ID="your_google_client_id"
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
 ```
 
 ### 4. Run the Application:

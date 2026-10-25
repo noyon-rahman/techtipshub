@@ -32,43 +32,37 @@ const create = async (userData: JwtPayload, payload: IBlog) => {
   payload.author = user._id;
   payload.category = category._id;
 
-  // Generate unique slug
   payload.slug = await generateUniqueSlug(payload.title);
 
   const session = await Blog.startSession();
 
   try {
-    // Start transaction
     session.startTransaction();
 
-    // Create a new blog within the transaction
     const newBlog = await Blog.create([{ ...payload }], { session });
     if (newBlog.length < 0) {
       throw new AppError(httpStatus.BAD_REQUEST, "Failed to create blog");
     }
 
-    // Increment postCount of the category by 1
     const updatedCategory = await Category.findByIdAndUpdate(
       category._id,
-      { $inc: { postCount: 1 } }, // Increment the postCount field by 1
-      { session, new: true }, // Pass session and return the updated category
+      { $inc: { postCount: 1 } },
+      { session, new: true },
     );
     if (!updatedCategory) {
       throw new AppError(httpStatus.BAD_REQUEST, "Failed to update category");
     }
 
-    // Increment the author's total blog count by 1
     const updatedUser = await User.findByIdAndUpdate(
       user._id,
-      { $inc: { totalPosts: 1 } }, // Increment the totalPosts field by 1
-      { session, new: true }, // Pass session and return the updated category
+      { $inc: { totalPosts: 1 } },
+      { session, new: true },
     );
 
     if (!updatedUser) {
       throw new AppError(httpStatus.BAD_REQUEST, "Failed to update User");
     }
 
-    // Commit the transaction and end the session
     await session.commitTransaction();
     await session.endSession();
 
@@ -82,7 +76,6 @@ const create = async (userData: JwtPayload, payload: IBlog) => {
       select: "name description postCount",
     });
   } catch (err) {
-    // Abort transaction in case of an error
     await session.abortTransaction();
     await session.endSession();
     throw err;
@@ -102,13 +95,11 @@ const getAll = async (query: Record<string, unknown>) => {
     query,
   ).search(blogSearchableFields);
 
-  // Await the filter() method
   await blogQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   blogQuery.sort().paginate().fields();
 
-  const result = await blogQuery.modelQuery; // Await the results here
+  const result = await blogQuery.modelQuery;
   const meta = await blogQuery.countTotal();
 
   return { result, meta };
@@ -290,13 +281,11 @@ const getFollowingUsersBlogs = async (
   userData: JwtPayload,
   query: Record<string, unknown>,
 ) => {
-  // Step 1: Find the current user by their email
   const user = await User.findOne({ email: userData.email });
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // Step 2: Find the list of users that the current user is following
   const following = await Follower.find({ follower: user._id }).select(
     "following",
   );
@@ -308,10 +297,8 @@ const getFollowingUsersBlogs = async (
     );
   }
 
-  // Step 3: Extract the user IDs of those being followed
   const followingUserIds = following.map((f) => f.following);
 
-  // Step 4: Query the blogs where the author is in the following list
   const blogQuery = new QueryBuilder(
     Blog.find({
       author: { $in: followingUserIds },
@@ -322,13 +309,11 @@ const getFollowingUsersBlogs = async (
     query,
   ).search(blogSearchableFields);
 
-  // Await the filter() method
   await blogQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   blogQuery.sort().paginate().fields();
 
-  const result = await blogQuery.modelQuery; // Await the results here
+  const result = await blogQuery.modelQuery;
   const meta = await blogQuery.countTotal();
 
   return { result, meta };
@@ -351,13 +336,11 @@ const getLoggedInUserBlogs = async (
     query,
   ).search(blogSearchableFields);
 
-  // Await the filter() method
   await blogQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   blogQuery.sort().paginate().fields();
 
-  const result = await blogQuery.modelQuery; // Await the results here
+  const result = await blogQuery.modelQuery;
   const meta = await blogQuery.countTotal();
 
   return { result, meta };
@@ -410,7 +393,6 @@ const getSingleBlog = async (
   session.startTransaction();
 
   try {
-    // Fetch the blog by its slug
     const blog = await Blog.findOne({ slug })
       .populate({
         path: "author",
@@ -443,7 +425,6 @@ const getSingleBlog = async (
       };
     }
 
-    // Get the current logged-in user
     const currentLoggedInUser = await User.findOne({
       email: userData.email,
     }).session(session);
@@ -457,7 +438,6 @@ const getSingleBlog = async (
     // duplicate view can never abort the article fetch itself.
     const totalViews = await recordView(slug, { user: userData });
 
-    // Commit transaction and return the blog
     await session.commitTransaction();
     session.endSession();
 
@@ -483,12 +463,10 @@ const voteOnBlog = async (
   session.startTransaction();
 
   try {
-    // Validate the voteType
     if (!["upvote", "downvote"].includes(voteType)) {
       throw new AppError(httpStatus.BAD_REQUEST, "Invalid vote type");
     }
 
-    // Get the current logged-in user
     const currentLoggedInUser = await User.findOne({
       email: userData.email,
     }).session(session);
@@ -497,7 +475,6 @@ const voteOnBlog = async (
       throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }
 
-    // Fetch the blog by its ID
     const blog = await Blog.findById(blogId).session(session);
     if (!blog) {
       throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
@@ -511,7 +488,6 @@ const voteOnBlog = async (
       );
     }
 
-    // Find if the user has already voted on this blog
     const existingVote = await Vote.findOne({
       // "post" is the stored DB field on votes, not the concept name.
       post: blog._id,
@@ -520,7 +496,6 @@ const voteOnBlog = async (
 
     if (existingVote) {
       if (existingVote.type === voteType) {
-        // If the user clicks the same vote type (toggle functionality)
         await existingVote.deleteOne({ session });
 
         if (voteType === "upvote") {
@@ -529,7 +504,6 @@ const voteOnBlog = async (
           blog.downVotes -= 1;
         }
       } else {
-        // If the user is switching their vote (from upvote to downvote or vice versa)
         existingVote.type = voteType;
         await existingVote.save({ session });
 
@@ -542,7 +516,6 @@ const voteOnBlog = async (
         }
       }
     } else {
-      // If no existing vote, create a new vote
       await Vote.create(
         [
           {
@@ -555,7 +528,6 @@ const voteOnBlog = async (
         { session },
       );
 
-      // Increment upvotes or downvotes on the blog
       if (voteType === "upvote") {
         blog.upVotes += 1;
       } else {
@@ -563,14 +535,12 @@ const voteOnBlog = async (
       }
     }
 
-    // Save the blog after updating votes
     await blog.save({ session });
 
-    // Commit the transaction
     await session.commitTransaction();
     session.endSession();
 
-    return blog; // Return the updated blog with vote counts
+    return blog;
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -578,7 +548,6 @@ const voteOnBlog = async (
   }
 };
 
-// get vote status
 const getVoteStatus = async (userData: JwtPayload, blogId: string) => {
   const user = await User.findOne({ email: userData.email });
   if (!user) {
@@ -600,10 +569,9 @@ const getVoteStatus = async (userData: JwtPayload, blogId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "Not Voted yet!");
   }
 
-  // If the user has voted, return the vote type and relevant metadata
   return {
     status: "Voted",
-    voteType: existingVote.type, // "upvote" or "downvote"
+    voteType: existingVote.type,
     blogId: blog._id,
     userId: user._id,
   };
@@ -620,7 +588,6 @@ const commentOnBlog = async (
   try {
     session.startTransaction();
 
-    // Find the current logged-in user
     const currentLoggedInUser = await User.findOne({
       email: userData.email,
     }).session(session);
@@ -629,13 +596,11 @@ const commentOnBlog = async (
       throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }
 
-    // Fetch the blog by its ID
     const blog = await Blog.findById(blogId).session(session);
     if (!blog) {
       throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
     }
 
-    // Create a new comment
     const comment = await Comment.create(
       [
         {
@@ -659,11 +624,9 @@ const commentOnBlog = async (
     }).session(session);
     await blog.save({ session });
 
-    // Commit the transaction
     await session.commitTransaction();
     session.endSession();
 
-    // Find and populate the comment with specific fields from user and blog
     return await Comment.findById(comment[0]._id)
       .populate({
         path: "user",
@@ -686,7 +649,6 @@ const getAllCommentsByBlogId = async (
   blogId: string,
   query: Record<string, unknown>,
 ) => {
-  // Fetch the blog by its ID
   const blog = await Blog.findById(blogId);
   if (!blog) {
     throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
@@ -708,13 +670,11 @@ const getAllCommentsByBlogId = async (
     query,
   );
 
-  // Await the filter() method
   await commentQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   commentQuery.sort().paginate().fields();
 
-  const result = await commentQuery.modelQuery; // Await the results here
+  const result = await commentQuery.modelQuery;
   const meta = await commentQuery.countTotal();
 
   return { result, meta };
@@ -741,7 +701,6 @@ const getAllBlogsByUserId = async (
     query,
   ).search(blogSearchableFields);
 
-  // Await the filter() method
   await blogQuery.filter();
 
   // Newest first: the default sort only applies when the caller doesn't ask
@@ -754,7 +713,7 @@ const getAllBlogsByUserId = async (
 
   blogQuery.paginate().fields();
 
-  const result = await blogQuery.modelQuery; // Await the results here
+  const result = await blogQuery.modelQuery;
   const meta = await blogQuery.countTotal();
   meta.total = total;
 
@@ -772,7 +731,6 @@ const deleteBlogByAdminUsingId = async (
   try {
     session.startTransaction();
 
-    // Find the blog and populate the author with specific fields
     const blog = await Blog.findById(id)
       .populate({ path: "author", select: "fullName email" })
       .session(session);
@@ -788,7 +746,6 @@ const deleteBlogByAdminUsingId = async (
       throw new AppError(httpStatus.NOT_FOUND, "Author not found");
     }
 
-    // Soft delete the blog
     blog.isDeleted = true;
     await blog.save({ session });
 
@@ -805,7 +762,6 @@ const deleteBlogByAdminUsingId = async (
       { session },
     );
 
-    // Commit the transaction
     await session.commitTransaction();
     await session.endSession();
 
@@ -818,7 +774,6 @@ const deleteBlogByAdminUsingId = async (
       meta: { reason: payload.reason },
     });
 
-    // Send email notification to the author
     await sendEmail({
       to: {
         name: author.fullName,
@@ -832,7 +787,6 @@ const deleteBlogByAdminUsingId = async (
     // eslint-disable-next-line no-console
     console.log("Blog soft-deleted, email sent successfully.");
   } catch (error) {
-    // Abort the transaction in case of an error
     await session.abortTransaction();
     await session.endSession();
     throw error;
@@ -863,7 +817,6 @@ const deleteBlogByUserUsingId = async (
       throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
     }
 
-    // Soft delete the blog
     blog.isDeleted = true;
     const result = await blog.save({ session });
 
@@ -880,7 +833,6 @@ const deleteBlogByUserUsingId = async (
       { session },
     );
 
-    // Commit the transaction
     await session.commitTransaction();
     await session.endSession();
 
@@ -914,7 +866,6 @@ const updateBlogByUserUsingId = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // Generate unique slug
   payload.slug = await generateUniqueSlug(payload.title);
 
   const blog = await Blog.findOneAndUpdate(
@@ -940,7 +891,6 @@ const updateBlogByAdmin = async (
   }
 
   if (payload.title) {
-    // Generate unique slug
     payload.slug = await generateUniqueSlug(payload.title);
   }
 

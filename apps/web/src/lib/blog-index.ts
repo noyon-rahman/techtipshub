@@ -1,3 +1,4 @@
+import { baseApi } from "@/config/api";
 import type { IBlog } from "@/types";
 
 /**
@@ -8,10 +9,9 @@ import type { IBlog } from "@/types";
  * only slow it down. One fetch, one cache, one entry per page of results, for
  * the length of the build.
  *
- * The build reads `BASE_API` (the API's own origin), not the app's `/api`
- * proxy: prerendering happens on the build machine, outside a browser request.
+ * The build reads the API's own origin, not the app's `/api` proxy:
+ * prerendering happens on the build machine, outside a browser request.
  */
-const baseApi = () => (process.env.BASE_API ?? "").replace(/\/$/, "");
 
 /** The API accepts generous limits, but a build should not ask for one. */
 const PAGE_SIZE = 100;
@@ -39,7 +39,7 @@ let index: Promise<IndexedBlogs> | null = null;
 const load = async (): Promise<IndexedBlogs> => {
   const rows: BlogListRow[] = [];
   const seen = new Set<string>();
-  const base = baseApi();
+  const base = baseApi;
 
   if (base) {
     let page = 1;

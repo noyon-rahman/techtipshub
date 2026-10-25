@@ -20,7 +20,6 @@ const dashboard = async () => {
     return "no change";
   };
 
-  // Helper function to get monthly count for a model
   const getMonthlyCount = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     model: any,
@@ -34,7 +33,6 @@ const dashboard = async () => {
     return model.countDocuments(filter);
   };
 
-  // Fetch total and monthly data for each metric
   const totalUpvotes = await Vote.countDocuments({ type: "upvote" });
   const currentMonthUpvotes = await Vote.countDocuments({
     type: "upvote",
@@ -151,11 +149,10 @@ const dashboard = async () => {
     type: determineType(currentMonthBlogs, lastMonthBlogs),
   };
 
-  // Generate chart data for each month of the current year
   const chartData = Array.from({ length: 12 }, (_, i) => {
     const monthStart = new Date(currentYear, i, 1);
     return {
-      name: format(monthStart, "MMM"), // Format month as Jan, Feb, etc.
+      name: format(monthStart, "MMM"),
       views: 0,
       blogs: 0,
       comments: 0,
@@ -165,7 +162,6 @@ const dashboard = async () => {
     };
   });
 
-  // Fill in the chart data for the current year
   for (let i = 0; i < 12; i++) {
     const monthStart = new Date(currentYear, i, 1);
     const monthEnd = new Date(currentYear, i + 1, 1);
@@ -187,7 +183,7 @@ const dashboard = async () => {
     ]);
 
     chartData[i] = {
-      name: format(monthStart, "MMM"), // Month name
+      name: format(monthStart, "MMM"),
       views: monthlyViews,
       blogs: monthlyBlogs,
       comments: monthlyComments,

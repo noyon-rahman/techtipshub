@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { TAppBindings } from "../../interface/bindings";
-import { validateRequest, withUploads } from "../../middlewares";
+import { validate, withUploads } from "../../middlewares";
 import { blogValidationSchema } from "../blog/blog.validation";
 import { blogController } from "../blog/blog.controller";
 import { categoryController } from "../category/category.controller";
@@ -25,7 +25,7 @@ adminBlogRouter.delete("/:id", blogController.deleteBlogByAdminUsingId);
 adminBlogRouter.put(
   "/:id",
   withUploads({ field: "image", target: "coverImage" }),
-  validateRequest(blogValidationSchema.updateByAdmin),
+  validate({ json: blogValidationSchema.updateByAdmin }),
   blogController.updateBlogByAdmin,
 );
 
@@ -35,19 +35,19 @@ adminCategoryRouter.get("/", categoryController.getAdminList);
 
 adminCategoryRouter.post(
   "/",
-  validateRequest(categoryValidationSchema.create),
+  validate({ json: categoryValidationSchema.create }),
   categoryController.create,
 );
 
 adminCategoryRouter.patch(
   "/:id",
-  validateRequest(categoryValidationSchema.update),
+  validate({ json: categoryValidationSchema.update }),
   categoryController.update,
 );
 
 adminCategoryRouter.delete(
   "/:id",
-  validateRequest(categoryValidationSchema.deleteCategory),
+  validate({ json: categoryValidationSchema.deleteCategory }),
   categoryController.deleteSingleCategory,
 );
 

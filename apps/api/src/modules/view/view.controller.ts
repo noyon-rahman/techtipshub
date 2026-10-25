@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import httpStatus from "http-status";
 import type { Context } from "hono";
+import config from "../../config";
 import { AppError } from "../../errors";
 import type { TAppBindings } from "../../interface/bindings";
 import sendResponse from "../../utils/sendResponse";
@@ -30,7 +31,7 @@ const guestVisitorKey = (
   const forwarded = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
   const ip = forwarded || clientAddress(c) || "unknown";
   const userAgent = c.req.header("user-agent") || "unknown";
-  const salt = process.env.JWT_ACCESS_TOKEN_SECRET || "techtipshub";
+  const salt = config.JWT_ACCESS_TOKEN_SECRET;
 
   return createHash("sha256")
     .update(`${visitorId}|${ip}|${userAgent}|${salt}`)

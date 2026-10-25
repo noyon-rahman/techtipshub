@@ -1,5 +1,4 @@
-import type { IBlog } from "./blog.type";
-import type { IUser } from "./user.type";
+import type { IBlog, IUser } from "@techtipshub/shared";
 
 export interface IPaginationMeta {
   page: number;

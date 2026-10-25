@@ -8,7 +8,6 @@ import errorHandler, { notFound } from "./errorHandler";
 
 const app = new Hono<TAppBindings>();
 
-// middlewares
 app.use("*", logger());
 app.use("*", secureHeaders());
 app.use(
@@ -29,7 +28,6 @@ app.use(
 app.get("/", (c) => c.json({ data: { message: "Hello World!" } }));
 app.get("/health", (c) => c.text("OK✅"));
 
-// application routes
 app.route("/api/v1", mainRoutes);
 
 app.notFound(notFound);

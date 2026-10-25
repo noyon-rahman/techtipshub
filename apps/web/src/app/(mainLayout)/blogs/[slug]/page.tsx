@@ -180,13 +180,23 @@ const DynamicBlogPage = async ({ params }: Props) => {
   // Both halves keep their own class so the body's type rules stay continuous.
   const introSplit = splitAfterIntro(content);
 
-  // Headlines for search engines, link unfurls and anything that does not run
-  // the reader check: the server-rendered preview, whole body never. This is
-  // also what a visitor sees while their session is being checked.
+  // The preview dissolves rather than stopping: a mask on the element itself
+  // takes the text from full opacity to nothing over its last lines. A mask,
+  // not a gradient laid over the text, so it always bites into real lines
+  // however long the preview is.
+  //
+  // The stop is a share of the element (`25%`) rather than a fixed length: a
+  // fixed 88px lands in empty space on a short preview, so nothing fades. A
+  // percentage always meets the last lines, and a shorter preview fades over
+  // a shorter distance instead of washing out a whole paragraph.
+  const previewMask =
+    "linear-gradient(to bottom, #000 75%, transparent 100%)";
+
   const previewColumn = (
     <>
       <div
         className="tth-article mt-10 print:mt-0"
+        style={{ maskImage: previewMask, WebkitMaskImage: previewMask }}
         dangerouslySetInnerHTML={{ __html: previewBody }}
       />
       <LockedArticle loginHref={loginHref} />
@@ -231,7 +241,7 @@ const DynamicBlogPage = async ({ params }: Props) => {
   // depends on who is asking.
   const readableColumn = (
     <div data-article-access>
-      <ArticleAccess slug={slug} />
+      <ArticleAccess key={slug} />
       <div data-article-for="guest">{previewColumn}</div>
       <div data-article-for="member">{memberColumn}</div>
     </div>

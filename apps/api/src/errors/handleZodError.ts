@@ -7,7 +7,9 @@ const handleZodError = (error: ZodError): TGenericErrorResponse => {
     // TErrorSources only allows string | number.
     const path = issue.path as (string | number)[];
     return {
-      path: path.slice(1).join(".") || path[0],
+      // The path is relative to the part being validated (`json`, `query`, …),
+      // which the route already named, so it is the field name the form needs.
+      path: path.join("."),
       message: issue.message,
     };
   });

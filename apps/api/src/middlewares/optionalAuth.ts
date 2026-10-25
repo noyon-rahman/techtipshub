@@ -22,7 +22,7 @@ const optionalAuth: MiddlewareHandler<TAppBindings> = async (c, next) => {
   try {
     const decoded = jwt.verify(
       token,
-      config.jwt_access_token_secret as string,
+      config.JWT_ACCESS_TOKEN_SECRET,
     ) as JwtPayload;
 
     const user = await User.findOne({ email: decoded.email });

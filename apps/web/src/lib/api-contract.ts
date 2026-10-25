@@ -16,14 +16,15 @@
  * off successes, whose copy the screens own.
  */
 
-export type TErrorSource = { path?: string; message?: string };
+export type { IErrorSource, IErrorSource as TErrorSource } from "@techtipshub/shared";
+import type { IErrorSource } from "@techtipshub/shared";
 
 export interface TLegacyBody<TData = unknown> {
   success: boolean;
   data?: TData;
   meta?: Record<string, unknown>;
   message?: string;
-  errorSources?: TErrorSource[];
+  errorSources?: IErrorSource[];
   /**
    * The HTTP status the answer arrived with. Kept because a few screens act on
    * the difference between "your session ended" (401) and a transient failure;
@@ -66,7 +67,7 @@ export const legacyBody = <TData = unknown>(
       success: false,
       message,
       errorSources: Array.isArray(error?.details)
-        ? (error.details as TErrorSource[])
+        ? (error.details as IErrorSource[])
         : undefined,
       ...(status === undefined ? {} : { statusCode: status }),
     } as TLegacyBody<TData>;

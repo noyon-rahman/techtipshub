@@ -7,10 +7,6 @@ import { useBlogEditor, getBlogHTML } from "./use-blog-editor";
 
 export type BlogEditor = ReturnType<typeof useBlogEditor>;
 
-/* -------------------------------------------------------------------------- */
-/* Building blocks used by each composer layout                               */
-/* -------------------------------------------------------------------------- */
-
 /**
  * The toolbar with a working "insert block" button.
  *
@@ -93,10 +89,6 @@ export const useComposerEditor = ({
 
   return editor;
 };
-
-/* -------------------------------------------------------------------------- */
-/* Composer used by forms and modals                                          */
-/* -------------------------------------------------------------------------- */
 
 interface IProps {
   value: string;

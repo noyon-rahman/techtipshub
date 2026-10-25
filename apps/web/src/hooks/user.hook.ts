@@ -15,7 +15,6 @@ import type { IAdminMembersParams } from "@/types/admin.type";
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-// follow a user
 export const useFollowUser = () => {
   return useMutation<any, Error, string>({
     mutationKey: ["FOLLOW_USER"],
@@ -33,7 +32,6 @@ export const useFollowUser = () => {
   });
 };
 
-// unfollow a user
 export const useUnfollowUser = () => {
   return useMutation<any, Error, string>({
     mutationKey: ["UNFOLLOW_USER"],
@@ -51,7 +49,6 @@ export const useUnfollowUser = () => {
   });
 };
 
-// get all users
 // Params are part of the cache key: each page, search and filter combination
 // keeps its own entry. Callers that pass nothing still get the "first
 // response" shape other screens read (`["GET_ALL_USERS"]`).
@@ -71,7 +68,6 @@ export const useGetAllUsers = (params?: Record<string, unknown>) => {
   return { ...query, rows, meta };
 };
 
-// block user
 export const useBlockUser = () => {
   return useMutation<any, Error, string>({
     mutationKey: ["BLOCK_USER"],
@@ -89,7 +85,6 @@ export const useBlockUser = () => {
   });
 };
 
-// unblock user
 export const useUnblockUser = () => {
   return useMutation<any, Error, string>({
     mutationKey: ["UNBLOCK_USER"],
@@ -150,7 +145,6 @@ export const useDeleteUserAccount = () => {
   });
 };
 
-// update logged in user profile details
 export const useUpdateProfile = () => {
   return useMutation<any, Error, FormData>({
     mutationKey: ["UPDATE_PROFILE"],
@@ -165,7 +159,6 @@ export const useUpdateProfile = () => {
   });
 };
 
-// update logged in user profile social links
 export const useUpdateSocialLinks = () => {
   return useMutation<any, Error, { socialLinks: TSocialLink[] }>({
     mutationKey: ["UPDATE_SOCIAL_LINKS"],

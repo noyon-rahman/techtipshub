@@ -54,7 +54,6 @@ const deleteComment = async (
       }
     }
 
-    // Find the comment to be deleted
     const comment = await Comment.findByIdAndUpdate(
       commentId,
       { isDeleted: true },

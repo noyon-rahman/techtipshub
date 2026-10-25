@@ -6,22 +6,23 @@ import type { TUserRole } from "../modules/user/user.interface";
  *
  * Hono keeps these on the context rather than on the request object, so a
  * handler reads `c.get("user")` and the type follows from here instead of a
- * global declaration.
+ * global declaration. Validated request parts are stored as
+ * `validatedBody` and, where a route reads them, `validatedCookies`.
  */
 export type TAppBindings = {
   Variables: {
     /** The signed-in reader. Not set on routes open to guests. */
     user: JwtPayload & { role: TUserRole };
-    /** Body output of `validateRequest`, which has cleaned it. */
+    /** Body output of `validate`, which has cleaned it. */
     validatedBody: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     /**
      * The object `withUploads` built from a multipart request. It is set
      * beside `validatedBody` because that middleware has already read the
-     * form, so a later `validateRequest` would find nothing to parse; it
-     * validates this object instead.
+     * form, so a later `validate` would find nothing to parse; it validates
+     * this object instead.
      */
     uploadedBody: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    /** Cookie output of `validateRequest`, when its schema reads them. */
+    /** Cookie output of `validate`, on the routes whose schema reads them. */
     validatedCookies: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   };
 };

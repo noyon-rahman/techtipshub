@@ -1,3 +1,4 @@
+import { baseApi } from "@/config/api";
 import { requiresSession } from "@/lib/blog-routes";
 import { NextRequest, NextResponse } from "next/server";
 import { jwtDecode } from "jwt-decode";
@@ -23,10 +24,6 @@ const CRAWLER_PATTERN =
 const RENEW_BEFORE_SECONDS = 60;
 
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-
-const baseApi = (
-  process.env.NEXT_PUBLIC_BASE_API ?? "http://localhost:5000/api/v1"
-).replace(/\/$/, "");
 
 interface ITokenClaims {
   exp?: number;

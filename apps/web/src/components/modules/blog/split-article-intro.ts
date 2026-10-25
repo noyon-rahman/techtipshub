@@ -7,11 +7,18 @@
  * paragraph nested in a blockquote, list item or div can never split the body,
  * and both halves always carry balanced tags of their own.
  *
+ * `paragraphs` is how many top-level paragraphs the first half keeps; the ad
+ * uses the default of one. A guest preview asks for more, so the reader has
+ * something to read before they meet the boundary.
+ *
  * Returns `null` when there is no safe cut point (a body that opens with a
  * heading, a single paragraph, plain text): the caller then renders the body in
  * one piece and places the ad after it.
  */
-export const splitAfterIntro = (html?: string): [string, string] | null => {
+export const splitAfterIntro = (
+  html?: string,
+  paragraphs = 1,
+): [string, string] | null => {
   if (!html) return null;
 
   const tags = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)(?:[^>"']|"[^"]*"|'[^']*')*?(\/?)>/g;
@@ -32,6 +39,7 @@ export const splitAfterIntro = (html?: string): [string, string] | null => {
   ]);
 
   const stack: string[] = [];
+  let closed = 0;
   let match: RegExpExecArray | null;
 
   while ((match = tags.exec(html)) !== null) {
@@ -46,7 +54,9 @@ export const splitAfterIntro = (html?: string): [string, string] | null => {
         // An empty remainder means the paragraph was the whole body; leave the
         // body intact and let the caller place the ad after it.
         if (!rest.trim()) return null;
-        return [html.slice(0, cut), rest];
+
+        closed += 1;
+        if (closed >= paragraphs) return [html.slice(0, cut), rest];
       }
       const open = stack.lastIndexOf(name);
       if (open !== -1) stack.length = open;

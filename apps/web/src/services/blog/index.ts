@@ -97,22 +97,18 @@ export const getAllBlogs = async (
   }
 };
 
-// get following users blogs
 export const getFollowingUsersBlogs = async (
   params?: Record<string, string | undefined>,
 ) => {
   // Read here rather than at module scope: a top-level `next/headers` import
-  // in a service the prerendered article page also uses makes that page look
   // request-bound. Only this function needs the session.
   const { cookies } = await import("next/headers");
   const cookieStore = await cookies();
   const accessToken = cookieStore.get("tth_access_token")?.value;
 
   try {
-    // Create a URL with the base endpoint
     const url = new URL(`${envConfig.baseApi}/blogs/following-users`);
 
-    // Append only defined parameters
     if (params) {
       Object.keys(params).forEach((key) => {
         const value = params[key];
@@ -175,7 +171,6 @@ export const getLoggedInUserBlogs = async (
   try {
     const url = new URL(`${envConfig.baseApi}/blogs/my-blogs`);
 
-    // Append only defined parameters
     if (params) {
       Object.keys(params).forEach((key) => {
         const value = params[key];
@@ -276,7 +271,6 @@ const refreshArticleComments = () => {
   updateTag("articleData");
 };
 
-// add a comment to a blog
 export const commentOnBlog = async (blogId: string, payload: FormData) => {
   try {
     const res = await axiosInstance.post(`/blogs/${blogId}/comments`, payload);
@@ -291,7 +285,6 @@ export const commentOnBlog = async (blogId: string, payload: FormData) => {
   }
 };
 
-// delete a blog by admin using id with reason
 export const deleteBlogByAdminUsingId = async (
   blogId: string,
   reason: string,
@@ -310,7 +303,6 @@ export const deleteBlogByAdminUsingId = async (
   }
 };
 
-// delete a blog by user using id
 export const deleteBlogByUserUsingId = async (blogId: string) => {
   try {
     const res = await axiosInstance.delete(`/blogs/${blogId}`);
@@ -326,7 +318,6 @@ export const deleteBlogByUserUsingId = async (blogId: string) => {
   }
 };
 
-// update a blog by user using id
 export const updateBlogByUserUsingId = async (
   blogId: string,
   payload: FormData,
@@ -343,7 +334,6 @@ export const updateBlogByUserUsingId = async (
   }
 };
 
-// update blog by admin
 export const updateBlogByAdmin = async (blogId: string, payload: FormData) => {
   try {
     const res = await axiosInstance.put(`/admin/blogs/${blogId}`, payload);
@@ -383,7 +373,6 @@ export const deleteCommentAsAdmin = async (commentId: string) => {
   }
 };
 
-// update comment by logged in user
 export const updateCommentByUser = async (
   commentId: string,
   payload: FormData,

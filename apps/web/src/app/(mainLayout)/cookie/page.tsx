@@ -83,34 +83,15 @@ const sections: ILegalSection[] = [
               </tr>
               <tr>
                 <td>
-                  <code>next-auth.csrf-token</code>
+                  <code>GOCS</code>, <code>__Host-GAPS</code>
                 </td>
-                <td>NextAuth</td>
+                <td>Google</td>
                 <td>
-                  Protects the social sign-in flow against cross-site request
-                  forgery.
+                  Set by Google on its own domain while you pick an account for
+                  Google sign-in. We cannot read them, and clearing them only
+                  means you choose an account again.
                 </td>
-                <td>Session</td>
-              </tr>
-              <tr>
-                <td>
-                  <code>next-auth.callback-url</code>
-                </td>
-                <td>NextAuth</td>
-                <td>Returns you to the right page after signing in.</td>
-                <td>Session</td>
-              </tr>
-              <tr>
-                <td>
-                  <code>next-auth.session-token</code>
-                </td>
-                <td>NextAuth</td>
-                <td>
-                  Short-lived session created while you sign in with Google,
-                  Facebook or GitHub. Secure variants are prefixed{" "}
-                  <code>__Secure-</code> or <code>__Host-</code>.
-                </td>
-                <td>Up to 30 days</td>
+                <td>Up to 2 years</td>
               </tr>
             </tbody>
           </table>

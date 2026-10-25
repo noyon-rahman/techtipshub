@@ -152,8 +152,6 @@ const count = (value: unknown) => {
   return Number.isFinite(raw) ? raw : undefined;
 };
 
-/* ------------------------------------------------------------------ pieces */
-
 const SectionHeading = ({
   title,
   description,
@@ -257,8 +255,6 @@ const DashboardSkeleton = () => (
     </div>
   </div>
 );
-
-/* ------------------------------------------------------------------ blocks */
 
 const TrendSpark = ({ points }: { points: number[] }) => {
   const values = points.length > 1 ? points : [0, 0];
@@ -780,8 +776,6 @@ const HealthBlock = ({
     </Panel>
   );
 };
-
-/* ------------------------------------------------------------------ screen */
 
 export default function AdminDashboard() {
   const [days, setDays] = useState<RangeDays>(30);

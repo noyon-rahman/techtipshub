@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { baseApi } from "@/config/api";
 
 /**
  * Browser-side admin API.
@@ -15,12 +16,6 @@ import { cookies } from "next/headers";
  * a live admin session. The handler itself never reads a body it does not
  * forward, and never trusts a path outside `/admin/`.
  */
-const baseApi = (
-  process.env.NEXT_PUBLIC_BASE_API ??
-  process.env.BASE_API ??
-  "http://localhost:5000/api/v1"
-).replace(/\/$/, "");
-
 const UNSAFE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
 const handler = async (

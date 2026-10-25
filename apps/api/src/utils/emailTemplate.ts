@@ -2,7 +2,6 @@ import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import config from "../config";
 
-// reset password
 export const generateResetPasswordEmail = ({
   resetPasswordLink,
   fullName,
@@ -108,7 +107,6 @@ export const generateResetPasswordEmail = ({
 </html>`;
 };
 
-// verify email
 export const generateVerifyEmail = ({
   fullName,
   verifyEmailLink,
@@ -240,8 +238,6 @@ export const generateVerifyEmail = ({
 
 </html>`;
 };
-
-// delete blog email confirmation
 
 export const deleteBlogEmailConfirmation = (
   blogTitle: string,

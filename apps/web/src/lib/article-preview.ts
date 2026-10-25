@@ -66,13 +66,23 @@ const firstWords = (html: string, words: number): string => {
   return `${html.slice(0, end).trimEnd()}${closers}`;
 };
 
+/**
+ * How many top-level paragraphs a guest sees before the boundary.
+ *
+ * One paragraph was not enough to read: the boundary arrived before the reader
+ * had anything to lose, and the page read as broken rather than locked. Three
+ * is roughly a screen of prose — enough to be invested, short enough that the
+ * ask is not buried.
+ */
+const PREVIEW_PARAGRAPHS = 3;
+
 export const articlePreviewHtml = (
   html?: string,
   words = FALLBACK_PREVIEW_WORDS,
 ) => {
   if (!html) return "";
 
-  const intro = splitAfterIntro(html)?.[0];
+  const intro = splitAfterIntro(html, PREVIEW_PARAGRAPHS)?.[0];
   if (intro?.trim()) return intro;
 
   return firstWords(html, words);

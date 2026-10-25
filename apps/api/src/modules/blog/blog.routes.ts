@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { USER_ROLE } from "../../constant";
 import type { TAppBindings } from "../../interface/bindings";
-import { auth, optionalAuth, validateRequest, withUploads } from "../../middlewares";
+import { auth, optionalAuth, validate, withUploads } from "../../middlewares";
 import { commentValidationSchema } from "../comment/comment.validation";
 import { blogController } from "./blog.controller";
 import { blogValidationSchema } from "./blog.validation";
@@ -26,7 +26,7 @@ blogRouter.post(
   "/",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
   withUploads({ field: "image", target: "coverImage" }),
-  validateRequest(blogValidationSchema.create),
+  validate({ json: blogValidationSchema.create }),
   blogController.create,
 );
 
@@ -39,7 +39,7 @@ blogRouter.put(
   "/:id",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
   withUploads({ field: "image", target: "coverImage" }),
-  validateRequest(blogValidationSchema.update),
+  validate({ json: blogValidationSchema.update }),
   blogController.updateBlogByUserUsingId,
 );
 
@@ -51,7 +51,7 @@ blogRouter.post(
   "/:id/comments",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
   withUploads({ field: "images", target: "images", multiple: true }),
-  validateRequest(commentValidationSchema.commentOnBlog),
+  validate({ json: commentValidationSchema.commentOnBlog }),
   blogController.commentOnBlog,
 );
 

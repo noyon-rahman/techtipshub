@@ -21,22 +21,19 @@ export type ArticleAccessState = "member" | "guest";
  * shown to every member on every cold load for the length of the round trip.
  *
  * The check itself is two cookie reads: one for the session, one for whether
- * this is a browser at all. It used to wait on recording the view, a call to
- * the API that had nothing to do with what the reader may see; that now runs
- * after the answer is sent.
+ * this is a browser at all. Counting the view is not part of this answer and
+ * does not happen here; `BlogViewCounter` records it from the browser.
  *
  * The visible half is keyed on `data-article-view` on the article container
  * (see the article access rules in `globals.css`), never by re-rendering the
  * body.
  */
-const ArticleAccess = ({ slug }: { slug: string }) => {
+const ArticleAccess = () => {
   const [state, setState] = useState<ArticleAccessState>("guest");
 
   useEffect(() => {
     const container = document.querySelector<HTMLElement>("[data-article-access]");
     if (!container) return;
-
-    let active = true;
 
     // Before the answer arrives neither column is shown. The prompt is the safe
     // default for a document nobody has asked about, but showing it to a member
@@ -49,7 +46,6 @@ const ArticleAccess = ({ slug }: { slug: string }) => {
     let shown: ArticleAccessState | undefined;
 
     const setView = (answer: ArticleAccessState) => {
-      if (!active) return;
       if (shown === "member") return;
       if (shown === answer) return;
 
@@ -62,15 +58,14 @@ const ArticleAccess = ({ slug }: { slug: string }) => {
       );
     };
 
-    resolveArticleAccess(slug)
+    // The check restarts with every effect run, including the second one React
+    // makes on mount in development, so an abandoned run can never leave the
+    // page waiting. The answer is a cookie read and costs nothing to repeat.
+    resolveArticleAccess()
       .then(({ canRead }) => setView(canRead ? "member" : "guest"))
       // The check never answered: the prompt, never the body.
       .catch(() => setView("guest"));
-
-    return () => {
-      active = false;
-    };
-  }, [slug]);
+  }, []);
 
   return <span hidden aria-hidden data-article-access-for={state} />;
 };

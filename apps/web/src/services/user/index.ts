@@ -28,7 +28,6 @@ export const getUserByUsername = async (username: string) => {
   }
 };
 
-// get user following status
 export const getUserFollowingStatus = async (userId: string) => {
   try {
     const res = await axiosInstance.get(`/users/${userId}/follow-status`);
@@ -39,7 +38,6 @@ export const getUserFollowingStatus = async (userId: string) => {
   }
 };
 
-// follow a user
 export const followUser = async (userId: string) => {
   try {
     const res = await axiosInstance.put(`/users/${userId}/follow`);
@@ -52,7 +50,6 @@ export const followUser = async (userId: string) => {
   }
 };
 
-// unfollow a user
 export const unfollowUser = async (userId: string) => {
   try {
     const res = await axiosInstance.delete(`/users/${userId}/unfollow`);
@@ -138,7 +135,6 @@ export const unblockUser = async (userId: string) => {
   }
 };
 
-// update logged in user profile
 export const updateProfile = async (payload: FormData) => {
   try {
     const res = await axiosInstance.patch(`/users/update-profile`, payload);
@@ -151,7 +147,6 @@ export const updateProfile = async (payload: FormData) => {
   }
 };
 
-// update logged in user profile social links
 export const updateSocialLinks = async (payload: {
   socialLinks: TSocialLink[];
 }) => {

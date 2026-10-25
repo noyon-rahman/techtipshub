@@ -121,7 +121,7 @@ const ArticleHeader = ({
             <span className="whitespace-nowrap">{minutes} min read</span>
           )}
 
-          <BlogViewCounter slug={slug} fallback={views} />
+          <BlogViewCounter key={slug} slug={slug} fallback={views} />
         </div>
       </div>
     </header>

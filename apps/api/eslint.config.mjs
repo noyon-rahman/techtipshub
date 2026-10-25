@@ -1,45 +1,16 @@
-import js from "@eslint/js";
-import tsPlugin from "@typescript-eslint/eslint-plugin";
-import tsParser from "@typescript-eslint/parser";
-import prettier from "eslint-config-prettier";
+import { node } from "@techtipshub/eslint-config/node";
 
 export default [
   {
     ignores: ["dist/**", "node_modules/**", "email-templates/**", "*.js", "*.cjs"],
   },
-  js.configs.recommended,
-  ...tsPlugin.configs["flat/recommended"],
+  ...node,
   {
     files: ["src/**/*.ts"],
-    languageOptions: {
-      parser: tsParser,
-      ecmaVersion: "latest",
-      sourceType: "module",
-      globals: {
-        process: "readonly",
-        console: "readonly",
-        Buffer: "readonly",
-        File: "readonly",
-        setTimeout: "readonly",
-        clearTimeout: "readonly",
-        __dirname: "readonly",
-      },
-    },
     rules: {
-      "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        {
-          argsIgnorePattern: "^_",
-          varsIgnorePattern: "^_",
-          caughtErrorsIgnorePattern: "^_",
-        },
-      ],
-      "no-unused-expressions": "error",
-      "prefer-const": "error",
+      // The API is the only place a bare `console` call is acceptable; the
+      // shared profile keeps it a warning everywhere else.
       "no-console": "warn",
-      "no-undef": "error",
     },
   },
-  prettier,
 ];

@@ -23,28 +23,24 @@ const auth = (...requiredRoles: TUserRole[]): MiddlewareHandler<TAppBindings> =>
 
     const decoded = jwt.verify(
       token,
-      config.jwt_access_token_secret as string,
+      config.JWT_ACCESS_TOKEN_SECRET,
     ) as JwtPayload;
 
     const { email, role, iat } = decoded;
 
-    // check the use is exists or not
     const user = await User.findOne({ email: email });
     if (!user) {
       throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }
 
-    // check the user is already deleted
     if (user.isDeleted) {
       throw new AppError(httpStatus.FORBIDDEN, "User is already deleted");
     }
 
-    // check the is user status
     if (user.status === "Blocked") {
       throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
     }
 
-    // check if the user password has been changed or not
     if (
       user.passwordChangeAt &&
       User.isJWTIssuedBeforePasswordChanged(

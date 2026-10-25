@@ -188,10 +188,6 @@ export const wordCount = (html: string) => {
   return text ? text.split(/\s+/).length : 0;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Local draft                                                                 */
-/* -------------------------------------------------------------------------- */
-
 interface StoredDraft {
   values: BlogFormData;
   savedAt: number;

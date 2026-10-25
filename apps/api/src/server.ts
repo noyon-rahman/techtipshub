@@ -7,11 +7,10 @@ import connectToDatabase from "./db";
 let server: ServerType | undefined;
 
 const main = async () => {
-  // database connection
   await connectToDatabase();
 
   server = serve(
-    { fetch: app.fetch, port: Number(config.port) },
+    { fetch: app.fetch, port: config.PORT },
     ({ port }) => {
       // eslint-disable-next-line no-console
       console.log(`🚀 Server is listening on port ${port}`);
@@ -21,7 +20,6 @@ const main = async () => {
 
 main();
 
-// handle unhandledRejection
 process.on("unhandledRejection", (reason) => {
   // eslint-disable-next-line no-console
   console.log(`❌ unhandledRejection is detected, shutting down the server...`);
@@ -33,7 +31,6 @@ process.on("unhandledRejection", (reason) => {
   process.exit(1);
 });
 
-// handle uncaughtException
 process.on("uncaughtException", (error) => {
   // eslint-disable-next-line no-console
   console.log(`❌ uncaughtException is detected, shutting down the server...`);

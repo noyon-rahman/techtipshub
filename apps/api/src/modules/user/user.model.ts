@@ -155,13 +155,10 @@ userSchema.pre("findOne", function (next) {
 
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) {
-    return next(); // Skip hashing if the password hasn't been modified
+    return next();
   }
 
-  this.password = await bcrypt.hash(
-    this.password,
-    Number(config.bcrypt_salt_round),
-  );
+  this.password = await bcrypt.hash(this.password, config.BCRYPT_SALT_ROUND);
   next();
 });
 
@@ -170,7 +167,6 @@ userSchema.post("save", function (doc, next) {
   next();
 });
 
-// user static methods
 userSchema.statics.isPasswordMatch = function (
   plainTextPassword: string,
   hashedPassword,
@@ -181,7 +177,7 @@ userSchema.statics.isPasswordMatch = function (
 userSchema.statics.generateHashPassword = async function (
   plainTextPassword: string,
 ) {
-  return await bcrypt.hash(plainTextPassword, Number(config.bcrypt_salt_round));
+  return await bcrypt.hash(plainTextPassword, config.BCRYPT_SALT_ROUND);
 };
 
 userSchema.statics.createToken = function (

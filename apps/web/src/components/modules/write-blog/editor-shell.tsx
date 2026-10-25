@@ -24,10 +24,6 @@ import Link from "next/link";
 import type { ReactNode, RefObject } from "react";
 import { LuArrowLeft, LuEye, LuExternalLink } from "react-icons/lu";
 
-/* -------------------------------------------------------------------------- */
-/* Measure                                                                    */
-/* -------------------------------------------------------------------------- */
-
 /**
  * The one measure every article screen uses.
  *
@@ -53,10 +49,6 @@ export const EditorMessageFrame = ({ children }: { children: ReactNode }) => (
     <div className="max-w-read space-y-6">{children}</div>
   </div>
 );
-
-/* -------------------------------------------------------------------------- */
-/* Frame                                                                      */
-/* -------------------------------------------------------------------------- */
 
 /**
  * The frame every article screen sits in.
@@ -187,10 +179,6 @@ const PageBar = ({
 export const SectionLabel = ({ children }: { children: ReactNode }) => (
   <p className="text-[0.8125rem] font-medium text-default-600">{children}</p>
 );
-
-/* -------------------------------------------------------------------------- */
-/* The piece: cover, title, body                                              */
-/* -------------------------------------------------------------------------- */
 
 interface IWritingPaneProps {
   titleId: string;
@@ -329,10 +317,6 @@ export const ComposerToolbar = ({
   editor: BlogEditor;
 }) => <EditorToolbar editor={editor} />;
 
-/* -------------------------------------------------------------------------- */
-/* Publishing details                                                         */
-/* -------------------------------------------------------------------------- */
-
 interface IPublishingDetailsProps {
   idPrefix: string;
   categories: ICategory[];
@@ -450,10 +434,6 @@ export const PublishingDetails = ({
   </aside>
 );
 
-/* -------------------------------------------------------------------------- */
-/* Last chance at the bottom                                                  */
-/* -------------------------------------------------------------------------- */
-
 /**
  * The actions under the piece, for a writer who has just finished it.
  *
@@ -499,10 +479,6 @@ export const BottomActions = ({
     </div>
   </div>
 );
-
-/* -------------------------------------------------------------------------- */
-/* Small pieces                                                               */
-/* -------------------------------------------------------------------------- */
 
 export const COMMON_TAGS = [
   "javascript",
@@ -565,10 +541,6 @@ export const SavingOverlay = ({ label }: { label: string }) => (
     </div>
   </div>
 );
-
-/* -------------------------------------------------------------------------- */
-/* Preview                                                                    */
-/* -------------------------------------------------------------------------- */
 
 /** The article's reading time, at the pace the published page uses. */
 const readingMinutes = (html: string) => {

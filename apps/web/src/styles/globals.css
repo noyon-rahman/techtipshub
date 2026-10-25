@@ -516,9 +516,15 @@
 }
 
 .tth-article a:focus-visible {
-  outline: 2px solid var(--color-focus);
+  outline: 2px solid hsl(var(--heroui-primary-800));
   outline-offset: 2px;
   border-radius: 2px;
+}
+
+.dark .tth-article a:focus-visible {
+  /* Amber 800 is legible on paper but vanishes on charcoal; the dark theme
+     reuses the same accessible amber its links already use. */
+  outline-color: hsl(var(--heroui-primary-400));
 }
 
 .tth-article strong,

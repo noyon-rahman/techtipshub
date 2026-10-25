@@ -1,67 +1,80 @@
 import ButtonLink from "@/components/ui/button-link";
-import { FiLock } from "react-icons/fi";
+import { FcGoogle } from "react-icons/fc";
 
 interface IProps {
   loginHref: string;
 }
 
 /**
- * A guest reached a real article whose body the API withheld. The header above
- * already shows who wrote it; this block is the single thing to do about it.
+ * Where a guest's reading stops.
+ *
+ * The preview above this is several paragraphs of the real article. Its last
+ * lines fade into the page colour — the text runs out rather than being cut —
+ * and then a gap, and then the ask.
+ *
+ * The ask is centred and has no surface of its own. Nothing here is a card: it
+ * is the article ending and one decision following it. A box would make it a
+ * component sitting in the page; leaving it open makes it the end of the page.
+ *
+ * The order is fastest path first. Google completes in one redirect, so it is
+ * the primary button; email signup and email login follow in the same stack
+ * with the same weight, because a reader who does not want to hand over a
+ * Google account should not have to hunt for the alternative.
+ *
+ * Only options the site actually offers appear here. There is no Facebook
+ * button because there is no Facebook sign-in.
  */
 const LockedArticle = ({ loginHref }: IProps) => {
-  // Only what the member area actually offers; no invented benefits.
-  const nextSteps = [
-    "Read the full body of this article.",
-    "Comment on it and vote on whether it helped.",
-    "Follow the writer and keep up with what they publish next.",
-  ];
-
   return (
     <section
-      aria-label="Sign in to keep reading"
-      className="mt-12 border-t border-default/60 pt-6"
+      aria-label="Create an account to read the full article"
+      className="relative"
     >
-      <p className="tth-label text-primary-accessible">
-        <FiLock aria-hidden className="mr-1.5 inline size-3.5 align-[-2px]" />
-        Members read the full article
-      </p>
+      {/* The gap is part of the effect: the reader meets empty space where the
+          next paragraph should have been before they meet the ask. */}
+      <div className="h-16 sm:h-20" aria-hidden />
 
-      <p
-        id="locked-article"
-        className="mt-3 font-[family-name:var(--type-editorial)] text-2xl font-semibold leading-[1.2] tracking-[-0.01em]"
-      >
-        Sign in to keep reading
-      </p>
-
-      <p className="mt-2 max-w-md text-[0.95rem] leading-relaxed text-default-600">
-        This article is available to members of TechTipsHub.
-      </p>
-
-      <ul className="mt-5 max-w-md space-y-2 text-sm leading-relaxed text-default-700">
-        {nextSteps.map((step) => (
-          <li key={step} className="flex gap-2.5">
-            <span aria-hidden className="mt-[0.6em] h-px w-3 shrink-0 bg-default-400" />
-            {step}
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-7 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <ButtonLink
-          href={loginHref}
-          color="primary"
-          className="min-h-11 w-full sm:w-auto"
+      <div className="mx-auto max-w-lg text-center">
+        <h2
+          id="locked-article"
+          className="font-[family-name:var(--type-editorial)] text-[1.65rem] font-semibold leading-[1.22] tracking-[-0.015em] text-balance sm:text-[1.95rem]"
         >
-          Log in
-        </ButtonLink>
-        <ButtonLink
-          href="/signup"
-          variant="bordered"
-          className="min-h-11 w-full sm:w-auto"
-        >
-          Create a free account
-        </ButtonLink>
+          Create an account to read the full article.
+        </h2>
+
+        <p className="mx-auto mt-4 max-w-[44ch] text-[0.9rem] leading-relaxed text-default-600">
+          The author made this article available to TechTipsHub members. It takes
+          a moment to join, and you can read everything on the site.
+        </p>
+
+        <div className="mx-auto mt-9 flex max-w-sm flex-col items-stretch gap-2.5">
+          <ButtonLink
+            href="/api/auth/google"
+            variant="bordered"
+            className="min-h-11 w-full rounded-full border border-default-300 px-6 font-medium text-foreground hover:bg-default-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-700"
+          >
+            <FcGoogle aria-hidden size={18} className="shrink-0" />
+            Continue with Google
+          </ButtonLink>
+
+          <ButtonLink
+            href="/signup"
+            color="primary"
+            className="min-h-11 w-full rounded-full px-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-700"
+          >
+            Sign up with email
+          </ButtonLink>
+        </div>
+
+        <p className="mt-6 text-[0.85rem] leading-relaxed text-default-600">
+          Already have an account?{" "}
+          <a
+            href={loginHref}
+            className="font-medium text-primary-700 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-700"
+          >
+            Sign in
+          </a>
+        </p>
       </div>
     </section>
   );

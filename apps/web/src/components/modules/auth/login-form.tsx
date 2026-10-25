@@ -49,8 +49,10 @@ const LoginForm = () => {
   }, [isPending, data, redirect, setUserLoading]);
 
   // The API returns a message for wrong credentials; surface it rather than
-  // leaving the form looking like nothing happened.
+  // leaving the form looking like nothing happened. A failed Google sign-in
+  // arrives the same way, as `?error=` on this page.
   const errorMessage =
+    searchParams.get("error") ||
     (data && !data.success && data.message) ||
     (isError ? error?.message : undefined);
 

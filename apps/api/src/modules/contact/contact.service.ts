@@ -77,7 +77,7 @@ const create = async (payload: TContactPayload, requestKey: string) => {
 
   if (submissions.size > 500) prune();
 
-  const inbox = config.contact_inbox;
+  const inbox = config.CONTACT_INBOX;
 
   if (!inbox) {
     // Never claim a message was delivered when there is nowhere to send it.

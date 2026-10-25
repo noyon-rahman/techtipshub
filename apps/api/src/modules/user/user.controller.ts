@@ -5,7 +5,6 @@ import type { TRouteParams } from "../../interface/params";
 import sendResponse from "../../utils/sendResponse";
 import { userService } from "./user.service";
 
-// get all users (admin only)
 const getAllUsers = async (c: Context<TAppBindings>) => {
   const { result, meta } = await userService.getAllUsers(c.req.query());
 
@@ -28,7 +27,6 @@ const updateProfile = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// update user profile social links
 const updateSocialLinks = async (c: Context<TAppBindings>) => {
   const result = await userService.updateSocialLinks(
     c.get("user"),
@@ -38,7 +36,6 @@ const updateSocialLinks = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// block user (only admin)
 const blockUser = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
 
@@ -47,7 +44,6 @@ const blockUser = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// unblock user (only admin)
 const unBlockUser = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
 
@@ -56,7 +52,6 @@ const unBlockUser = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// make a user to admin (admin only)
 const makeAdmin = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
 
@@ -65,7 +60,6 @@ const makeAdmin = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// delete user account (admin only)
 const deleteUserAccount = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
 
@@ -88,7 +82,6 @@ const restoreUser = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// follow user
 const followUser = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams; // user id want's to follow
   const result = await userService.followUser(c.get("user"), id);
@@ -96,7 +89,6 @@ const followUser = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// unfollow user
 const unfollowUser = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams; // user id want's to follow
   const result = await userService.unfollowUser(c.get("user"), id);
@@ -104,7 +96,6 @@ const unfollowUser = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// get follow status
 const getFollowStatus = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams; // user id want's to follow
   const isFollowing = await userService.getFollowStatus(c.get("user"), id);
@@ -112,7 +103,6 @@ const getFollowStatus = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: { isFollowing } });
 };
 
-// get current logged in user followers
 const getLoggedInUserFollowers = async (c: Context<TAppBindings>) => {
   const { result, meta } = await userService.getLoggedInUserFollowers(
     c.get("user"),
@@ -122,7 +112,6 @@ const getLoggedInUserFollowers = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result, meta });
 };
 
-// get current logged in user following
 const getLoggedInUserFollowing = async (c: Context<TAppBindings>) => {
   const { result, meta } = await userService.getLoggedInUserFollowing(
     c.get("user"),
@@ -132,7 +121,6 @@ const getLoggedInUserFollowing = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result, meta });
 };
 
-// get followers by user id
 const getFollowersByUserId = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
   const { result, meta } = await userService.getFollowersByUserId(
@@ -143,7 +131,6 @@ const getFollowersByUserId = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result, meta });
 };
 
-// get following by user id
 const getFollowingByUserId = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
   const { result, meta } = await userService.getFollowingByUserId(

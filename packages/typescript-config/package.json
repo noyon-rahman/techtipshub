@@ -1,0 +1,16 @@
+{
+  "name": "@techtipshub/typescript-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "files": ["*.json"],
+  "exports": {
+    "./base": "./base.json",
+    "./node": "./node.json",
+    "./next": "./next.json",
+    "./package.json": "./package.json"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  }
+}

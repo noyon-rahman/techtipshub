@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { baseApi } from "@/config/api";
 import { decodeSlug } from "@/lib/slug";
 
 /**
@@ -15,12 +16,6 @@ import { decodeSlug } from "@/lib/slug";
  * is decoded once before the API address is built — encoding it as-is produces
  * a double-encoded path (`%25E0...`) that the API answers with 404.
  */
-const baseApi = (
-  process.env.BASE_API ??
-  process.env.NEXT_PUBLIC_BASE_API ??
-  "http://localhost:5000/api/v1"
-).replace(/\/$/, "");
-
 export const POST = async (
   request: Request,
   context: { params: Promise<{ slug: string }> },

@@ -56,10 +56,8 @@ const getAll = async (query: Record<string, unknown>) => {
     categorySearchableFields,
   );
 
-  // Await the filter() method
   await categoryQuery.filter();
 
-  // Now you can safely call sort, paginate, and fields
   categoryQuery.sort().paginate().fields();
 
   const result = await categoryQuery.modelQuery;

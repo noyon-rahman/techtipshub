@@ -1,0 +1,11 @@
+{
+  "extends": "@techtipshub/typescript-config/base",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true
+  },
+  "include": ["src"]
+}

@@ -14,7 +14,7 @@ const REFRESH_TOKEN_COOKIE = "tth_refresh_token";
 const cookieOptions = {
   secure: envConfig.NODE_ENV === "production",
   httpOnly: true,
-  maxAge: 1000 * 60 * 60 * 24 * 60 * 365,
+  maxAge: 60 * 60 * 24 * 365,
 } as const;
 
 const setAuthCookies = async (accessToken: string, refreshToken: string) => {
@@ -24,7 +24,6 @@ const setAuthCookies = async (accessToken: string, refreshToken: string) => {
   cookieStore.set(REFRESH_TOKEN_COOKIE, refreshToken, cookieOptions);
 };
 
-// register a new user
 export const registerUser = async (payload: FormData) => {
   try {
     const res = await axiosInstance.post("/auth/register", payload);
@@ -35,7 +34,6 @@ export const registerUser = async (payload: FormData) => {
   }
 };
 
-// login existing user
 export const loginUser = async (payload: TLogin) => {
   try {
     const res = await axiosInstance.post("/auth/login", payload);
@@ -53,7 +51,6 @@ export const loginUser = async (payload: TLogin) => {
   }
 };
 
-// social login
 export const socialLogin = async (payload: {
   email: string;
   fullName: string;
@@ -75,7 +72,6 @@ export const socialLogin = async (payload: {
   }
 };
 
-// logout user
 export const logOutUser = async () => {
   const cookieStore = await cookies();
 
@@ -83,7 +79,6 @@ export const logOutUser = async () => {
   cookieStore.delete(REFRESH_TOKEN_COOKIE);
 };
 
-// get current logged in user details
 export const getCurrentUser = async () => {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get(ACCESS_TOKEN_COOKIE)?.value;
@@ -114,7 +109,6 @@ export const getProfileInfo = async () => {
   }
 };
 
-// forget password
 export const forgetPassword = async (payload: { email: string }) => {
   try {
     const res = await axiosInstance.post("/auth/forget-password", payload);
@@ -125,7 +119,6 @@ export const forgetPassword = async (payload: { email: string }) => {
   }
 };
 
-// reset password
 export const resetPassword = async (payload: {
   newPassword: string;
   token: string;

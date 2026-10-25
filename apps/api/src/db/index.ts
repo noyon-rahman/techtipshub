@@ -3,7 +3,7 @@ import config from "../config";
 
 const connectToDatabase = async () => {
   try {
-    await mongoose.connect(config.database_url as string, {
+    await mongoose.connect(config.DATABASE_URL, {
       serverSelectionTimeoutMS: 5000,
     });
     // eslint-disable-next-line no-console

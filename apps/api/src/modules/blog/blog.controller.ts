@@ -17,7 +17,6 @@ const getAll = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result, meta });
 };
 
-// get following users blogs
 const getFollowingUsersBlogs = async (c: Context<TAppBindings>) => {
   const { result, meta } = await blogService.getFollowingUsersBlogs(
     c.get("user"),
@@ -56,7 +55,6 @@ const voteOnBlog = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-// get vote status
 const getVoteStatus = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
   const result = await blogService.getVoteStatus(c.get("user"), id);

@@ -9,9 +9,9 @@ import {
   sendEmail,
 } from "../../utils";
 import { IUser } from "../user/user.interface";
+import type { IGoogleProfile } from "./google-oauth";
 import User from "../user/user.model";
 
-// register new user
 const register = async (payload: IUser) => {
   const existedEmail = await User.findOne({
     email: payload.email,
@@ -44,7 +44,6 @@ const register = async (payload: IUser) => {
 
   const newUser = await User.create(payload);
 
-  // generate jwt verify token
   const jwtPayload = {
     email: newUser.email,
     role: newUser.role,
@@ -52,11 +51,11 @@ const register = async (payload: IUser) => {
 
   const verifyToken = User.createToken(
     jwtPayload,
-    config.jwt_reset_password_secret as string,
-    config.jwt_reset_password_expires_in as string,
+    config.JWT_RESET_PASSWORD_SECRET,
+    config.JWT_RESET_PASSWORD_EXPIRES_IN,
   );
 
-  const verifyEmailLink = `${config.api_base_url}/auth/verify-email?email=${newUser?.email}&token=${verifyToken}`;
+  const verifyEmailLink = `${config.API_BASE_URL}/auth/verify-email?email=${newUser?.email}&token=${verifyToken}`;
 
   // send verify email link
   await sendEmail({
@@ -78,7 +77,6 @@ const register = async (payload: IUser) => {
   return newUser;
 };
 
-// login user
 const login = async (payload: IUser) => {
   const user = await User.findOne({ email: payload.email }).select("+password");
 
@@ -88,10 +86,6 @@ const login = async (payload: IUser) => {
 
   if (!user.password) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Incorrect credentials");
-    // throw new AppError(
-    //   httpStatus.UNAUTHORIZED,
-    //   "User register or logged in by social account",
-    // );
   }
 
   if (!(await User.isPasswordMatch(payload.password, user.password))) {
@@ -117,24 +111,22 @@ const login = async (payload: IUser) => {
 
   const accessToken = User.createToken(
     jwtPayload,
-    config.jwt_access_token_secret as string,
-    config.jwt_access_token_expires_in as string,
+    config.JWT_ACCESS_TOKEN_SECRET,
+    config.JWT_ACCESS_TOKEN_EXPIRES_IN,
   );
 
   const refreshToken = User.createToken(
     jwtPayload,
-    config.jwt_refresh_token_secret as string,
-    config.jwt_refresh_token_expires_in as string,
+    config.JWT_REFRESH_TOKEN_SECRET,
+    config.JWT_REFRESH_TOKEN_EXPIRES_IN,
   );
 
   return { accessToken, refreshToken };
 };
 
-// social login
 const socialLogin = async (payload: IUser) => {
   let user = await User.findOne({ email: payload.email });
   if (!user) {
-    // create a new user (if not found the user by email)
     payload.username = payload.fullName.toLowerCase().split(" ").join("");
     user = await register(payload);
   }
@@ -149,20 +141,98 @@ const socialLogin = async (payload: IUser) => {
 
   const accessToken = User.createToken(
     jwtPayload,
-    config.jwt_access_token_secret as string,
-    config.jwt_access_token_expires_in as string,
+    config.JWT_ACCESS_TOKEN_SECRET,
+    config.JWT_ACCESS_TOKEN_EXPIRES_IN,
   );
 
   const refreshToken = User.createToken(
     jwtPayload,
-    config.jwt_refresh_token_secret as string,
-    config.jwt_refresh_token_expires_in as string,
+    config.JWT_REFRESH_TOKEN_SECRET,
+    config.JWT_REFRESH_TOKEN_EXPIRES_IN,
   );
 
   return { accessToken, refreshToken };
 };
 
-// get me (current logged in user)
+/**
+ * Sign in (or sign up) with a Google account.
+ *
+ * Unlike `login` this never checks a password: Google has already confirmed
+ * who the reader is. A new address becomes an account here, and an existing
+ * one is only refused if it is gone, blocked or soft-deleted, so the reason is
+ * the same one `refreshToken` gives rather than Google's opaque failure.
+ *
+ * The account is created without a password through `register`, which also
+ * sends the verification mail; neither is waited on for the response, because
+ * a Google profile carries no username and the mail server may be slow.
+ */
+const googleLogin = async (profile: IGoogleProfile) => {
+  let user = await User.findOne({ email: profile.email });
+
+  if (!user) {
+    const base = profile.email.split("@")[0].toLowerCase().replace(/\W/g, "");
+    const username = await uniqueUsername(base || "reader");
+
+    user = await User.create({
+      fullName: profile.name,
+      username,
+      email: profile.email,
+      profilePicture: profile.picture,
+    });
+  }
+
+  if (user.isDeleted) {
+    throw new AppError(httpStatus.FORBIDDEN, "User is deleted");
+  }
+
+  if (user.status === "Blocked") {
+    throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
+  }
+
+  const jwtPayload = {
+    _id: user._id,
+    profilePicture: user.profilePicture,
+    username: user.username,
+    name: user.fullName,
+    email: user.email,
+    role: user.role,
+  };
+
+  const accessToken = User.createToken(
+    jwtPayload,
+    config.JWT_ACCESS_TOKEN_SECRET,
+    config.JWT_ACCESS_TOKEN_EXPIRES_IN,
+  );
+
+  const refreshToken = User.createToken(
+    jwtPayload,
+    config.JWT_REFRESH_TOKEN_SECRET,
+    config.JWT_REFRESH_TOKEN_EXPIRES_IN,
+  );
+
+  return { accessToken, refreshToken };
+};
+
+/**
+ * A username nobody holds yet.
+ *
+ * The schema requires one and the existing social sign-in built it from the
+ * full name, which collides for two people called the same. A numeric suffix
+ * keeps it readable until the reader changes it in settings.
+ */
+const uniqueUsername = async (base: string) => {
+  let candidate = base;
+  let suffix = 1;
+
+  while (await User.exists({ username: candidate })) {
+    candidate = `${base}${suffix}`;
+    suffix += 1;
+  }
+
+  return candidate;
+};
+
+
 const getMe = async (payload: JwtPayload) => {
   const user = await User.findOne({ email: payload.email });
   if (!user) {
@@ -171,7 +241,6 @@ const getMe = async (payload: JwtPayload) => {
   return user;
 };
 
-// change-password
 const changePassword = async (
   userData: JwtPayload,
   payload: { oldPassword: string; newPassword: string },
@@ -184,17 +253,14 @@ const changePassword = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // check the user is already deleted
   if (user.isDeleted) {
     throw new AppError(httpStatus.FORBIDDEN, "User is already deleted");
   }
 
-  // check the is user status
   if (user.status === "Blocked") {
     throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
   }
 
-  // check the password is correct
   const isPasswordMatch = await User.isPasswordMatch(
     payload.oldPassword,
     user?.password,
@@ -203,7 +269,6 @@ const changePassword = async (
     throw new AppError(httpStatus.UNAUTHORIZED, "Password did not match");
   }
 
-  // hash new password
   const newHashedPassword = await User.generateHashPassword(
     payload.newPassword,
   );
@@ -221,20 +286,16 @@ const changePassword = async (
   );
 };
 
-// forget password
 const forgetPassword = async (email: string) => {
-  // check the user is exist
   const user = await User.findOne({ email });
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // check the user is already deleted
   if (user.isDeleted) {
     throw new AppError(httpStatus.FORBIDDEN, "User is already deleted");
   }
 
-  // check the is user status
   if (user.status === "Blocked") {
     throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
   }
@@ -248,7 +309,6 @@ const forgetPassword = async (email: string) => {
     );
   }
 
-  // generate jwt token
   const jwtPayload = {
     email: user.email,
     role: user.role,
@@ -256,18 +316,19 @@ const forgetPassword = async (email: string) => {
 
   const resetToken = User.createToken(
     jwtPayload,
-    config.jwt_reset_password_secret as string,
-    config.jwt_reset_password_expires_in as string,
+    config.JWT_RESET_PASSWORD_SECRET,
+    config.JWT_RESET_PASSWORD_EXPIRES_IN,
   );
 
-  // generate reset link. The UI lives in this same application, so the link
-  // points at its /reset-password route; the token travels in the fragment so
-  // it is never sent to a server in a Referer header or access log.
-  const resetUILink = `${config.reset_password_ui_url}?email=${encodeURIComponent(
+  // The reset form lives in this site (`/reset-password`), so the link is
+  // built from the same base every other link to the site uses. The token
+  // travels in the fragment so it is never sent to a server in a Referer
+  // header or access log.
+  const site = config.CLIENT_BASE_URL.replace(/\/$/, "");
+  const resetUILink = `${site}/reset-password?email=${encodeURIComponent(
     user.email,
   )}#token=${resetToken}`;
 
-  // send reset link to user email
   await sendEmail({
     to: {
       name: user.fullName,
@@ -290,7 +351,6 @@ const forgetPassword = async (email: string) => {
   return { email: user.email };
 };
 
-// reset password
 const resetPassword = async (
   payload: { newPassword: string },
   token: string,
@@ -302,7 +362,7 @@ const resetPassword = async (
   try {
     decoded = User.verifyToken(
       token,
-      config.jwt_reset_password_secret as string,
+      config.JWT_RESET_PASSWORD_SECRET,
     ) as JwtPayload;
   } catch (error: any) {
     const message =
@@ -312,23 +372,19 @@ const resetPassword = async (
     throw new AppError(httpStatus.FORBIDDEN, message);
   }
 
-  // check the use is exist or not
   const user = await User.findOne({ email: decoded.email });
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // check the user is already deleted
   if (user.isDeleted) {
     throw new AppError(httpStatus.FORBIDDEN, "User is already deleted");
   }
 
-  // check the is user status
   if (user.status === "Blocked") {
     throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
   }
 
-  // generate new password
   const newHashedPassword = await User.generateHashPassword(
     payload.newPassword,
   );
@@ -349,25 +405,21 @@ const resetPassword = async (
   );
 };
 
-// generate access token using refresh token
 const generateNewAccessToken = async (refreshToken: string) => {
   const decoded = User.verifyToken(
     refreshToken,
-    config.jwt_refresh_token_secret as string,
+    config.JWT_REFRESH_TOKEN_SECRET,
   );
 
-  // check the use is exist or not
   const user = await User.findOne({ email: decoded.email });
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  // check the user is already deleted
   if (user.isDeleted) {
     throw new AppError(httpStatus.FORBIDDEN, "User is already deleted");
   }
 
-  // check the is user status
   if (user.status === "Blocked") {
     throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
   }
@@ -393,8 +445,8 @@ const generateNewAccessToken = async (refreshToken: string) => {
 
   const accessToken = User.createToken(
     jwtPayload,
-    config.jwt_access_token_secret as string,
-    config.jwt_access_token_expires_in as string,
+    config.JWT_ACCESS_TOKEN_SECRET,
+    config.JWT_ACCESS_TOKEN_EXPIRES_IN,
   );
 
   return accessToken;
@@ -404,6 +456,7 @@ export const authService = {
   register,
   login,
   socialLogin,
+  googleLogin,
   getMe,
   changePassword,
   forgetPassword,

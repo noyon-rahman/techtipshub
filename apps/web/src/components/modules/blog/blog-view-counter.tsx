@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { HiOutlineEye } from "react-icons/hi2";
 
 interface IProps {
@@ -44,10 +44,16 @@ const visitorId = (): string | undefined => {
 const BlogViewCounter = ({ slug, fallback }: IProps) => {
   const [totalViews, setTotalViews] = useState(fallback);
 
+  // The count is fetched once per mount. React runs effects twice on mount in
+  // development; the API dedupes the view, but the request is still waste. The
+  // answer is shared through the ref so an abandoned run cannot swallow the
+  // only reply and leave the fallback number on screen.
+  const fetched = useRef<Promise<number | undefined> | null>(null);
+
   useEffect(() => {
     let active = true;
 
-    const record = async () => {
+    fetched.current ??= (async () => {
       try {
         const res = await fetch(`/api/views/${encodeURIComponent(slug)}`, {
           method: "POST",
@@ -55,18 +61,21 @@ const BlogViewCounter = ({ slug, fallback }: IProps) => {
           body: JSON.stringify({ visitorId: visitorId() }),
         });
 
-        if (!res.ok) return;
+        if (!res.ok) return undefined;
 
         const body = await res.json();
         const fresh = body?.data?.totalViews;
 
-        if (active && typeof fresh === "number") setTotalViews(fresh);
+        return typeof fresh === "number" ? fresh : undefined;
       } catch {
         // Counts are not worth an error state.
+        return undefined;
       }
-    };
+    })();
 
-    record();
+    fetched.current.then((fresh) => {
+      if (active && fresh !== undefined) setTotalViews(fresh);
+    });
 
     return () => {
       active = false;

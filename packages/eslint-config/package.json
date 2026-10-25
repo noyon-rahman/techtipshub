@@ -1,0 +1,25 @@
+{
+  "name": "@techtipshub/eslint-config",
+  "version": "0.0.0",
+  "private": true,
+  "license": "ISC",
+  "type": "module",
+  "files": ["*.js"],
+  "exports": {
+    ".": "./base.js",
+    "./node": "./node.js",
+    "./next": "./next.js",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.72.0",
+    "@typescript-eslint/parser": "^8.72.0",
+    "eslint-config-next": "16.4.3",
+    "eslint-config-prettier": "^10.1.8"
+  },
+  "peerDependencies": {
+    "eslint": "^10.13.0",
+    "typescript": "~6.0.3"
+  }
+}

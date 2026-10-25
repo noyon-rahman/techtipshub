@@ -1,6 +1,8 @@
+import { baseApi } from "@/config/api";
+
 const envConfig = {
-  baseApi: process.env.BASE_API,
-  NODE_ENV: "development",
+  baseApi,
+  NODE_ENV: process.env.NODE_ENV,
 };
 
 export default envConfig;
