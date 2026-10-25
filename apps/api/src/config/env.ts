@@ -104,7 +104,7 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT_WINDOW_MINUTES: positiveInt("AUTH_RATE_LIMIT_WINDOW_MINUTES").default(15),
 
   // cloudinary
-  CLOUD_NAME: required("CLOUD_NAME"),
+  CLOUDINARY_CLOUD_NAME: required("CLOUDINARY_CLOUD_NAME"),
   CLOUDINARY_API_KEY: required("CLOUDINARY_API_KEY"),
   CLOUDINARY_API_SECRET: required("CLOUDINARY_API_SECRET"),
 })

@@ -171,7 +171,7 @@ NODEMAILER_EMAIL_FROM="your_nodemailer_email"
 BCRYPT_SALT_ROUND="bcrypt_salt_round"
 
 # cloudinary configuration
-CLOUD_NAME="your_cloudinary_cloud_name"
+CLOUDINARY_CLOUD_NAME="your_cloudinary_CLOUDINARY_CLOUD_NAME"
 CLOUDINARY_API_KEY="your_cloudinary_api_key"
 CLOUDINARY_API_SECRET="your_cloudinary_api_secret"
 

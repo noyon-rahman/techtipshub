@@ -158,6 +158,12 @@ const login = async (payload: IUser) => {
  *   Google id is recorded so the link is explicit from then on. This is the
  *   case the product wants: a member who set a password can still use Google.
  *
+ * `isVerified` means "somebody proved this address", and Google proving it is
+ * its own proof: the profile is refused unless Google reports the address as
+ * verified (see `google-oauth.ts`). So a Google signup never needs the email
+ * round trip a password signup is sent on, and an existing password account
+ * that signs in with Google loses no standing by doing so.
+ *
  * Refused: a soft-deleted account, a blocked one, and a Google id that is
  * already attached to a *different* account. That last one is the account
  * takeover attempt Google's id exists to catch: it means a second address now
