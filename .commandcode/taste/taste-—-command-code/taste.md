@@ -3,7 +3,8 @@
 - Wants a root-cause diagnosis plus concrete evidence that the fix works (typecheck/lint/format/build run), not just a patch. Confidence: 0.6
 - Judges infrastructure work against "prod grade standards": mail must be reachable (a real reply-to mailbox, never a dead no-reply), with retries/timeouts/idempotency and both text and HTML bodies — not just a send call that happens to return 200. Confidence: 0.7
 - "Implement it properly" means the whole surface moves together — config schema, `.env` files, dependency list, docs, and verification — not a minimal patch at the call site. Confidence: 0.6
-- Works in pnpm + Turborepo monorepos with `apps/` and `packages/` layout, TypeScript throughout; deploys to Vercel. Confidence: 0.6
+- Works in pnpm + Turborepo monorepos with `apps/` and `packages/` layout, TypeScript throughout; deploys to Vercel (turbo-driven builds on the platform). Confidence: 0.7
+- Treats build/deploy warnings as defects to fix, not noise to tolerate: pastes the CI output (e.g. env vars missing from `turbo.json`) and says "fix this", expecting the config corrected at the source and validated (e.g. a turbo dry-run showing the resolved env), not silenced. Confidence: 0.6
 - Sends transactional email through Resend (API key + verified custom domain via env vars) rather than Nodemailer/Gmail SMTP; dropping the old SMTP stack entirely is expected. Confidence: 0.7
 - Wants sending identities modeled as multiple addresses on one verified domain (e.g. security@, support@, notifications@), chosen per flow, so new senders don't need a new config variable. Confidence: 0.65
 - Uses Hono as the API framework on Node (`@hono/node-server`), with separate entrypoints for the long-running dev server vs. the serverless handler. Confidence: 0.5
