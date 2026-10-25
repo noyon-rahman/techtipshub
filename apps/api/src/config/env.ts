@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 // Parsed on import, so a bad value stops the boot instead of the first request
-// that needs it.
+// that needs it. Where the values come from differs by host: the scripts pass
+// a local `.env` with `--env-file`, and Vercel puts the project's variables
+// straight into `process.env`.
 
 const required = (name: string) =>
   z
@@ -139,6 +141,17 @@ if (!parsed.success) {
   // Nothing else is running yet, and this must show at every log level.
   // eslint-disable-next-line no-console
   console.error(`Invalid environment configuration:\n${problems}`);
+
+  // A server of our own stops here, at boot, where the message can be read.
+  // Under Vercel the process is not ours to end: exiting while the module is
+  // loaded kills the request that loaded it, and every one after it reads as
+  // FUNCTION_INVOCATION_FAILED with no reason in it. The throw is caught by the
+  // app's error handler and answered with the same 500, once the log above
+  // says which variables to fix.
+  if (process.env.VERCEL) {
+    throw new Error("Invalid environment configuration, see the log above.");
+  }
+
   process.exit(1);
 }
 

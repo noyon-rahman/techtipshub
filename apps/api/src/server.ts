@@ -4,6 +4,19 @@ import app from "./app/app";
 import config from "./config";
 import connectToDatabase from "./db";
 
+/**
+ * What Vercel imports.
+ *
+ * On Vercel this file never runs as written: the platform looks for a default
+ * export at one of its entry paths (`src/server.ts` is one), wraps it in a
+ * Vercel Function and calls it per request. Loading the file is what matters,
+ * and it is the only place the validated config is read for a hosted deploy.
+ * Without this export the platform has nothing to serve and answers
+ * FUNCTION_INVOCATION_FAILED. The long-running `serve` path below is for a
+ * real server (local, container, VM) and is skipped there.
+ */
+export default app;
+
 let server: ServerType | undefined;
 
 const main = async () => {
@@ -20,21 +33,25 @@ const main = async () => {
 
 main();
 
-process.on("unhandledRejection", (reason) => {
-  // eslint-disable-next-line no-console
-  console.log(`❌ unhandledRejection is detected, shutting down the server...`);
-  // eslint-disable-next-line no-console
-  console.error(reason);
-  server?.close(() => {
+// `VERCEL` is set by the platform, at build and at runtime. Opening a port
+// there would fight the platform's own request handling.
+if (!process.env.VERCEL) {
+  process.on("unhandledRejection", (reason) => {
+    // eslint-disable-next-line no-console
+    console.log(`❌ unhandledRejection is detected, shutting down the server...`);
+    // eslint-disable-next-line no-console
+    console.error(reason);
+    server?.close(() => {
+      process.exit(1);
+    });
     process.exit(1);
   });
-  process.exit(1);
-});
 
-process.on("uncaughtException", (error) => {
-  // eslint-disable-next-line no-console
-  console.log(`❌ uncaughtException is detected, shutting down the server...`);
-  // eslint-disable-next-line no-console
-  console.error(error);
-  process.exit(1);
-});
+  process.on("uncaughtException", (error) => {
+    // eslint-disable-next-line no-console
+    console.log(`❌ uncaughtException is detected, shutting down the server...`);
+    // eslint-disable-next-line no-console
+    console.error(error);
+    process.exit(1);
+  });
+}
