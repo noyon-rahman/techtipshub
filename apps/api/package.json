@@ -5,9 +5,9 @@
   "private": true,
   "main": "./dist/server.js",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development tsx watch --env-file=.env.development ./src/server.ts",
-    "start": "cross-env NODE_ENV=production node --env-file=.env.production ./dist/server.js",
-    "dev:prod": "cross-env NODE_ENV=production tsx watch --env-file=.env.production ./src/server.ts",
+    "dev": "cross-env NODE_ENV=development tsx watch --env-file=.env.development ./src/main.ts",
+    "start": "cross-env NODE_ENV=production node --env-file=.env.production ./dist/main.js",
+    "dev:prod": "cross-env NODE_ENV=production tsx watch --env-file=.env.production ./src/main.ts",
     "build": "tsc",
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix",
