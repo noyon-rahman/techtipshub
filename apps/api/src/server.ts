@@ -5,13 +5,11 @@ import config from "./config";
 import connectToDatabase from "./db";
 
 /**
- * What Vercel imports.
- *
- * On Vercel this file never runs as written: the platform looks for a default
- * export at one of its entry paths (`src/server.ts` is one), wraps it in a
- * Vercel Function and calls it per request. Loading the file is what matters,
- * and it is the only place the validated config is read for a hosted deploy.
- * Without this export the platform has nothing to serve and answers
+ * What a Vercel Function runs: the platform wraps the default export and
+ * calls it per request, so nothing here opens a port. `main()` still starts
+ * the database connection at module load, which is what the first request
+ * wants, and it is the only place the validated config is read for a hosted
+ * deploy. Without this export the platform has nothing to serve and answers
  * FUNCTION_INVOCATION_FAILED. The long-running `serve` path below is for a
  * real server (local, container, VM) and is skipped there.
  */
@@ -22,13 +20,10 @@ let server: ServerType | undefined;
 const main = async () => {
   await connectToDatabase();
 
-  server = serve(
-    { fetch: app.fetch, port: config.PORT },
-    ({ port }) => {
-      // eslint-disable-next-line no-console
-      console.log(`🚀 Server is listening on port ${port}`);
-    },
-  );
+  server = serve({ fetch: app.fetch, port: config.PORT }, ({ port }) => {
+    // eslint-disable-next-line no-console
+    console.log(`🚀 Server is listening on port ${port}`);
+  });
 };
 
 main();

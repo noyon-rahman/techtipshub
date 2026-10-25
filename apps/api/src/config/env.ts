@@ -81,17 +81,17 @@ const envSchema = z.object({
   BCRYPT_SALT_ROUND: positiveInt("BCRYPT_SALT_ROUND"),
 
   // google sign-in, off when empty
-  GOOGLE_CLIENT_ID: z
-    .string()
-    .trim()
-    .default(""),  GOOGLE_CLIENT_SECRET: z
-    .string()
-    .trim()
-    .default(""),
+  GOOGLE_CLIENT_ID: z.string().trim().default(""),
+  GOOGLE_CLIENT_SECRET: z.string().trim().default(""),
   // Must match the URI registered on the OAuth client byte for byte. Empty
   // falls back to <API_BASE_URL>/auth/google/callback.
   GOOGLE_REDIRECT_URI: optionalString.pipe(
-    z.url({ protocol: /^https?$/, error: "GOOGLE_REDIRECT_URI must be a valid http(s) URL" }).optional(),
+    z
+      .url({
+        protocol: /^https?$/,
+        error: "GOOGLE_REDIRECT_URI must be a valid http(s) URL",
+      })
+      .optional(),
   ),
   // Signs the one-time `state` that starts a Google sign-in. A key of its own
   // keeps a value one endpoint hands out from being usable as a session token.
@@ -103,7 +103,8 @@ const envSchema = z.object({
    * A real member never comes close; a password-guessing script hits it fast.
    */
   AUTH_RATE_LIMIT_MAX: positiveInt("AUTH_RATE_LIMIT_MAX").default(15),
-  AUTH_RATE_LIMIT_WINDOW_MINUTES: positiveInt("AUTH_RATE_LIMIT_WINDOW_MINUTES").default(15),
+  AUTH_RATE_LIMIT_WINDOW_MINUTES:
+    positiveInt("AUTH_RATE_LIMIT_WINDOW_MINUTES").default(15),
 
   // cloudinary
   CLOUDINARY_CLOUD_NAME: required("CLOUDINARY_CLOUD_NAME"),
@@ -131,25 +132,28 @@ const envSchema = z.object({
 
 export type TEnv = z.output<typeof envSchema>;
 
+const problemsOf = (error: z.ZodError) =>
+  error.issues
+    .map((issue) => `  - ${issue.path.join(".") || "env"}: ${issue.message}`)
+    .join("\n");
+
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  const problems = parsed.error.issues
-    .map((issue) => `  - ${issue.path.join(".") || "env"}: ${issue.message}`)
-    .join("\n");
+  const problems = problemsOf(parsed.error);
 
   // Nothing else is running yet, and this must show at every log level.
   // eslint-disable-next-line no-console
   console.error(`Invalid environment configuration:\n${problems}`);
 
   // A server of our own stops here, at boot, where the message can be read.
-  // Under Vercel the process is not ours to end: exiting while the module is
+  // In a Vercel Function there is no boot to stop: exiting while the module is
   // loaded kills the request that loaded it, and every one after it reads as
   // FUNCTION_INVOCATION_FAILED with no reason in it. The throw is caught by the
   // app's error handler and answered with the same 500, once the log above
   // says which variables to fix.
   if (process.env.VERCEL) {
-    throw new Error("Invalid environment configuration, see the log above.");
+    throw new Error(`Invalid environment configuration:\n${problems}`);
   }
 
   process.exit(1);

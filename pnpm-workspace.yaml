@@ -2,6 +2,13 @@ packages:
   - apps/*
   - packages/*
 
+# A plain copy, not a link or a store symlink. Vercel traces the API function
+# with @vercel/nft, which records every traced path as its real location in the
+# pnpm store; the platform then reproduces the map and leaves out the link that
+# makes the store addressable, so the function could not require its own
+# dependencies. Copies trace where they sit, and every OS can make them.
+package-import-method=copy
+
 # Build scripts pnpm may run. The apps' allowances live here now that they
 # share one store and one install.
 allowBuilds:
