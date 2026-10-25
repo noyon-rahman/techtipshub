@@ -1,0 +1,78 @@
+// in article Ad
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6721594154492556"
+     crossorigin="anonymous"></script>
+<ins class="adsbygoogle"
+     style="display:block; text-align:center;"
+     data-ad-layout="in-article"
+     data-ad-format="fluid"
+     data-ad-client="ca-pub-6721594154492556"
+     data-ad-slot="9132518391"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+// display ads
+HTML:
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6721594154492556"
+     crossorigin="anonymous"></script>
+<!-- First Ad -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="ca-pub-6721594154492556"
+     data-ad-slot="9749465109"
+     data-ad-format="auto"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+AMP:
+Step 1: Copy and paste the script in between the <head></head> tags of your site
+Place this code once in between the head tags of your AMP site’s HTML. This script loads the relevant amp-ad libraries.
+
+<script async custom-element="amp-ad" src="https://cdn.ampproject.org/v0/amp-ad-0.1.js"></script>
+
+Step 2: Copy and paste the AMP ad code in between the <body></body> tags of your pages
+Place this code where you want an ad to appear. Do this for each individual ad unit, on every page.
+
+<amp-ad width="100vw" height="320"
+     type="adsense"
+     data-ad-client="ca-pub-6721594154492556"
+     data-ad-slot="9749465109"
+     data-auto-format="rspv"
+     data-full-width="">
+  <div overflow=""></div>
+</amp-ad>
+
+
+// multiplex ad unit
+HTML:
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6721594154492556"
+     crossorigin="anonymous"></script>
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-format="autorelaxed"
+     data-ad-client="ca-pub-6721594154492556"
+     data-ad-slot="3690358132"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+
+
+AMP:
+Step 1: Copy and paste the script in between the <head></head> tags of your site
+Place this code once in between the head tags of your AMP site’s HTML. This script loads the relevant amp-ad libraries.
+
+<script async custom-element="amp-ad" src="https://cdn.ampproject.org/v0/amp-ad-0.1.js"></script>
+
+Step 2: Copy and paste the AMP ad code in between the <body></body> tags of your pages
+Place this code where you want an ad to appear. Do this for each individual ad unit, on every page.
+
+<amp-ad width="100vw" height="320"
+     type="adsense"
+     data-ad-client="ca-pub-6721594154492556"
+     data-ad-slot="3690358132"
+     data-auto-format="mcrspv"
+     data-full-width="">
+  <div overflow=""></div>
+</amp-ad>
