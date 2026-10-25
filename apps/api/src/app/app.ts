@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
+import connectToDatabase from "../db";
 import mainRoutes from "../routes";
 import type { TAppBindings } from "../interface/bindings";
 import errorHandler, { notFound } from "./errorHandler";
@@ -24,6 +25,21 @@ app.use(
     allowHeaders: ["Content-Type", "Authorization"],
   }),
 );
+
+/**
+ * Start the shared connection before the route runs; a query that arrives
+ * first buffers until it is up. Attempting it per request means an instance
+ * whose cold start could not reach Atlas recovers on the next one instead of
+ * staying broken until it is recycled.
+ */
+app.use("*", async (_c, next) => {
+  connectToDatabase().catch(() => {
+    // The failure is already logged. Routing continues so a query answers
+    // through the error handler rather than the request never starting.
+  });
+
+  await next();
+});
 
 app.get("/", (c) => c.json({ data: { message: "Hello World!" } }));
 app.get("/health", (c) => c.text("OK✅"));
