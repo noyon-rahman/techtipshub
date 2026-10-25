@@ -107,7 +107,8 @@ header of `src/modules/admin/admin.routes.ts` for the full list.
 | ![MongoDB](https://img.shields.io/static/v1?label=&message=MongoDB&color=47A248&logo=mongodb&logoColor=white)          | MongoDB         |
 | ![Bcrypt](https://img.shields.io/static/v1?label=&message=Bcrypt&color=EFCA00)                                         | Bcrypt          |
 | ![Zod](https://img.shields.io/static/v1?label=&message=Zod&color=3068b7&logo=zod&logoColor=white)                      | Zod             |
-| ![Nodemailer](https://img.shields.io/static/v1?label=&message=Nodemailer&color=005571&logo=npm&logoColor=white)        | Nodemailer      |
+| ![Resend](https://img.shields.io/static/v1?label=&message=Resend&color=000000&logo=resend&logoColor=white)            | Resend          |
+| ![MJML](https://img.shields.io/static/v1?label=&message=MJML&color=E34F26)                                              | MJML            |
 | ![Cloudinary](https://img.shields.io/static/v1?label=&message=Cloudinary&color=3A8E4D)                                 | Cloudinary      |
 | ![JWT](https://img.shields.io/static/v1?label=&message=JWT&color=000000&logo=json-web-tokens&logoColor=white)          | JWT             |
 
@@ -157,15 +158,17 @@ JWT_REFRESH_TOKEN_EXPIRES_IN="your_jwt_refresh_token_expiration_duration"
 # reset password configuration
 JWT_RESET_PASSWORD_SECRET="your_jwt_reset_password_secret"
 JWT_RESET_PASSWORD_EXPIRES_IN="your_jwt_reset_password_expiration_duration"
+JWT_VERIFY_EMAIL_EXPIRES_IN="24h"
 
-# SMTP authentication
-SMTP_AUTH_USER="your_smtp_auth_user_email"
-SMTP_AUTH_PASSWORD="your_smtp_auth_password"
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT="465"
-
-# nodemailer
-NODEMAILER_EMAIL_FROM="your_nodemailer_email"
+# mail (off until RESEND_API_KEY is set)
+RESEND_API_KEY="your_resend_api_key"
+# The sending domain, verified in Resend. Sender addresses are built from it:
+# hello@, support@, security@ and notifications@.
+MAIL_DOMAIN="techtipshub.noyonrahman.com"
+# Replies go here, so use a mailbox someone reads.
+MAIL_REPLY_TO="contact.techtipshub@noyonrahman.com"
+# Contact-form submissions are delivered here.
+CONTACT_INBOX="contact.techtipshub@noyonrahman.com"
 
 # hash password
 BCRYPT_SALT_ROUND="bcrypt_salt_round"

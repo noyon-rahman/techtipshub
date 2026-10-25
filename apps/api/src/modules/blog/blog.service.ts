@@ -2,8 +2,9 @@ import httpStatus from "http-status";
 import { JwtPayload } from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
 import { escapeRegex, parseSearchTerms, QueryBuilder } from "../../builder";
+import { articleDeletedEmailMessage } from "../../emails";
 import { AppError } from "../../errors";
-import { deleteBlogEmailConfirmation, sendEmail } from "../../utils";
+import { sendEmail } from "../../utils";
 import { adminLogService } from "../admin/admin-log.service";
 import Category from "../category/category.model";
 import { IComment } from "../comment/comment.interface";
@@ -774,14 +775,20 @@ const deleteBlogByAdminUsingId = async (
       meta: { reason: payload.reason },
     });
 
+    const mail = await articleDeletedEmailMessage({
+      fullName: author.fullName,
+      articleTitle: blog.title,
+      reason: payload.reason,
+    });
+
     await sendEmail({
       to: {
         name: author.fullName,
         address: author.email,
       },
-      subject: "Your blog has been deleted",
-      html: deleteBlogEmailConfirmation(blog.title, payload.reason),
-      text: "Your blog has been deleted",
+      sender: "notifications",
+      category: "article-deletion",
+      ...mail,
     });
 
     // eslint-disable-next-line no-console
@@ -837,14 +844,19 @@ const deleteBlogByUserUsingId = async (
     await session.endSession();
 
     // Send email notification to the author
+    // const mail = await articleDeletedEmailMessage({
+    //   fullName: user.fullName,
+    //   articleTitle: blog.title,
+    //   reason: "User deletion",
+    // });
     // await sendEmail({
     //   to: {
     //     name: user.fullName,
     //     address: user.email,
     //   },
-    //   subject: "Your blog has been deleted",
-    //   html: deleteBlogEmailConfirmation(blog.title, "User deletion"),
-    //   text: "Your blog has been deleted",
+    //   sender: "notifications",
+    //   category: "article-deletion",
+    //   ...mail,
     // });
 
     return result;

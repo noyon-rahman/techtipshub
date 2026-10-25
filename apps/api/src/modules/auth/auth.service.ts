@@ -1,13 +1,13 @@
 import httpStatus from "http-status";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import config from "../../config";
-import { AppError } from "../../errors";
 import {
-  generateResetPasswordEmail,
-  generateVerifyEmail,
-  isEmailConfigured,
-  sendEmail,
-} from "../../utils";
+  durationLabel,
+  passwordResetEmailMessage,
+  verifyEmailMessage,
+} from "../../emails";
+import { AppError } from "../../errors";
+import { isEmailConfigured, sendEmail } from "../../utils";
 import { IUser } from "../user/user.interface";
 import type { IGoogleProfile } from "./google-oauth";
 import User from "../user/user.model";
@@ -52,23 +52,28 @@ const register = async (payload: IUser) => {
   const verifyToken = User.createToken(
     jwtPayload,
     config.JWT_RESET_PASSWORD_SECRET,
-    config.JWT_RESET_PASSWORD_EXPIRES_IN,
+    config.JWT_VERIFY_EMAIL_EXPIRES_IN,
   );
 
-  const verifyEmailLink = `${config.API_BASE_URL}/auth/verify-email?email=${newUser?.email}&token=${verifyToken}`;
+  const verifyEmailLink = `${config.API_BASE_URL}/auth/verify-email?email=${encodeURIComponent(
+    newUser.email,
+  )}&token=${verifyToken}`;
 
   // send verify email link
+  const mail = await verifyEmailMessage({
+    fullName: newUser.fullName,
+    verifyUrl: verifyEmailLink,
+    expiresIn: durationLabel(config.JWT_VERIFY_EMAIL_EXPIRES_IN),
+  });
+
   await sendEmail({
     to: {
       name: newUser.fullName,
       address: newUser.email,
     },
-    subject: "Verify your email address with 24 hours",
-    text: "Please verify your email address with 24 hours",
-    html: generateVerifyEmail({
-      verifyEmailLink: verifyEmailLink,
-      fullName: newUser.fullName,
-    }),
+    sender: "security",
+    category: "email-verification",
+    ...mail,
   });
 
   // eslint-disable-next-line no-console
@@ -363,19 +368,22 @@ const forgetPassword = async (email: string) => {
     user.email,
   )}#token=${resetToken}`;
 
+  const mail = await passwordResetEmailMessage({
+    fullName: user.fullName,
+    resetUrl: resetUILink,
+    expiresIn: durationLabel(config.JWT_RESET_PASSWORD_EXPIRES_IN),
+  });
+
   await sendEmail({
     to: {
       name: user.fullName,
       address: user.email,
     },
-    subject: "Reset Your Password within 30 minutes",
-    text: "Reset Your Password within 30 minutes",
-    html: generateResetPasswordEmail({
-      resetPasswordLink: resetUILink,
-      fullName: user.fullName,
-    }),
+    sender: "security",
+    category: "password-reset",
     // A reset mail that fails to send must not be reported as sent.
     throwOnError: true,
+    ...mail,
   });
 
   // eslint-disable-next-line no-console
@@ -398,9 +406,9 @@ const resetPassword = async (
       token,
       config.JWT_RESET_PASSWORD_SECRET,
     ) as JwtPayload;
-  } catch (error: any) {
+  } catch (error: unknown) {
     const message =
-      error?.name === "TokenExpiredError"
+      error instanceof Error && error.name === "TokenExpiredError"
         ? "This reset link has expired. Request a new one."
         : "This reset link is not valid. Request a new one.";
     throw new AppError(httpStatus.FORBIDDEN, message);

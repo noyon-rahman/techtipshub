@@ -38,6 +38,20 @@ const optionalString = z
 const optionalEmail = (name: string) =>
   optionalString.pipe(z.email(`${name} must be an email address`).optional());
 
+const domain = (name: string, fallback: string) =>
+  z
+    .string()
+    .trim()
+    .default(fallback)
+    .pipe(
+      z
+        .string()
+        .regex(
+          /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i,
+          `${name} must be a domain name, without a protocol or path`,
+        ),
+    );
+
 const envSchema = z.object({
   // app
   NODE_ENV: z
@@ -68,13 +82,23 @@ const envSchema = z.object({
   JWT_ACCESS_TOKEN_EXPIRES_IN: required("JWT_ACCESS_TOKEN_EXPIRES_IN"),
   JWT_REFRESH_TOKEN_EXPIRES_IN: required("JWT_REFRESH_TOKEN_EXPIRES_IN"),
   JWT_RESET_PASSWORD_EXPIRES_IN: required("JWT_RESET_PASSWORD_EXPIRES_IN"),
+  /** Long enough to find the mail without leaving the link usable for days. */
+  JWT_VERIFY_EMAIL_EXPIRES_IN: z.string().trim().min(1).default("24h"),
 
-  // mail
-  SMTP_AUTH_USER: optionalEmail("SMTP_AUTH_USER"),
-  SMTP_AUTH_PASSWORD: optionalString,
-  SMTP_HOST: z.string().trim().min(1).default("smtp.gmail.com"),
-  SMTP_PORT: port("SMTP_PORT").default(465),
-  NODEMAILER_EMAIL_FROM: optionalEmail("NODEMAILER_EMAIL_FROM"),
+  // mail, off until RESEND_API_KEY is set
+  RESEND_API_KEY: optionalString,
+  /**
+   * The sending domain, verified in Resend. Every sender address is built from
+   * it, so moving to another domain is one variable rather than one per
+   * address.
+   */
+  MAIL_DOMAIN: domain("MAIL_DOMAIN", "techtipshub.noyonrahman.com"),
+  /**
+   * Where a reply to our mail goes. A send that does not name its own
+   * reply address uses this one, so it must be a mailbox someone reads.
+   */
+  MAIL_REPLY_TO: optionalEmail("MAIL_REPLY_TO"),
+  /** Where contact-form submissions are delivered. */
   CONTACT_INBOX: optionalEmail("CONTACT_INBOX"),
 
   // hashing
@@ -113,14 +137,6 @@ const envSchema = z.object({
 })
 // Half a pair passes an "is it set?" check, then fails at the first use.
 .superRefine((value, ctx) => {
-  if (Boolean(value.SMTP_AUTH_USER) !== Boolean(value.SMTP_AUTH_PASSWORD)) {
-    ctx.addIssue({
-      code: "custom",
-      message:
-        "SMTP_AUTH_USER and SMTP_AUTH_PASSWORD must both be set, or both be empty",
-    });
-  }
-
   if (Boolean(value.GOOGLE_CLIENT_ID) !== Boolean(value.GOOGLE_CLIENT_SECRET)) {
     ctx.addIssue({
       code: "custom",
@@ -161,7 +177,6 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 
-export const isEmailConfigured = () =>
-  Boolean(env.SMTP_AUTH_USER && env.SMTP_AUTH_PASSWORD);
+export const isEmailConfigured = () => Boolean(env.RESEND_API_KEY);
 
 export default env;

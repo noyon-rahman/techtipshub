@@ -68,10 +68,17 @@ export const recordView = async (
       { $setOnInsert: { ...query, viewedAt: new Date() } },
       { upsert: true },
     );
-  } catch (upsertError: any) {
+  } catch (upsertError: unknown) {
     // A concurrent request may have won the unique index race; that is a
     // duplicate view, not an error, so fall through to the recount.
-    if (upsertError?.code !== 11000) throw upsertError;
+    const code =
+      typeof upsertError === "object" &&
+      upsertError !== null &&
+      "code" in upsertError
+        ? (upsertError as { code?: unknown }).code
+        : undefined;
+
+    if (code !== 11000) throw upsertError;
   }
 
   const total = await View.countDocuments({ post: blog._id });

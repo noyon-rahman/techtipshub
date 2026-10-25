@@ -1,0 +1,12 @@
+# Taste — Command Code
+- When debugging platform/infrastructure errors, expects genuine research (official docs, upstream source, issue trackers) rather than guesswork — and asks for it explicitly ("do some real research"). Cite the sources used. Confidence: 0.75
+- Wants a root-cause diagnosis plus concrete evidence that the fix works (typecheck/lint/format/build run), not just a patch. Confidence: 0.6
+- Judges infrastructure work against "prod grade standards": mail must be reachable (a real reply-to mailbox, never a dead no-reply), with retries/timeouts/idempotency and both text and HTML bodies — not just a send call that happens to return 200. Confidence: 0.7
+- "Implement it properly" means the whole surface moves together — config schema, `.env` files, dependency list, docs, and verification — not a minimal patch at the call site. Confidence: 0.6
+- Works in pnpm + Turborepo monorepos with `apps/` and `packages/` layout, TypeScript throughout; deploys to Vercel. Confidence: 0.6
+- Sends transactional email through Resend (API key + verified custom domain via env vars) rather than Nodemailer/Gmail SMTP; dropping the old SMTP stack entirely is expected. Confidence: 0.7
+- Wants sending identities modeled as multiple addresses on one verified domain (e.g. security@, support@, notifications@), chosen per flow, so new senders don't need a new config variable. Confidence: 0.65
+- Uses Hono as the API framework on Node (`@hono/node-server`), with separate entrypoints for the long-running dev server vs. the serverless handler. Confidence: 0.5
+- Prefers a production-grade, widely adopted library over hand-rolled markup/plumbing ("use a prod grad library") — e.g. MJML for email templates instead of hand-written HTML tables. Confidence: 0.7
+- Generated UI (including email) must follow the brand: the project's DESIGN.md color tokens, accents, and typefaces rather than generic system styling. Confidence: 0.7
+- Treats responsiveness on every device/screen width as a baseline requirement, not a nice-to-have. Confidence: 0.7

@@ -1,7 +1,8 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
 import { QueryBuilder } from "../../builder";
-import config from "../../config";
+import { CONTACT_INBOX } from "../../config/mail";
+import { contactNotificationMessage } from "../../emails";
 import AppError from "../../errors/AppError";
 import sendEmail from "../../utils/sendEmail";
 import { adminLogService } from "../admin/admin-log.service";
@@ -59,14 +60,6 @@ const prune = () => {
   }
 };
 
-const escapeHtml = (value: string) =>
-  value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
 const create = async (payload: TContactPayload, requestKey: string) => {
   if (isRateLimited(requestKey)) {
     throw new AppError(
@@ -77,23 +70,7 @@ const create = async (payload: TContactPayload, requestKey: string) => {
 
   if (submissions.size > 500) prune();
 
-  const inbox = config.CONTACT_INBOX;
-
-  if (!inbox) {
-    // Never claim a message was delivered when there is nowhere to send it.
-    throw new AppError(
-      httpStatus.SERVICE_UNAVAILABLE,
-      "The contact form is temporarily unavailable. Please email us directly.",
-    );
-  }
-
   const fullName = `${payload.firstName} ${payload.lastName}`.trim();
-  const safe = {
-    fullName: escapeHtml(fullName),
-    email: escapeHtml(payload.email),
-    subject: escapeHtml(payload.subject),
-    message: escapeHtml(payload.message).replace(/\n/g, "<br />"),
-  };
 
   // Persist first: if the mail fails the admin still finds the message in the
   // inbox, and the visitor is told it could not be delivered.
@@ -107,26 +84,28 @@ const create = async (payload: TContactPayload, requestKey: string) => {
   });
 
   try {
+    const mail = await contactNotificationMessage({
+      firstName: payload.firstName,
+      fullName,
+      email: payload.email,
+      subject: payload.subject,
+      message: payload.message,
+    });
+
     await sendEmail({
       to: {
         name: "TechTipsHub",
-        address: inbox,
+        address: CONTACT_INBOX,
       },
-      subject: `[Contact] ${payload.subject}`,
+      sender: "notifications",
+      // Hitting reply in the inbox answers the visitor, not ourselves.
+      replyTo: {
+        name: fullName,
+        address: payload.email,
+      },
+      category: "contact",
       throwOnError: true,
-      text: [`From: ${fullName} <${payload.email}>`, "", payload.message].join(
-        "\n",
-      ),
-      html: `
-      <div style="font-family: system-ui, -apple-system, Segoe UI, sans-serif; line-height: 1.6; color: #111">
-        <h2 style="margin: 0 0 16px">New contact form submission</h2>
-        <p style="margin: 0 0 4px"><strong>Name:</strong> ${safe.fullName}</p>
-        <p style="margin: 0 0 4px"><strong>Email:</strong> ${safe.email}</p>
-        <p style="margin: 0 0 16px"><strong>Subject:</strong> ${safe.subject}</p>
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0" />
-        <p style="white-space: normal">${safe.message}</p>
-      </div>
-    `,
+      ...mail,
     });
   } catch (error) {
     // eslint-disable-next-line no-console
