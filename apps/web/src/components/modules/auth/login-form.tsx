@@ -5,6 +5,7 @@ import THInput from "@/components/form/th-input";
 import { useUser } from "@/context/user.provider";
 import { useUserLogin } from "@/hooks/auth.hook";
 import { safeRedirectPath } from "@/lib/blog-routes";
+import { googleFailureMessage } from "@/lib/google-auth";
 import { signInValidationSchema } from "@/schemas";
 import { TLogin } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,10 +50,10 @@ const LoginForm = () => {
   }, [isPending, data, redirect, setUserLoading]);
 
   // The API returns a message for wrong credentials; surface it rather than
-  // leaving the form looking like nothing happened. A failed Google sign-in
-  // arrives the same way, as `?error=` on this page.
+  // leaving the form looking like nothing happened. A Google sign-in that did
+  // not finish arrives as `?google=<reason>`, which this page turns into copy.
   const errorMessage =
-    searchParams.get("error") ||
+    googleFailureMessage(searchParams.get("google"), searchParams.get("error")) ||
     (data && !data.success && data.message) ||
     (isError ? error?.message : undefined);
 

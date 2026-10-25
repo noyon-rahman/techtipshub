@@ -23,6 +23,7 @@ export const nodeGlobals = {
   Response: "readonly",
   Headers: "readonly",
   AbortController: "readonly",
+  AbortSignal: "readonly",
   TextEncoder: "readonly",
   TextDecoder: "readonly",
 };

@@ -1,10 +1,6 @@
 import ButtonLink from "@/components/ui/button-link";
 import { FcGoogle } from "react-icons/fc";
 
-interface IProps {
-  loginHref: string;
-}
-
 /**
  * Where a guest's reading stops.
  *
@@ -21,10 +17,27 @@ interface IProps {
  * with the same weight, because a reader who does not want to hand over a
  * Google account should not have to hunt for the alternative.
  *
+ * Every option carries `redirectPath`, which is how the reader comes back to
+ * this article rather than the feed. The page around it is prerendered and
+ * cached, so it is the same document for a guest and a member: it cannot read
+ * the session to build these links, and does not need to — `ArticleAccess`
+ * shows the body once the reader is back with a session.
+ *
  * Only options the site actually offers appear here. There is no Facebook
  * button because there is no Facebook sign-in.
  */
-const LockedArticle = ({ loginHref }: IProps) => {
+interface IProps {
+  /** This article's path, without a leading slash (`blogs/<slug>`). */
+  redirectPath: string;
+  loginHref: string;
+}
+
+const LockedArticle = ({ redirectPath, loginHref }: IProps) => {
+  const googleHref = `/api/auth/google?redirect=${encodeURIComponent(
+    `/${redirectPath}`,
+  )}`;
+  const signupHref = `/signup?redirect=${encodeURIComponent(redirectPath)}`;
+
   return (
     <section
       aria-label="Create an account to read the full article"
@@ -49,7 +62,7 @@ const LockedArticle = ({ loginHref }: IProps) => {
 
         <div className="mx-auto mt-9 flex max-w-sm flex-col items-stretch gap-2.5">
           <ButtonLink
-            href="/api/auth/google"
+            href={googleHref}
             variant="bordered"
             className="min-h-11 w-full rounded-full border border-default-300 px-6 font-medium text-foreground hover:bg-default-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-700"
           >
@@ -58,7 +71,7 @@ const LockedArticle = ({ loginHref }: IProps) => {
           </ButtonLink>
 
           <ButtonLink
-            href="/signup"
+            href={signupHref}
             color="primary"
             className="min-h-11 w-full rounded-full px-6 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-700"
           >

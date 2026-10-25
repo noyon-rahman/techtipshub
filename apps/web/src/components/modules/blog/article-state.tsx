@@ -5,6 +5,8 @@ interface IProps {
   /** `notFound` when the slug resolves to nothing; `auth` when the body is withheld. */
   kind: "notFound" | "auth";
   loginHref: string;
+  /** Where signing up should return the reader afterwards, when there is one. */
+  redirectPath?: string;
 }
 
 const states = {
@@ -29,9 +31,16 @@ const states = {
  * sentence that explains it, and exactly two ways forward. Deliberately not
  * a full page of apology; the site frame stays where it is.
  */
-const ArticleState = ({ kind, loginHref }: IProps) => {
+const ArticleState = ({ kind, loginHref, redirectPath }: IProps) => {
   const state = states[kind];
   const primaryHref = kind === "auth" ? loginHref : state.primary.href;
+
+  // Both doors lead back to the article. Signing up hands over to the login
+  // page, which carries the same destination on to the article itself.
+  const secondaryHref =
+    kind === "auth" && redirectPath
+      ? `${state.secondary.href}?redirect=${encodeURIComponent(redirectPath)}`
+      : state.secondary.href;
 
   return (
     <div className="mx-auto max-w-read pt-10 sm:pt-16 print:pt-0">
@@ -52,7 +61,7 @@ const ArticleState = ({ kind, loginHref }: IProps) => {
           {state.primary.text}
         </ButtonLink>
         <ButtonLink
-          href={state.secondary.href}
+          href={secondaryHref}
           variant="bordered"
           className="min-h-11 w-full sm:w-auto"
         >

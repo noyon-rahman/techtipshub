@@ -1,5 +1,5 @@
 import httpStatus from "http-status";
-import { JwtPayload } from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import config from "../../config";
 import { AppError } from "../../errors";
 import {
@@ -77,6 +77,47 @@ const register = async (payload: IUser) => {
   return newUser;
 };
 
+/**
+ * Issue a session for an account.
+ *
+ * The one place tokens are minted, and the reason `tokenVersion` reaches both
+ * of them: a token is only honoured while the account still carries the same
+ * version, so raising it ends every session cheaply.
+ */
+const issueSession = (user: {
+  _id: unknown;
+  profilePicture?: string;
+  username: string;
+  fullName: string;
+  email: string;
+  role: string;
+  tokenVersion?: number;
+}) => {
+  const jwtPayload = {
+    _id: user._id,
+    profilePicture: user.profilePicture,
+    username: user.username,
+    name: user.fullName,
+    email: user.email,
+    role: user.role,
+    tokenVersion: user.tokenVersion ?? 0,
+  };
+
+  return {
+    accessToken: User.createToken(
+      jwtPayload,
+      config.JWT_ACCESS_TOKEN_SECRET,
+      config.JWT_ACCESS_TOKEN_EXPIRES_IN,
+    ),
+    refreshToken: User.createToken(
+      jwtPayload,
+      config.JWT_REFRESH_TOKEN_SECRET,
+      config.JWT_REFRESH_TOKEN_EXPIRES_IN,
+    ),
+    user: publicUser(user),
+  };
+};
+
 const login = async (payload: IUser) => {
   const user = await User.findOne({ email: payload.email }).select("+password");
 
@@ -100,117 +141,101 @@ const login = async (payload: IUser) => {
     throw new AppError(httpStatus.FORBIDDEN, "User is deleted");
   }
 
-  const jwtPayload = {
-    _id: user._id,
-    profilePicture: user.profilePicture,
-    username: user.username,
-    name: user.fullName,
-    email: user.email,
-    role: user.role,
-  };
-
-  const accessToken = User.createToken(
-    jwtPayload,
-    config.JWT_ACCESS_TOKEN_SECRET,
-    config.JWT_ACCESS_TOKEN_EXPIRES_IN,
-  );
-
-  const refreshToken = User.createToken(
-    jwtPayload,
-    config.JWT_REFRESH_TOKEN_SECRET,
-    config.JWT_REFRESH_TOKEN_EXPIRES_IN,
-  );
-
-  return { accessToken, refreshToken };
-};
-
-const socialLogin = async (payload: IUser) => {
-  let user = await User.findOne({ email: payload.email });
-  if (!user) {
-    payload.username = payload.fullName.toLowerCase().split(" ").join("");
-    user = await register(payload);
-  }
-  const jwtPayload = {
-    _id: user._id,
-    profilePicture: user.profilePicture,
-    username: user.username,
-    name: user.fullName,
-    email: user.email,
-    role: user.role,
-  };
-
-  const accessToken = User.createToken(
-    jwtPayload,
-    config.JWT_ACCESS_TOKEN_SECRET,
-    config.JWT_ACCESS_TOKEN_EXPIRES_IN,
-  );
-
-  const refreshToken = User.createToken(
-    jwtPayload,
-    config.JWT_REFRESH_TOKEN_SECRET,
-    config.JWT_REFRESH_TOKEN_EXPIRES_IN,
-  );
-
-  return { accessToken, refreshToken };
+  return issueSession(user);
 };
 
 /**
  * Sign in (or sign up) with a Google account.
  *
- * Unlike `login` this never checks a password: Google has already confirmed
- * who the reader is. A new address becomes an account here, and an existing
- * one is only refused if it is gone, blocked or soft-deleted, so the reason is
- * the same one `refreshToken` gives rather than Google's opaque failure.
+ * Google has already confirmed who the reader is, so no password is checked.
+ * The account is matched by Google's own id first, then (for accounts that
+ * predate the id being stored) by the verified address:
  *
- * The account is created without a password through `register`, which also
- * sends the verification mail; neither is waited on for the response, because
- * a Google profile carries no username and the mail server may be slow.
+ * - Nothing matches: an account is created, already verified because Google
+ *   vouched for the mailbox, with a username nobody holds yet.
+ * - The Google id belongs to an account: signed in.
+ * - The address belongs to an account with a password: signed in, and the
+ *   Google id is recorded so the link is explicit from then on. This is the
+ *   case the product wants: a member who set a password can still use Google.
+ *
+ * Refused: a soft-deleted account, a blocked one, and a Google id that is
+ * already attached to a *different* account. That last one is the account
+ * takeover attempt Google's id exists to catch: it means a second address now
+ * signed in as a Google user this site already knows.
  */
 const googleLogin = async (profile: IGoogleProfile) => {
-  let user = await User.findOne({ email: profile.email });
+  const byGoogleId = await User.findOne({ googleId: profile.sub }).setOptions({
+    bypassMiddleware: true,
+  });
 
-  if (!user) {
-    const base = profile.email.split("@")[0].toLowerCase().replace(/\W/g, "");
-    const username = await uniqueUsername(base || "reader");
-
-    user = await User.create({
-      fullName: profile.name,
-      username,
-      email: profile.email,
-      profilePicture: profile.picture,
-    });
+  if (byGoogleId?.isDeleted) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "The account linked to this Google sign-in was deleted.",
+    );
   }
 
-  if (user.isDeleted) {
-    throw new AppError(httpStatus.FORBIDDEN, "User is deleted");
+  // A Google id on one account and a different address arriving with it is
+  // never a legitimate sign-in.
+  if (byGoogleId && byGoogleId.email.toLowerCase() !== profile.email.toLowerCase()) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "This Google account is already linked to a different TechTipsHub account.",
+    );
   }
 
-  if (user.status === "Blocked") {
+  const byEmail = await User.findOne({ email: profile.email }).setOptions({
+    bypassMiddleware: true,
+  });
+
+  if (byEmail?.isDeleted) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Email linked to a deleted account. Recover it or use another address.",
+    );
+  }
+
+  if (byEmail && byEmail.googleId && byEmail.googleId !== profile.sub) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      "This email is linked to a different Google account. Sign in with that one.",
+    );
+  }
+
+  const account = byGoogleId ?? byEmail;
+
+  if (account?.status === "Blocked") {
     throw new AppError(httpStatus.FORBIDDEN, "User is blocked");
   }
 
-  const jwtPayload = {
-    _id: user._id,
-    profilePicture: user.profilePicture,
-    username: user.username,
-    name: user.fullName,
-    email: user.email,
-    role: user.role,
-  };
+  const user =
+    account ??
+    (await User.create({
+      fullName: profile.name,
+      username: await uniqueUsername(usernameBase(profile)),
+      email: profile.email,
+      profilePicture: profile.picture,
+      isVerified: true,
+      googleId: profile.sub,
+    }));
 
-  const accessToken = User.createToken(
-    jwtPayload,
-    config.JWT_ACCESS_TOKEN_SECRET,
-    config.JWT_ACCESS_TOKEN_EXPIRES_IN,
-  );
+  // Record the link, and that Google vouched for the address: a member who
+  // joined with a password may still be showing as unverified from signup.
+  if (!user.googleId) user.googleId = profile.sub;
+  if (!user.isVerified) user.isVerified = true;
 
-  const refreshToken = User.createToken(
-    jwtPayload,
-    config.JWT_REFRESH_TOKEN_SECRET,
-    config.JWT_REFRESH_TOKEN_EXPIRES_IN,
-  );
+  if (user.isModified("googleId") || user.isModified("isVerified")) {
+    await user.save();
+  }
 
-  return { accessToken, refreshToken };
+  return issueSession(user);
+};
+
+/** `ada.lovelace@example.com` reads as `adalovelace`, never as an empty name. */
+const usernameBase = (profile: IGoogleProfile) => {
+  const fromEmail = profile.email.split("@")[0].toLowerCase().replace(/\W/g, "");
+
+  return fromEmail || "reader";
 };
 
 /**
@@ -281,6 +306,9 @@ const changePassword = async (
     {
       password: newHashedPassword,
       passwordChangeAt: new Date(),
+      // A password change is often the response to a leaked one, so every
+      // session opened with the old password ends with it.
+      $inc: { tokenVersion: 1 },
     },
     { new: true, runValidators: true },
   );
@@ -397,6 +425,9 @@ const resetPassword = async (
     {
       password: newHashedPassword,
       passwordChangeAt: new Date(),
+      // A reset is the answer to a lost account, so every session that existed
+      // before it is assumed to be unknown and is ended.
+      $inc: { tokenVersion: 1 },
     },
     {
       new: true,
@@ -405,15 +436,30 @@ const resetPassword = async (
   );
 };
 
-const generateNewAccessToken = async (refreshToken: string) => {
-  const decoded = User.verifyToken(
-    refreshToken,
-    config.JWT_REFRESH_TOKEN_SECRET,
-  );
+/**
+ * The account behind a refresh token, or a refusal.
+ *
+ * Every way a session can end is checked here in one place: the token's
+ * signature and expiry, the account existing and being usable, the password
+ * not having changed since, and `tokenVersion` still matching what the token
+ * was signed with. `generateNewAccessToken`, `logOut` and the session route all
+ * come through it, so none of them can be looser than the others.
+ */
+const userForRefreshToken = async (refreshToken: string) => {
+  let decoded: JwtPayload;
+
+  try {
+    decoded = User.verifyToken(
+      refreshToken,
+      config.JWT_REFRESH_TOKEN_SECRET,
+    ) as JwtPayload;
+  } catch {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Session expired. Sign in again.");
+  }
 
   const user = await User.findOne({ email: decoded.email });
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.UNAUTHORIZED, "Session expired. Sign in again.");
   }
 
   if (user.isDeleted) {
@@ -425,41 +471,137 @@ const generateNewAccessToken = async (refreshToken: string) => {
   }
 
   if (
-    user.passwordChangeAt &&
-    User.isJWTIssuedBeforePasswordChanged(
-      user.passwordChangeAt,
-      decoded.iat as number,
-    )
+    (decoded.tokenVersion ?? 0) !== (user.tokenVersion ?? 0) ||
+    (user.passwordChangeAt &&
+      User.isJWTIssuedBeforePasswordChanged(
+        user.passwordChangeAt,
+        decoded.iat as number,
+      ))
   ) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized Access");
+    throw new AppError(httpStatus.UNAUTHORIZED, "Session ended. Sign in again.");
   }
 
-  const jwtPayload = {
-    _id: user._id,
-    profilePicture: user.profilePicture,
-    username: user.username,
-    name: user.fullName,
-    email: user.email,
-    role: user.role,
+  return user;
+};
+
+const generateNewAccessToken = async (refreshToken: string) => {
+  const user = await userForRefreshToken(refreshToken);
+
+  return {
+    accessToken: issueSession(user).accessToken,
+    user: publicUser(user),
   };
+};
 
-  const accessToken = User.createToken(
-    jwtPayload,
-    config.JWT_ACCESS_TOKEN_SECRET,
-    config.JWT_ACCESS_TOKEN_EXPIRES_IN,
-  );
+/**
+ * End every session for the account behind this refresh token.
+ *
+ * Raising `tokenVersion` is what makes this real: the cookies go from the
+ * browser either way, but a copy of the refresh token taken earlier stops
+ * working at its next check instead of lasting out its full lifetime.
+ */
+const logOut = async (refreshToken: string | undefined) => {
+  if (!refreshToken) return;
 
-  return accessToken;
+  try {
+    const user = await userForRefreshToken(refreshToken);
+
+    await User.updateOne(
+      { _id: user._id },
+      { $inc: { tokenVersion: 1 } },
+    );
+  } catch {
+    // A token that is already invalid needs no revoking. Signing out must
+    // still succeed and clear the browser, or a member is stuck signed in.
+  }
+};
+
+/** What the site is allowed to know about the signed-in reader. */
+const publicUser = (user: {
+  _id: unknown;
+  email: string;
+  fullName: string;
+  username: string;
+  profilePicture?: string;
+  role: string;
+}) => ({
+  _id: String(user._id),
+  email: user.email,
+  name: user.fullName,
+  username: user.username,
+  profilePicture: user.profilePicture ?? "",
+  role: user.role,
+});
+
+/**
+ * The signed-in reader, decided here rather than decoded by the site.
+ *
+ * The site sends the cookies back and gets an answer: who is signed in, and
+ * what role they hold. It never reads a token, so the rules for an expired
+ * access token, a revoked session and a role change live in one place. An
+ * access token that still looks valid but has been revoked falls back to the
+ * refresh token, so a rotation of `tokenVersion` takes effect immediately
+ * rather than whenever the old access token expires.
+ */
+const readSession = async (
+  accessToken: string | undefined,
+  refreshToken: string | undefined,
+) => {
+  // A live access token whose version still matches is enough. The database
+  // read is what makes a sign-out take effect at once instead of whenever the
+  // token would have expired on its own.
+  if (accessToken) {
+    try {
+      const decoded = jwt.verify(
+        accessToken,
+        config.JWT_ACCESS_TOKEN_SECRET,
+      ) as JwtPayload;
+
+      const current = decoded.email
+        ? await User.findOne({ email: decoded.email }).select(
+            "email fullName username profilePicture role tokenVersion status isDeleted",
+          )
+        : null;
+
+      if (
+        current &&
+        !current.isDeleted &&
+        current.status !== "Blocked" &&
+        (decoded.tokenVersion ?? 0) === (current.tokenVersion ?? 0)
+      ) {
+        return { signedIn: true as const, user: publicUser(current) };
+      }
+    } catch {
+      // Expired or malformed: the refresh token gets its turn below.
+    }
+  }
+
+  if (refreshToken) {
+    try {
+      const user = await userForRefreshToken(refreshToken);
+
+      return {
+        signedIn: true as const,
+        user: publicUser(user),
+        renewed: issueSession(user),
+      };
+    } catch {
+      // Fall through: no usable session.
+    }
+  }
+
+  return { signedIn: false as const };
 };
 
 export const authService = {
   register,
   login,
-  socialLogin,
   googleLogin,
   getMe,
   changePassword,
   forgetPassword,
   resetPassword,
   generateNewAccessToken,
+  logOut,
+  readSession,
 };

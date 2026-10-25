@@ -1,6 +1,7 @@
 import AuthShell from "@/components/modules/auth/auth-shell";
 import SignUpForm from "@/components/modules/auth/signup-form";
 import SocialLogin from "@/components/modules/auth/social-login";
+import { safeRedirectPath } from "@/lib/blog-routes";
 import { Metadata } from "next";
 import Link from "next/link";
 
@@ -38,7 +39,25 @@ const points = [
   },
 ];
 
-const SignUpPage = () => {
+/**
+ * The signup page.
+ *
+ * It reads `?redirect=` so a reader who arrives here from an article — and
+ * turns out to have an account after all — keeps their way back to it. The
+ * form and the Google button read the same value themselves.
+ */
+const SignUpPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string | string[] }>;
+}) => {
+  const { redirect } = await searchParams;
+  const target = Array.isArray(redirect) ? redirect[0] : redirect;
+
+  const loginHref = target
+    ? `/login?redirect=${encodeURIComponent(safeRedirectPath(target))}`
+    : "/login";
+
   return (
     <AuthShell
       eyebrow="Get started"
@@ -49,7 +68,7 @@ const SignUpPage = () => {
         <p>
           Already have an account?{" "}
           <Link
-            href="/login"
+            href={loginHref}
             className="font-semibold text-primary-accessible underline-offset-4 hover:underline"
           >
             Sign in

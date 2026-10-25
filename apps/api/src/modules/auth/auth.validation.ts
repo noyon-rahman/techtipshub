@@ -1,12 +1,28 @@
 import { z } from "zod";
 import { UserGender } from "../user/user.constant";
 
+/**
+ * What a password has to be, everywhere one is chosen.
+ *
+ * Signup, change and reset all read this, so a rule can't hold on one route
+ * and not another — the old code required six characters to *change* a
+ * password but accepted one character at signup. Length is the property that
+ * actually resists guessing, so it is the one enforced; the upper bound stops a
+ * pathological input from being hashed, since bcrypt silently ignores anything
+ * past 72 bytes.
+ */
+const password = (label = "Password") =>
+  z
+    .string({ error: `${label} must be a string` })
+    .min(8, `${label} must be at least 8 characters`)
+    .max(72, `${label} must be 72 characters or fewer`);
+
 const register = z
   .object({
     fullName: z.string({ error: "Full Name must be string" }),
     username: z.string({ error: "Username must be string" }),
     email: z.string({ error: "Email must be string" }),
-    password: z.string({ error: "Password must be string" }),
+    password: password(),
     gender: z.enum([...UserGender] as [string, ...string[]], {
       error: "Gender must be string",
     }),
@@ -22,28 +38,16 @@ const register = z
 const login = z
   .object({
     email: z.string({ error: "Email must be string" }),
+    // Sign-in only checks that a password was sent. The rules apply where one
+    // is chosen, and an account created before them still has to get in.
     password: z.string({ error: "Password must be string" }),
-  })
-  .strict();
-
-const socialLogin = z
-  .object({
-    fullName: z.string({ error: "Full Name must be a string" }),
-    email: z
-      .string({ error: "Email must be a string" })
-      .email("Provide a valid email address"),
-    profilePicture: z
-      .string({ error: "Profile Picture must be a string" })
-      .optional(),
   })
   .strict();
 
 const changePassword = z
   .object({
     oldPassword: z.string({ error: "Old password must be a string" }),
-    newPassword: z
-      .string({ error: "New password must be a string" })
-      .min(6, "New password must be at least 6 characters"),
+    newPassword: password("New password"),
   })
   .strict();
 
@@ -55,24 +59,22 @@ const forgetPassword = z
 
 const resetPassword = z
   .object({
-    newPassword: z
-      .string({ error: "New password must be a string" })
-      .min(6, "New password must be at least 6 characters"),
+    newPassword: password("New password"),
   })
   .strict();
 
-const refreshToken = z
+/** The one-time code a Google callback hands to the site. */
+const claimSession = z
   .object({
-    refreshToken: z.string({ error: "Refresh token must be a string" }),
+    handoff: z.string({ error: "Handoff code must be a string" }).min(1),
   })
   .strict();
 
 export const authValidationSchema = {
   register,
   login,
-  socialLogin,
   changePassword,
   forgetPassword,
   resetPassword,
-  refreshToken,
+  claimSession,
 };

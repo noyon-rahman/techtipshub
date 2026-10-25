@@ -47,6 +47,17 @@ const envSchema = z.object({
   API_BASE_URL: url("API_BASE_URL"),
   CLIENT_BASE_URL: url("CLIENT_BASE_URL"),
   DATABASE_URL: required("DATABASE_URL"),
+  /**
+   * Whether `x-forwarded-for` may be believed when identifying a client.
+   *
+   * True in production, where the host's proxy sets it. Turn it off anywhere
+   * the process is reachable directly, or a caller can claim any address and
+   * step around the rate limits.
+   */
+  TRUST_PROXY: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
 
   // jwt
   JWT_ACCESS_TOKEN_SECRET: required("JWT_ACCESS_TOKEN_SECRET"),
@@ -71,8 +82,7 @@ const envSchema = z.object({
   GOOGLE_CLIENT_ID: z
     .string()
     .trim()
-    .default(""),
-  GOOGLE_CLIENT_SECRET: z
+    .default(""),  GOOGLE_CLIENT_SECRET: z
     .string()
     .trim()
     .default(""),
@@ -81,6 +91,17 @@ const envSchema = z.object({
   GOOGLE_REDIRECT_URI: optionalString.pipe(
     z.url({ protocol: /^https?$/, error: "GOOGLE_REDIRECT_URI must be a valid http(s) URL" }).optional(),
   ),
+  // Signs the one-time `state` that starts a Google sign-in. A key of its own
+  // keeps a value one endpoint hands out from being usable as a session token.
+  GOOGLE_STATE_SECRET: optionalString,
+
+  // rate limits. Tuned per environment; the defaults suit a small site.
+  /**
+   * Sign-in and password-reset attempts one address may make per window.
+   * A real member never comes close; a password-guessing script hits it fast.
+   */
+  AUTH_RATE_LIMIT_MAX: positiveInt("AUTH_RATE_LIMIT_MAX").default(15),
+  AUTH_RATE_LIMIT_WINDOW_MINUTES: positiveInt("AUTH_RATE_LIMIT_WINDOW_MINUTES").default(15),
 
   // cloudinary
   CLOUD_NAME: required("CLOUD_NAME"),

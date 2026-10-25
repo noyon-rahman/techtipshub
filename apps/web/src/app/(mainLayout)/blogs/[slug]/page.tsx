@@ -140,6 +140,7 @@ const DynamicBlogPage = async ({ params }: Props) => {
           <ArticleState
             kind="notFound"
             loginHref={`/login?redirect=${encodeURIComponent(`blogs/${routeSlug}`)}`}
+            redirectPath={`blogs/${routeSlug}`}
           />
         </Container>
       </section>
@@ -199,42 +200,58 @@ const DynamicBlogPage = async ({ params }: Props) => {
         style={{ maskImage: previewMask, WebkitMaskImage: previewMask }}
         dangerouslySetInnerHTML={{ __html: previewBody }}
       />
-      <LockedArticle loginHref={loginHref} />
+      <LockedArticle
+        redirectPath={`blogs/${routeSlug}`}
+        loginHref={loginHref}
+      />
     </>
   );
 
   // The body for members. Ads sit inside it and only load once the reader is
   // confirmed, so a cached copy watched by a guest requests nothing.
-  const memberColumn = introSplit ? (
+  const memberColumn = (
     <>
-      <div
-        className="tth-article mt-10 print:mt-0"
-        dangerouslySetInnerHTML={{ __html: introSplit[0] }}
-      />
-      <MemberAdSlot
-        variant="inArticle"
-        placement="article-after-intro"
-        className="mt-10 print:hidden"
-      />
-      <div
-        className="tth-article tth-article-continued"
-        dangerouslySetInnerHTML={{ __html: introSplit[1] }}
-      />
-    </>
-  ) : (
-    <>
-      <div
-        className="tth-article mt-10 print:mt-0"
-        dangerouslySetInnerHTML={{ __html: content ?? "" }}
-      />
-      <MemberAdSlot
-        variant="inArticle"
-        placement="article-after-intro"
-        className="mt-10 print:hidden"
-      />
+      {introSplit ? (
+        <>
+          <div
+            className="tth-article mt-10 print:mt-0"
+            dangerouslySetInnerHTML={{ __html: introSplit[0] }}
+          />
+          <MemberAdSlot
+            variant="inArticle"
+            placement="article-after-intro"
+            className="mt-10 print:hidden"
+          />
+          <div
+            className="tth-article tth-article-continued"
+            dangerouslySetInnerHTML={{ __html: introSplit[1] }}
+          />
+        </>
+      ) : (
+        <>
+          <div
+            className="tth-article mt-10 print:mt-0"
+            dangerouslySetInnerHTML={{ __html: content ?? "" }}
+          />
+          <MemberAdSlot
+            variant="inArticle"
+            placement="article-after-intro"
+            className="mt-10 print:hidden"
+          />
+        </>
+      )}
+
+      {/*
+        "Was this useful?" belongs to someone who has read the article. A guest
+        has only seen the introduction, so voting on it, sharing it as read or
+        opening its discussion asks a decision about something they were not
+        shown. It sits inside the member half, so it is hidden by the same rule
+        as the body (see `globals.css`) and costs the prerendered document
+        nothing.
+      */}
+      <ArticleEndMatter blog={page.blog} />
     </>
   );
-
   // The two columns are always in the document; CSS picks one from
   // `data-article-view`, which the per-request reader answer writes (see the
   // article access rules in `globals.css`). Neither the page nor its caching
@@ -318,8 +335,6 @@ const DynamicBlogPage = async ({ params }: Props) => {
           )}
 
           {readableColumn}
-
-          <ArticleEndMatter blog={page.blog} />
 
           <ArticleTags tags={tags} />
 

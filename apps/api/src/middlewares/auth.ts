@@ -54,6 +54,15 @@ const auth = (...requiredRoles: TUserRole[]): MiddlewareHandler<TAppBindings> =>
       );
     }
 
+    // A token keeps its signature after a sign-out, so the version it was
+    // signed with is the only thing that can retire it early.
+    if ((decoded.tokenVersion ?? 0) !== (user.tokenVersion ?? 0)) {
+      throw new AppError(
+        httpStatus.UNAUTHORIZED,
+        "Session ended. Sign in again.",
+      );
+    }
+
     if (requiredRoles.length > 0 && !requiredRoles.includes(role)) {
       throw new AppError(httpStatus.FORBIDDEN, "Access Forbidden");
     }

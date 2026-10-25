@@ -1,10 +1,10 @@
-import { baseApi } from "@/config/api";
+import { getSession } from "@/lib/session";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+} from "@/lib/fetch-with-auth";
 import { requiresSession } from "@/lib/blog-routes";
 import { NextRequest, NextResponse } from "next/server";
-import { jwtDecode } from "jwt-decode";
-
-const ACCESS_TOKEN_COOKIE = "tth_access_token";
-const REFRESH_TOKEN_COOKIE = "tth_refresh_token";
 
 /**
  * User agents that never run the browser (see `ArticleAccess`).
@@ -20,17 +20,10 @@ const PREVIEW_VALUE = "preview";
 const CRAWLER_PATTERN =
   /bot\b|bot\/|crawl|spider|slurp|\bba[iy]du\b|yandex|duckduck|facebookexternalhit|facebot|twitterbot|linkedinbot|embedly|pinterest|telegrambot|applebot|ia_archiver|google-?other|chrome-lighthouse|headlesschrome|phantomjs/i;
 
-// Renew a little before expiry so a request never races it.
-const RENEW_BEFORE_SECONDS = 60;
-
-const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-
-interface ITokenClaims {
-  exp?: number;
-  role?: string;
-}
-
-/** The admin shell is only rendered for a token that carries the Admin role. */
+/**
+ * The admin shell is only rendered for a session the API says holds the Admin
+ * role.
+ */
 const isAdminPath = (pathname: string) =>
   pathname === "/admin" || pathname.startsWith("/admin/");
 
@@ -39,27 +32,6 @@ const isAdminPath = (pathname: string) =>
  * the session cookie, so it is held to the same Admin-role rule as the pages.
  */
 const isAdminApiPath = (pathname: string) => pathname.startsWith("/api/admin/");
-
-const roleOf = (token?: string): string | undefined => {
-  if (!token || token.split(".").length !== 3) return undefined;
-  try {
-    return jwtDecode<ITokenClaims>(token).role;
-  } catch {
-    return undefined;
-  }
-};
-
-const expiresAt = (token?: string): number | undefined => {
-  if (!token || token.split(".").length !== 3) return undefined;
-  try {
-    return jwtDecode<ITokenClaims>(token).exp;
-  } catch {
-    return undefined;
-  }
-};
-
-const isStale = (token?: string) =>
-  (expiresAt(token) ?? 0) - Date.now() / 1000 <= RENEW_BEFORE_SECONDS;
 
 /**
  * Old addresses for the article editor.
@@ -104,52 +76,43 @@ const LEGACY_EXACT: Record<string, string> = {
   "/admin": "/admin/dashboard",
 };
 
-/** Keeps a signed-in session alive past the access token's lifetime. */
-async function renewAccessToken(request: NextRequest) {
-  const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
+/**
+ * Hand back a session cookie the API renewed while `getSession` was asking.
+ *
+ * A page render in Next may not write cookies; a proxy may. Writing the renewed
+ * pair here is what lets an expired access token come back to life on the very
+ * request that noticed it, instead of the member being signed out by it.
+ */
+const relayRenewedCookies = (request: NextRequest, response: NextResponse) => {
+  const site = new URL(request.url);
 
-  // Nothing usable left: let the app run as a signed-out visitor, or keep the
-  // dying access token so the page can still say what happened.
-  if (!refreshToken || isStale(refreshToken)) return null;
+  for (const name of [ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE]) {
+    const value = request.cookies.get(name)?.value;
+    if (!value) continue;
 
-  try {
-    const res = await fetch(`${baseApi}/auth/refresh-token`, {
-      method: "POST",
-      cache: "no-store",
-      headers: { cookie: `refreshToken=${refreshToken}` },
+    response.cookies.set(name, value, {
+      domain: site.hostname,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
     });
-    if (!res.ok) return null;
-    const body = await res.json();
-    return (body?.data?.accessToken as string | undefined) ?? null;
-  } catch {
-    return null;
   }
-}
-
-const withAccessToken = (response: NextResponse, token: string) => {
-  response.cookies.set(ACCESS_TOKEN_COOKIE, token, {
-    secure: process.env.NODE_ENV === "production",
-    httpOnly: true,
-    path: "/",
-    maxAge: COOKIE_MAX_AGE,
-  });
-  return response;
 };
 
 /**
  * Session handling for the whole app.
  *
- * The access token lasts two days and the refresh token thirty, and the API
- * only exchanges a still-valid refresh token. Without this, every page render
- * after day two sent an expired access token, the API answered 401, and server
- * components treated a signed-in member as signed out — manage-blogs showed
- * "No articles yet" to someone with 23.
+ * The site does not decide what a session is. It asks the API once — "who is
+ * this?" — and follows the answer, so an expired access token, a revoked
+ * session, a changed password and a role change all take effect here the
+ * moment the API says so, with no second implementation to keep in step.
  *
- * Renewing here (a place Next allows cookies to be written, unlike a page
- * render) means pages, route handlers and server actions all receive a valid
- * token from the first byte. The account area (the article list and the
- * composer) also checks the token before rendering, so a signed-out visitor
- * gets the login page instead of an editor that cannot save.
+ * This is a *filter*, not the gate. Pages and server actions check the session
+ * again before acting (Next's own advice: a proxy check is optimistic and runs
+ * on prefetches too). It exists so a signed-out visitor gets the login page
+ * instead of an editor that cannot save.
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -190,62 +153,48 @@ export async function proxy(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
-  // 2. A live access token needs no work, beyond the admin role check.
-  const accessToken = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
-  if (!isStale(accessToken)) {
-    if (isAdminApiPath(pathname) && roleOf(accessToken) !== "Admin") {
+  // 2. Pages open to everyone, and action requests, need no ruling: an action
+  // re-checks the session in the server function that runs it.
+  const isRuled = isAdminPath(pathname) || isAdminApiPath(pathname);
+  if (!isRuled && (isAction || !requiresSession(pathname))) {
+    return NextResponse.next();
+  }
+
+  // 3. The API's answer, with any renewed cookies already written to this
+  // request and its response.
+  const session = await getSession();
+  const response = NextResponse.next({ request });
+  relayRenewedCookies(request, response);
+
+  if (session.signedIn) {
+    if (isAdminApiPath(pathname) && session.user.role !== "Admin") {
       return NextResponse.json(
         { error: { message: "Admin access required" } },
         { status: 403 },
       );
     }
-    if (isAdminPath(pathname) && roleOf(accessToken) !== "Admin") {
+
+    if (isAdminPath(pathname) && session.user.role !== "Admin") {
       return NextResponse.redirect(new URL("/", request.nextUrl));
     }
-    return NextResponse.next();
+
+    return response;
   }
 
-  // 3. Renew it, and hand the fresh one to the page as well as the browser.
-  const renewed = await renewAccessToken(request);
-  if (!renewed) {
-    // Still signed out: the account area and the article editor send the
-    // visitor to log in and come back to exactly where they were. The composer
-    // is open to guests on purpose — it is kept in the browser, and publishing
-    // is what asks them to sign in.
-    if (isAdminApiPath(pathname)) {
-      return NextResponse.json(
-        { error: { message: "Not signed in" } },
-        { status: 401 },
-      );
-    }
-    if (isAdminPath(pathname) || requiresSession(pathname)) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.search = "";
-      url.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(url);
-    }
-    return NextResponse.next();
-  }
-
-  // The page below renders from the request's own cookies, so the renewed token
-  // goes on both the request and the response.
-  request.cookies.set(ACCESS_TOKEN_COOKIE, renewed);
-
-  if (isAdminApiPath(pathname) && roleOf(renewed) !== "Admin") {
+  if (isAdminApiPath(pathname)) {
     return NextResponse.json(
-      { error: { message: "Admin access required" } },
-      { status: 403 },
+      { error: { message: "Not signed in" } },
+      { status: 401 },
     );
   }
 
-  // The renewed token is the one that gets honoured below, so the admin check
-  // reads it rather than the expired cookie.
-  if (isAdminPath(pathname) && roleOf(renewed) !== "Admin") {
-    return NextResponse.redirect(new URL("/", request.nextUrl));
-  }
-
-  return withAccessToken(NextResponse.next({ request }), renewed);
+  // Still signed out: the account area and the article editor send the visitor
+  // to log in and come back to exactly where they were.
+  const url = request.nextUrl.clone();
+  url.pathname = "/login";
+  url.search = "";
+  url.searchParams.set("redirect", pathname);
+  return NextResponse.redirect(url);
 }
 
 export const config = {

@@ -1,6 +1,7 @@
 import SuspendedLoginForm from "@/components/modules/auth/login-form";
 import AuthShell from "@/components/modules/auth/auth-shell";
 import SocialLogin from "@/components/modules/auth/social-login";
+import { safeRedirectPath } from "@/lib/blog-routes";
 import { Metadata } from "next";
 import Link from "next/link";
 
@@ -36,7 +37,26 @@ const points = [
   },
 ];
 
-const LoginPage = () => {
+/**
+ * The login page.
+ *
+ * It reads `?redirect=` for one reason: a reader sent here mid-article who has
+ * no account yet must not lose the article by choosing "Create one free". The
+ * destination travels to `/signup`, and from there to the article once they
+ * signed in. The form and the Google button read the same value themselves.
+ */
+const LoginPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string | string[] }>;
+}) => {
+  const { redirect } = await searchParams;
+  const target = Array.isArray(redirect) ? redirect[0] : redirect;
+
+  const signupHref = target
+    ? `/signup?redirect=${encodeURIComponent(safeRedirectPath(target))}`
+    : "/signup";
+
   return (
     <AuthShell
       eyebrow="Account"
@@ -47,7 +67,7 @@ const LoginPage = () => {
         <p>
           Don&apos;t have an account?{" "}
           <Link
-            href="/signup"
+            href={signupHref}
             className="font-semibold text-primary-accessible underline-offset-4 hover:underline"
           >
             Create one free

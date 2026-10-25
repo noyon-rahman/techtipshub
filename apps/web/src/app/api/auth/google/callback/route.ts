@@ -1,22 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
-import { hasSession, safeRedirect } from "../route";
+import { NextResponse } from "next/server";
+import { googleRedirectPath } from "@/lib/google-auth";
+import { claimGoogleSession } from "@/lib/session-relay";
 
 /**
- * The API's redirect URI points here once Google has answered.
+ * Where the API sends the browser once Google has answered, to finish the
+ * sign-in.
  *
- * The API has already set the session cookies on this domain, so the only job
- * left is to send the reader on to the page they started from. A hop through a
- * page rather than straight from the API keeps the login error message on the
- * site's own address instead of an API URL carrying query strings.
+ * The API has already set the session cookies, but on *its* domain: a browser
+ * only accepts a cookie for the site that sent it, so they do nothing here.
+ * This route is therefore the one place the site receives a session — it takes
+ * the single-use handoff code the API put in the URL and trades it for the
+ * cookies, server to server, exactly as it does after a password sign-in.
+ *
+ * A failed sign-in never reaches this route: the API sends those straight to
+ * `/login` with a reason the page explains.
  */
-export const GET = (request: NextRequest) => {
-  const redirect = safeRedirect(request.nextUrl.searchParams.get("redirect"));
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
 
-  if (!hasSession(request)) {
-    const login = new URL("/login", request.nextUrl);
-    login.searchParams.set("error", "Google sign-in did not complete.");
-    return NextResponse.redirect(login);
+  const handoff = searchParams.get("handoff");
+  const redirect = googleRedirectPath(searchParams.get("redirect"));
+
+  const session = handoff ? await claimGoogleSession(handoff) : null;
+
+  if (!session) {
+    const url = new URL("/login", request.url);
+    url.searchParams.set("google", "unavailable");
+    url.searchParams.set("redirect", redirect);
+    return NextResponse.redirect(url);
   }
 
-  return NextResponse.redirect(new URL(redirect, request.nextUrl));
-};
+  const response = NextResponse.redirect(new URL(redirect, request.url));
+  const secure = process.env.NODE_ENV === "production";
+
+  for (const cookie of session) {
+    response.cookies.set(cookie.name, cookie.value, {
+      httpOnly: true,
+      secure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: cookie.maxAge,
+    });
+  }
+
+  return response;
+}

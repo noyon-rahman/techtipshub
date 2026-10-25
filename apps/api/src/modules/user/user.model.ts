@@ -125,6 +125,28 @@ const userSchema = new Schema<IUser, IUserModel>(
       type: Boolean,
       default: false,
     },
+    /**
+     * Bumped to end every session this account has.
+     *
+     * Both tokens carry the value they were signed with, so raising it makes
+     * every token issued before that moment invalid at its next check. That is
+     * what makes "sign out everywhere", a password change and a password reset
+     * actually end a stolen refresh token, which a stateless JWT otherwise
+     * cannot do.
+     */
+    tokenVersion: {
+      type: Number,
+      default: 0,
+    },
+    // Google's stable account id. Set the first time a member signs in with
+    // Google, so later sign-ins are matched to the person, not just the
+    // address: a recycled mailbox is a different Google account.
+    googleId: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+    },
     isDeleted: {
       type: Boolean,
       default: false,

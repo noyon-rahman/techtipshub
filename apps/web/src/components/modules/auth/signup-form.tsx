@@ -6,10 +6,11 @@ import THInput from "@/components/form/th-input";
 import THSelect from "@/components/form/th-select";
 import SignupAvatarPicker from "@/components/modules/auth/signup-avatar-picker";
 import { useUserRegister } from "@/hooks/auth.hook";
+import { safeRedirectPath } from "@/lib/blog-routes";
 import { signUpValidationSchema } from "@/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@heroui/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import { PiEyeLight, PiEyeSlashLight } from "react-icons/pi";
@@ -31,7 +32,6 @@ const SignUpForm = () => {
 
   const onSubmit: SubmitHandler<FieldValues> = (values) => {
     const formData = new FormData();
-
     const registerData = {
       fullName: values.fullName,
       username: values.username,
@@ -50,11 +50,21 @@ const SignUpForm = () => {
     registerUser(formData);
   };
 
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect");
+
   useEffect(() => {
     if (!isPending && data?.success) {
-      router.push("/login");
+      // Signing up signs nobody in, so this hands the reader to the login page
+      // and carries the destination with them: someone who joined to finish an
+      // article lands back on that article, not on the feed.
+      const loginHref = redirect
+        ? `/login?redirect=${encodeURIComponent(safeRedirectPath(redirect))}`
+        : "/login";
+
+      router.push(loginHref);
     }
-  }, [isPending, data, router]);
+  }, [isPending, data, router, redirect]);
 
   const errorMessage =
     (data && !data.success && data.message) ||

@@ -51,6 +51,7 @@
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
     "hono": "4.13.14",
+    "hono-rate-limiter": "^0.5.4",
     "http-status": "^2.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.24.6",

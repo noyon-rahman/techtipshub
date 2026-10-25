@@ -35,6 +35,10 @@ export interface IUser extends Document {
   location: string;
   dateOfBirth: Date;
   isVerified: boolean;
+  /** Google's stable account id, set on the first Google sign-in. */
+  googleId?: string;
+  /** Raised to end every session this account has. See the model. */
+  tokenVersion: number;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
