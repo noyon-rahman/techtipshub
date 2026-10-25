@@ -17,7 +17,7 @@ import Vote from "../vote/vote.model";
 import { blogSearchableFields } from "./blog.constant";
 import { IBlog } from "./blog.interface";
 import Blog from "./blog.model";
-import { generateUniqueSlug } from "./blog.utils";
+import { generateUniqueSlug, toSlug } from "./blog.utils";
 
 const create = async (userData: JwtPayload, payload: IBlog) => {
   const user = await User.findOne({ email: userData.email });
@@ -878,7 +878,7 @@ const updateBlogByUserUsingId = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  payload.slug = await generateUniqueSlug(payload.title);
+  payload.slug = await generateUniqueSlug(payload.title, blogId);
 
   const blog = await Blog.findOneAndUpdate(
     { _id: blogId, author: user._id },
@@ -893,29 +893,139 @@ const updateBlogByUserUsingId = async (
   return blog;
 };
 
+/**
+ * One article for the admin editor.
+ *
+ * Read through the admin route rather than the public slug route so opening
+ * the editor does not record a view for the admin, and a deleted article is a
+ * 404 like it is everywhere else until it is restored.
+ */
+const getAdminSingleBlog = async (blogId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(blogId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid blog Id");
+  }
+
+  const blog = await Blog.findById(blogId)
+    .populate({
+      path: "author",
+      select: "fullName username profilePicture email",
+    })
+    .populate({
+      path: "category",
+      select: "name description postCount",
+    });
+
+  if (!blog) {
+    throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
+  }
+
+  return blog;
+};
+
 const updateBlogByAdmin = async (
   blogId: string,
-  payload: IBlog & { userId: string },
+  payload: IBlog & { userId?: string },
+  adminEmail?: string,
 ) => {
-  const user = await User.findById(payload.userId);
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  if (!mongoose.Types.ObjectId.isValid(blogId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid blog Id");
   }
 
-  if (payload.title) {
-    payload.slug = await generateUniqueSlug(payload.title);
+  // The find hook hides deleted articles, so a trashed one is a 404 here: it
+  // has to be restored before it can be edited.
+  const existing = await Blog.findById(blogId);
+  if (!existing) {
+    throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
   }
 
-  const updatedBlog = await Blog.findByIdAndUpdate(
-    blogId,
-    { ...payload },
-    { new: true, runValidators: true },
-  );
+  // The panel may send `userId`, but the author is set at creation and never
+  // rewritten, so it is dropped here.
+  const { userId: _userId, ...fields } = payload;
+
+  // Only these columns are editable, so nothing else in the body can be
+  // written back.
+  const changes: Partial<IBlog> = {};
+
+  if (fields.title !== undefined) changes.title = fields.title;
+  if (fields.contentType !== undefined)
+    changes.contentType = fields.contentType;
+  if (fields.content !== undefined) changes.content = fields.content;
+  if (fields.coverImage !== undefined) changes.coverImage = fields.coverImage;
+  if (fields.category !== undefined) changes.category = fields.category;
+  if (fields.tags !== undefined) changes.tags = fields.tags;
+
+  // An address the panel sends wins over the one derived from the title, so an
+  // admin can retitle without moving the article, or move it deliberately.
+  const slugProvided = fields.slug !== undefined;
+  const explicitSlug = slugProvided ? toSlug(String(fields.slug)) : "";
+
+  if (slugProvided) {
+    if (explicitSlug.length < 3) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "The address must be at least 3 characters",
+      );
+    }
+
+    // Trashed articles still hold their slug against the unique index.
+    const taken = await Blog.findOne({
+      slug: explicitSlug,
+      _id: { $ne: blogId },
+    })
+      .setOptions({ bypassMiddleware: true })
+      .select("_id");
+
+    if (taken) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "That address is already in use",
+      );
+    }
+
+    changes.slug = explicitSlug;
+  } else if (changes.title) {
+    changes.slug = await generateUniqueSlug(changes.title, blogId);
+  }
+
+  const nextCategory = changes.category;
+  const categoryChanged =
+    nextCategory !== undefined &&
+    String(nextCategory) !== String(existing.category);
+
+  if (categoryChanged) {
+    const category = await Category.findById(nextCategory);
+    if (!category) {
+      throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+    }
+  }
+
+  const updatedBlog = await Blog.findByIdAndUpdate(blogId, changes, {
+    new: true,
+    runValidators: true,
+  });
   if (!updatedBlog) {
     throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
   }
 
-  return updatedBlog;
+  if (categoryChanged) {
+    await Category.findByIdAndUpdate(existing.category, {
+      $inc: { postCount: -1 },
+    });
+    await Category.findByIdAndUpdate(nextCategory, { $inc: { postCount: 1 } });
+  }
+
+  await adminLogService.record({
+    adminEmail,
+    action: "article.update",
+    targetType: "blog",
+    targetId: String(updatedBlog._id),
+    summary: `Updated article "${updatedBlog.title}"`,
+  });
+
+  return await updatedBlog.populate([
+    { path: "author", select: "fullName username" },
+    { path: "category", select: "name description postCount" },
+  ]);
 };
 
 const getDeletedBlogs = async (rawQuery: Record<string, unknown>) => {
@@ -947,6 +1057,7 @@ const getDeletedBlogs = async (rawQuery: Record<string, unknown>) => {
       .limit(limit)
       .select("-content -__v")
       .populate({ path: "author", select: "fullName username" })
+      .populate({ path: "category", select: "name" })
       .lean(),
     Blog.countDocuments({
       isDeleted: true,
@@ -1030,6 +1141,54 @@ const restoreBlog = async (blogId: string, adminEmail?: string) => {
   }
 };
 
+/**
+ * Erase a trashed article for good.
+ *
+ * Only a trashed article can be erased, so the author and category counters
+ * were already decremented on the way in and are not touched here. Comments,
+ * views and votes were purged with the soft delete; deleting them again keeps
+ * any older leftovers from outliving the article.
+ */
+const deleteBlogPermanently = async (blogId: string, adminEmail?: string) => {
+  if (!mongoose.Types.ObjectId.isValid(blogId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid blog Id");
+  }
+
+  // The find hook hides trashed articles, so read the raw document.
+  const raw = await Blog.collection.findOne({
+    _id: new Types.ObjectId(blogId),
+  });
+  if (!raw) {
+    throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
+  }
+
+  if (raw.isDeleted !== true) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Move the article to the trash before deleting it permanently",
+    );
+  }
+
+  await Promise.all([
+    Comment.deleteMany({ post: raw._id }),
+    View.deleteMany({ post: raw._id }),
+    Vote.deleteMany({ post: raw._id }),
+  ]);
+
+  await Blog.deleteOne({ _id: raw._id });
+
+  await adminLogService.record({
+    adminEmail,
+    action: "article.delete_permanent",
+    targetType: "blog",
+    targetId: String(raw._id),
+    summary: `Permanently deleted article "${raw.title}"`,
+    meta: { slug: raw.slug },
+  });
+
+  return { _id: String(raw._id), title: raw.title, slug: raw.slug };
+};
+
 export const blogService = {
   create,
   getAll,
@@ -1046,7 +1205,9 @@ export const blogService = {
   deleteBlogByUserUsingId,
   updateBlogByUserUsingId,
   updateBlogByAdmin,
+  getAdminSingleBlog,
   getAdminList,
   getDeletedBlogs,
   restoreBlog,
+  deleteBlogPermanently,
 };

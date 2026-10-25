@@ -12,6 +12,9 @@
  * useTrashedUsers in `admin-trash.ts` covers the deleted members.
  * useFoundMember(id), useMemberFollowers(id), useMemberFollowing(id) read a
  * single member and the two follow lists.
+ *
+ * useUpdateMemberProfile() saves the profile editor's multipart body and
+ * refreshes the member row plus every list that shows it.
  */
 import {
   getAdminUsers,
@@ -19,10 +22,17 @@ import {
   getMemberFollowing,
   readMemberPage,
   searchMember,
+  updateMemberProfile,
 } from "@/services/admin/members";
 import type { IAdminMembersParams } from "@/types/admin.type";
 import type { IFollower, IUser } from "@/types";
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseQueryResult,
+} from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   keepPreviousData,
   toAdminList,
@@ -160,3 +170,34 @@ export const useMemberFollowing = (
 /** Where a member's public profile lives, once they have a username. */
 export const memberProfileHref = (username?: string) =>
   username ? `/users/@${username}` : undefined;
+
+/**
+ * Saves a member profile from the admin screen.
+ *
+ * The row itself is cached under the search key as well as the list keys, so
+ * all four are refreshed: the detail screen reads the member, and the tables
+ * read their own lists.
+ */
+export const useUpdateMemberProfile = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, { id: string; payload: FormData }>({
+    mutationKey: ["ADMIN_UPDATE_MEMBER"],
+    mutationFn: async ({ id, payload }) =>
+      await updateMemberProfile(id, payload),
+    onSuccess: (_data, variables) => {
+      toast.success("Profile saved", { id: "admin-update-member" });
+      queryClient.invalidateQueries({
+        queryKey: ["ADMIN_MEMBER_SEARCH", variables.id],
+      });
+      queryClient.invalidateQueries({ queryKey: ADMIN_MEMBERS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["TRASHED_USERS"] });
+    },
+    onError: (error) => {
+      toast.error(error?.message || "The profile could not be saved.", {
+        id: "admin-update-member",
+      });
+    },
+  });
+};

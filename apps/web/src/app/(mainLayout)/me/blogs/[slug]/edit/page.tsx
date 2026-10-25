@@ -63,6 +63,7 @@ const EditSingleBlog = async ({ params }: IProps) => {
 
   // The editor saves with the signed-in member's token, so opening someone
   // else's article would only fail at the save button. Say so up front.
+  // Admins edit any article from `/admin/manage-blogs/<id>/edit` instead.
   const authorId =
     typeof blog.author === "object" && blog.author
       ? blog.author._id

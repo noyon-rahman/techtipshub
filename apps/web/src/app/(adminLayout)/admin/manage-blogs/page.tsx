@@ -25,7 +25,7 @@ const ManageBlogsPage = () => {
       <AdminPageHeader
         section="Articles"
         title="Articles"
-        description="Every published piece, newest first. Open one to read it, jump to the editor, or remove it with a reason."
+        description="Every published piece, newest first. Open one to read it, jump to the editor, or remove it with a reason. Removed articles move to the Deleted tab on this screen, and they stay in Trash too."
         actions={
           <ButtonLink
             href="/me/blogs/new"

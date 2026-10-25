@@ -11,6 +11,7 @@ import { ICategory } from "@/types";
 import { formatBlogDate } from "@/utils";
 import {
   Button,
+  Input,
   Modal,
   ModalBody,
   ModalContent,
@@ -70,6 +71,8 @@ export const EditorShell = ({
   banner,
   sidebar,
   children,
+  barStickyClass,
+  railStickyClass,
 }: {
   onLeave: () => void;
   /** What leaving costs, said plainly: "My articles", "Close". */
@@ -83,6 +86,10 @@ export const EditorShell = ({
   /** Publishing details on wide screens; rendered under the piece below that. */
   sidebar: ReactNode;
   children: ReactNode;
+  /** Sticky offset under the surrounding shell's header, e.g. the admin bar. */
+  barStickyClass?: string;
+  /** Sticky offset of the publishing rail under that same header. */
+  railStickyClass?: string;
 }) => (
   <>
     <PageBar
@@ -91,6 +98,7 @@ export const EditorShell = ({
       eyebrow={eyebrow}
       status={status}
       actions={actions}
+      stickyClass={barStickyClass}
     />
 
     <div className={`mx-auto w-full max-w-page pb-24 pt-6 ${FRAME_GUTTERS}`}>
@@ -100,7 +108,12 @@ export const EditorShell = ({
           {children}
           <div className="lg:hidden">{sidebar}</div>
         </div>
-        <div className="hidden lg:block lg:sticky lg:top-[calc(var(--header-height)+3.5rem)]">
+        <div
+          className={`hidden lg:block lg:sticky ${
+            railStickyClass ??
+            "lg:top-[calc(var(--header-height)+3.5rem)]"
+          }`}
+        >
           {sidebar}
         </div>
       </div>
@@ -127,14 +140,18 @@ const PageBar = ({
   eyebrow,
   status,
   actions,
+  stickyClass = "top-[var(--header-height)]",
 }: {
   onLeave: () => void;
   leaveLabel: string;
   eyebrow: ReactNode;
   status: ReactNode;
   actions: ReactNode;
+  stickyClass?: string;
 }) => (
-  <div className="sticky top-[var(--header-height)] z-30 border-b border-default-200 bg-background">
+  <div
+    className={`sticky ${stickyClass} z-30 border-b border-default-200 bg-background`}
+  >
     <div
       className={`mx-auto flex w-full max-w-page flex-col gap-y-2 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:py-2 ${FRAME_GUTTERS}`}
     >
@@ -319,6 +336,11 @@ export const ComposerToolbar = ({
 
 interface IPublishingDetailsProps {
   idPrefix: string;
+  /** The stored address, when the screen lets the writer change it. */
+  slug?: string;
+  slugPrefix?: string;
+  onSlugChange?: (slug: string) => void;
+  slugError?: string;
   categories: ICategory[];
   category: string;
   onCategoryChange: (category: string) => void;
@@ -345,6 +367,10 @@ interface IPublishingDetailsProps {
  */
 export const PublishingDetails = ({
   idPrefix,
+  slug,
+  slugPrefix,
+  onSlugChange,
+  slugError,
   categories,
   category,
   onCategoryChange,
@@ -371,6 +397,43 @@ export const PublishingDetails = ({
     <p className="mt-1 text-xs leading-relaxed text-default-600">
       Where the blog is filed. Both are needed to publish.
     </p>
+
+    {onSlugChange && (
+      <div className="mt-5">
+        <label
+          htmlFor={`${idPrefix}-slug`}
+          className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
+        >
+          Address
+        </label>
+        <Input
+          id={`${idPrefix}-slug`}
+          aria-label="Article address"
+          value={slug ?? ""}
+          onValueChange={onSlugChange}
+          variant="bordered"
+          radius="sm"
+          size="sm"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck="false"
+          startContent={
+            <span className="shrink-0 text-sm text-default-600">
+              {slugPrefix ?? "/blogs/"}
+            </span>
+          }
+          isInvalid={Boolean(slugError)}
+          errorMessage={slugError}
+          classNames={{ inputWrapper: "min-h-10" }}
+        />
+        {!slugError && (
+          <p className="mt-1.5 text-xs leading-relaxed text-default-600">
+            Lowercase letters, numbers and hyphens. Changing it moves the
+            article.
+          </p>
+        )}
+      </div>
+    )}
 
     <div className="mt-5">
       <label

@@ -150,11 +150,16 @@ export const useUpdateProfile = () => {
     mutationKey: ["UPDATE_PROFILE"],
     mutationFn: async (payload) => await updateProfile(payload),
     onSuccess: (data) => {
-      if (data?.success) {
-        toast.success(data?.message, {
+      if (!data?.success) {
+        toast.error(data?.message || "Your profile was not saved.", {
           id: "user-profile-updated",
         });
+        return;
       }
+
+      toast.success(data?.message, {
+        id: "user-profile-updated",
+      });
     },
   });
 };

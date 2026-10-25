@@ -140,6 +140,8 @@ export const updateProfile = async (payload: FormData) => {
     const res = await axiosInstance.patch(`/users/update-profile`, payload);
 
     updateTag("loggedInUserProfile");
+    // A username or photo change also changes the public profile page.
+    updateTag("singleUser");
 
     return res.data;
   } catch (err: any) {

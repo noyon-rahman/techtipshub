@@ -117,6 +117,14 @@ const getAdminList = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result, meta });
 };
 
+// one article for the admin editor, without recording a reader's view
+const getAdminSingle = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const result = await blogService.getAdminSingleBlog(id);
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const getDeletedBlogs = async (c: Context<TAppBindings>) => {
   const { result, meta } = await blogService.getDeletedBlogs(c.req.query());
 
@@ -127,6 +135,17 @@ const restoreBlog = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
 
   const result = await blogService.restoreBlog(id, c.get("user").email);
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const deleteBlogPermanently = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+
+  const result = await blogService.deleteBlogPermanently(
+    id,
+    c.get("user").email,
+  );
 
   return sendResponse(c, httpStatus.OK, { data: result });
 };
@@ -156,7 +175,11 @@ const updateBlogByUserUsingId = async (c: Context<TAppBindings, string>) => {
 const updateBlogByAdmin = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
 
-  const result = await blogService.updateBlogByAdmin(id, c.get("validatedBody"));
+  const result = await blogService.updateBlogByAdmin(
+    id,
+    c.get("validatedBody"),
+    c.get("user").email,
+  );
 
   return sendResponse(c, httpStatus.OK, { data: result });
 };
@@ -176,7 +199,9 @@ export const blogController = {
   deleteBlogByUserUsingId,
   updateBlogByUserUsingId,
   updateBlogByAdmin,
+  getAdminSingle,
   getAdminList,
   getDeletedBlogs,
   restoreBlog,
+  deleteBlogPermanently,
 };

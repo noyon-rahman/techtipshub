@@ -24,14 +24,17 @@ import {
   useTrashedBlogs,
   useTrashedUsers,
 } from "@/hooks/admin-trash";
-import { useTrashCounts } from "@/hooks/admin-blogs";
+import {
+  useDeleteAdminBlogPermanently,
+  useTrashCounts,
+} from "@/hooks/admin-blogs";
 import type { IUser, ITrashedUser } from "@/types";
 import { Avatar } from "@heroui/react";
 import Link from "next/link";
 import { useCallback, useId, useState } from "react";
 import { MdOutlineArticle } from "react-icons/md";
 import { PiUsers } from "react-icons/pi";
-import { RiArrowGoBackLine } from "react-icons/ri";
+import { RiArrowGoBackLine, RiDeleteBinLine } from "react-icons/ri";
 
 const PAGE_SIZE = 10;
 
@@ -60,6 +63,8 @@ const readRestored = <T,>(response: unknown): T | undefined => {
 
 const restoreButton = `inline-flex min-h-11 items-center gap-1.5 rounded-[6px] border border-default-200 px-2.5 text-sm font-medium text-foreground transition-colors hover:bg-default-100 disabled:opacity-50 sm:min-h-9 ${focusRing}`;
 
+const dangerButton = `inline-flex min-h-11 items-center gap-1.5 rounded-[6px] border border-danger/40 px-2.5 text-sm font-medium text-danger transition-colors hover:bg-danger/10 disabled:opacity-50 sm:min-h-9 ${focusRing}`;
+
 const linkClass = `rounded font-medium text-primary-accessible underline-offset-4 hover:underline ${focusRing}`;
 
 /** The deleted row as the trash endpoints send it; no body, so no content. */
@@ -73,9 +78,9 @@ interface ITrashedArticle {
 }
 
 /**
- * The trash. Both lists are server-paged; article search covers the whole
- * trash and the member tab narrows the page it received, so the tab badges,
- * the footer total and the pager always describe the whole trash.
+ * The trash. Both lists are server-paged and both search the whole trash, not
+ * the page on screen, so the tab badges, the footer total and the pager always
+ * describe every match.
  *
  * A restore leaves a row behind so the reader can open what came back. The
  * API stores no deletion time, so the date column is the last change.
@@ -85,14 +90,15 @@ const TrashManager = () => {
   const [page, setPage] = useState({ articles: 1, members: 1 });
   const [query, setQuery] = useState("");
   const [restored, setRestored] = useState<IRestored | null>(null);
+  const [removed, setRemoved] = useState<string | null>(null);
   const panelId = useId();
 
   const resetPage = useCallback(
     () => setPage((current) => ({ ...current, [tab]: 1 })),
     [tab],
   );
-  // The articles endpoint searches; the members endpoint reads only page and
-  // limit, so the member tab narrows the rows the server sent.
+  // Both endpoints search the whole trash, so one settled phrase is one request
+  // per tab and the page counter goes back to the first result.
   const searchTerm = useDebouncedTerm(query, resetPage);
 
   const blogsQuery = useTrashedBlogs({
@@ -100,11 +106,17 @@ const TrashManager = () => {
     limit: PAGE_SIZE,
     searchTerm,
   });
-  const usersQuery = useTrashedUsers({ page: page.members, limit: PAGE_SIZE });
+  const usersQuery = useTrashedUsers({
+    page: page.members,
+    limit: PAGE_SIZE,
+    searchTerm,
+  });
   const countsQuery = useTrashCounts();
 
   const { mutate: restoreBlog, isPending: isRestoringBlog } = useRestoreBlog();
   const { mutate: restoreUser, isPending: isRestoringUser } = useRestoreUser();
+  const { mutate: deleteForever, isPending: isDeletingForever } =
+    useDeleteAdminBlogPermanently();
 
   const articleCount = countsQuery.data?.blogs;
   const memberCount = countsQuery.data?.users;
@@ -129,11 +141,28 @@ const TrashManager = () => {
         const result = readRestored<{ title?: string; slug?: string }>(
           response,
         );
+        setRemoved(null);
         setRestored({
           name: result?.title || blog.title || "The article",
           href: result?.slug ? `/blogs/${result.slug}` : undefined,
           what: "article",
         });
+        if (page.articles > 1 && blogsQuery.rows.length <= 1) {
+          setPage((current) => ({
+            ...current,
+            articles: Math.max(1, current.articles - 1),
+          }));
+        }
+      },
+    });
+  };
+
+  const onDeleteForever = (blog: ITrashedArticle) => {
+    deleteForever({
+      id: blog._id,
+      onDeleted: () => {
+        setRestored(null);
+        setRemoved(blog.title || "The article");
         if (page.articles > 1 && blogsQuery.rows.length <= 1) {
           setPage((current) => ({
             ...current,
@@ -162,14 +191,6 @@ const TrashManager = () => {
       },
     });
   };
-
-  const memberRows = usersQuery.rows.filter((user) => {
-    if (!searchTerm) return true;
-    const needle = searchTerm.toLowerCase();
-    return [user.fullName, user.username, user.email].some((value) =>
-      value?.toLowerCase().includes(needle),
-    );
-  });
 
   const articlesBody = () => {
     if (blogsQuery.isLoading) {
@@ -227,7 +248,7 @@ const TrashManager = () => {
               variant="inline"
               icon={<MdOutlineArticle className="size-5" />}
               title="No removed article matches this search"
-              description={`Nothing in the trash has a title that starts with "${searchTerm}". Clear the search to see every removed article.`}
+              description={`No article in the trash has "${searchTerm}" in its title or slug. Clear the search to see every removed article.`}
               action={
                 <button
                   type="button"
@@ -284,23 +305,48 @@ const TrashManager = () => {
 
             case "actions":
               return (
-                <ConfirmDialog
-                  trigger={
-                    <button
-                      type="button"
-                      className={restoreButton}
-                      aria-label={`Restore ${blog.title || "this article"}`}
-                    >
-                      <RiArrowGoBackLine aria-hidden className="size-4" />
-                      Restore
-                    </button>
-                  }
-                  title="Restore this article?"
-                  description="It returns to the feed and to its author's profile. Its comments, views and votes were removed with it, so it starts with none."
-                  confirmLabel="Restore article"
-                  isPending={isRestoringBlog}
-                  onConfirm={() => onRestoreBlog(blog)}
-                />
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <ConfirmDialog
+                    trigger={
+                      <button
+                        type="button"
+                        className={restoreButton}
+                        aria-label={`Restore ${blog.title || "this article"}`}
+                      >
+                        <RiArrowGoBackLine aria-hidden className="size-4" />
+                        Restore
+                      </button>
+                    }
+                    title="Restore this article?"
+                    description="It returns to the feed and to its author's profile. Its comments, views and votes were removed with it, so it starts with none."
+                    confirmLabel="Restore article"
+                    isPending={isRestoringBlog}
+                    onConfirm={() => onRestoreBlog(blog)}
+                  />
+
+                  <ConfirmDialog
+                    trigger={
+                      <button
+                        type="button"
+                        className={dangerButton}
+                        aria-label={`Delete ${
+                          blog.title || "this article"
+                        } permanently`}
+                      >
+                        <RiDeleteBinLine aria-hidden className="size-4" />
+                        Delete permanently
+                      </button>
+                    }
+                    title={`Delete "${
+                      blog.title || "this article"
+                    }" permanently?`}
+                    description="This erases the article and its comments, views and votes for good. It cannot be restored, and its address can be used by another article."
+                    confirmLabel="Delete permanently"
+                    tone="danger"
+                    isPending={isDeletingForever}
+                    onConfirm={() => onDeleteForever(blog)}
+                  />
+                </div>
               );
 
             default:
@@ -374,18 +420,26 @@ const TrashManager = () => {
           { key: "changed", header: "Last changed" },
           { key: "actions", header: "Actions", align: "right" },
         ]}
-        rows={memberRows}
+        rows={usersQuery.rows}
         getRowKey={(row) => row._id}
         minWidth="52rem"
         caption="Deleted member accounts, most recently changed first"
         emptyState={
-          searchTerm && usersQuery.rows.length > 0 ? (
-            <EmptyState
-              variant="inline"
-              icon={<PiUsers className="size-5" />}
-              title="No member on this page matches"
-              description={`Search reads the ${plural(usersQuery.rows.length, "row")} on this page, because the members endpoint does not search the whole trash. Page through, or clear the search.`}
-              action={
+          <EmptyState
+            variant="inline"
+            icon={<PiUsers className="size-5" />}
+            title={
+              searchTerm
+                ? "No removed member matches this search"
+                : "No members in the trash"
+            }
+            description={
+              searchTerm
+                ? `No account in the trash has "${searchTerm}" in its name, username or email. Clear the search to see every removed member.`
+                : "Deleted accounts land here. Restoring one brings the login back without the articles and comments that went with it."
+            }
+            action={
+              searchTerm ? (
                 <button
                   type="button"
                   onClick={() => setQuery("")}
@@ -393,39 +447,13 @@ const TrashManager = () => {
                 >
                   Clear the search
                 </button>
-              }
-            />
-          ) : (
-            <EmptyState
-              variant="inline"
-              icon={<PiUsers className="size-5" />}
-              title={
-                searchTerm
-                  ? "No removed member matches this search"
-                  : "No members in the trash"
-              }
-              description={
-                searchTerm
-                  ? `Nothing on this page has "${searchTerm}" in its name, username or email.`
-                  : "Deleted accounts land here. Restoring one brings the login back without the articles and comments that went with it."
-              }
-              action={
-                searchTerm ? (
-                  <button
-                    type="button"
-                    onClick={() => setQuery("")}
-                    className={quietButton}
-                  >
-                    Clear the search
-                  </button>
-                ) : (
-                  <Link href="/admin/manage-users" className={linkClass}>
-                    Open member management
-                  </Link>
-                )
-              }
-            />
-          )
+              ) : (
+                <Link href="/admin/manage-users" className={linkClass}>
+                  Open member management
+                </Link>
+              )
+            }
+          />
         }
         renderCell={(user, columnKey) => {
           switch (columnKey) {
@@ -502,9 +530,7 @@ const TrashManager = () => {
             <p className="border-t border-default/60 bg-default-50/40 px-3 py-2 text-xs tabular-nums text-default-600">
               {meta
                 ? `${plural(total, "deleted account")}${
-                    searchTerm
-                      ? `, search covering this page of ${plural(usersQuery.rows.length, "row")}`
-                      : ""
+                    searchTerm ? ` matching "${searchTerm}"` : ""
                   }`
                 : "Counting deleted accounts"}
             </p>
@@ -525,7 +551,7 @@ const TrashManager = () => {
     <div className="space-y-4">
       <SectionCard
         title="Removed items"
-        description="Restoring puts an item back. Nothing on this screen erases it for good."
+        description="Restoring puts an item back. Deleting an article permanently erases it and cannot be undone."
         flush
       >
         <DataToolbar
@@ -537,7 +563,7 @@ const TrashManager = () => {
           query={query}
           onQueryChange={setQuery}
           searchPlaceholder={
-            tab === "articles" ? "Title or slug" : "Search this page"
+            tab === "articles" ? "Title or slug" : "Name, username or email"
           }
         />
 
@@ -576,14 +602,27 @@ const TrashManager = () => {
               </button>
             </div>
           </div>
+        ) : removed ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-danger/30 bg-danger/5 px-4 py-3 text-sm">
+            <p>
+              <span className="font-semibold">{removed}</span> was deleted
+              permanently.
+            </p>
+            <button
+              type="button"
+              onClick={() => setRemoved(null)}
+              className={`inline-flex min-h-11 items-center rounded-sm text-xs text-default-600 underline-offset-4 hover:underline sm:min-h-9 ${focusRing}`}
+            >
+              Dismiss
+            </button>
+          </div>
         ) : null}
       </div>
 
       <p className="text-xs leading-relaxed text-default-600">
         The API stores no deletion time, so the date column is when each record
-        last changed. Article search covers the whole trash. The members
-        endpoint reads only page and size, so member search narrows the page on
-        screen.{" "}
+        last changed. Both tabs search the whole trash, so a search finds a
+        record on any page.{" "}
         {articleCount !== undefined && memberCount !== undefined ? (
           <span className="tabular-nums">
             {plural(articleCount ?? 0, "article")} and{" "}

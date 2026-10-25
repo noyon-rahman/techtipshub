@@ -151,19 +151,97 @@ const getSingleUserByUsername = async (username: string) => {
   return user;
 };
 
-const updateProfile = async (userData: JwtPayload, payload: IUser) => {
-  const updatedUser = await User.findOneAndUpdate(
-    { email: userData.email },
-    payload,
-    {
-      new: true,
-      runValidators: true,
-    },
-  );
+// A profile form posts "" for the fields it cleared. A blank date clears the
+// stored one; a blank gender or username is dropped, a blank photo is kept.
+const normaliseProfilePayload = (payload: object) => {
+  const update: Record<string, unknown> = { ...payload };
 
+  if (update.dateOfBirth === "") update.dateOfBirth = null;
+  if (update.gender === "") delete update.gender;
+  if (update.username === "") delete update.username;
+
+  return update;
+};
+
+const assertUsernameAvailable = async (
+  username: string,
+  excludeId?: string,
+) => {
+  // Deleted accounts still hold their handle against the unique index, so the
+  // find hook is bypassed here as it is on registration.
+  const existing = await User.findOne({
+    username,
+    ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+  })
+    .select("_id")
+    .setOptions({ bypassMiddleware: true });
+
+  if (existing) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "That username is already taken",
+    );
+  }
+};
+
+const updateProfile = async (userData: JwtPayload, payload: IUser) => {
+  const user = await User.findOne({ email: userData.email });
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const update = normaliseProfilePayload(payload);
+
+  if (typeof update.username === "string") {
+    await assertUsernameAvailable(update.username, String(user._id));
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(user._id, update, {
+    new: true,
+    runValidators: true,
+  });
   if (!updatedUser) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
+
+  return updatedUser;
+};
+
+const updateProfileByAdmin = async (
+  id: string,
+  payload: IUser,
+  adminEmail?: string,
+) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid user Id");
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const update = normaliseProfilePayload(payload);
+
+  if (typeof update.username === "string") {
+    await assertUsernameAvailable(update.username, id);
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(id, update, {
+    new: true,
+    runValidators: true,
+  });
+  if (!updatedUser) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  await adminLogService.record({
+    adminEmail,
+    action: "user.update_profile",
+    targetType: "user",
+    targetId: id,
+    summary: `Updated profile for ${user.fullName} (@${user.username})`,
+  });
 
   return updatedUser;
 };
@@ -727,6 +805,7 @@ const getFollowingByUserId = async (
 export const userService = {
   getAllUsers,
   updateProfile,
+  updateProfileByAdmin,
   updateSocialLinks,
   blockUser,
   unBlockUser,

@@ -21,6 +21,12 @@ export const editBlogPath = (slug: string) =>
 /** The signed-in member's article list. */
 export const manageBlogsPath = "/me/blogs";
 
+/** The admin article list and one article's editor, by id. */
+export const adminManageBlogsPath = "/admin/manage-blogs";
+
+export const adminEditBlogPath = (id: string) =>
+  `/admin/manage-blogs/${encodeURIComponent(id)}/edit`;
+
 /**
  * Standalone routes that live under `/me/blogs` without being an article.
  * A slug never resolves to one of these there.

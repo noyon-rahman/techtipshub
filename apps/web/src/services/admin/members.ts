@@ -167,3 +167,20 @@ export const getMemberFollowing = async (
     return error?.response?.data;
   }
 };
+
+/**
+ * `PATCH /admin/users/:id` (Admin) -> `{ success, data: IUser }`.
+ *
+ * The body is multipart: `data` holds the JSON of the fields being changed and
+ * `image` carries a new profile photo. The browser sets the boundary, so no
+ * Content-Type header is sent by hand. Throws on failure.
+ */
+export const updateMemberProfile = async (id: string, payload: FormData) => {
+  try {
+    const res = await axiosInstance.patch(`/admin/users/${id}`, payload);
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The profile could not be saved.");
+  }
+};

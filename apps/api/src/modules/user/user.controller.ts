@@ -27,6 +27,18 @@ const updateProfile = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+const updateProfileByAdmin = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+
+  const result = await userService.updateProfileByAdmin(
+    id,
+    c.get("validatedBody"),
+    c.get("user").email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const updateSocialLinks = async (c: Context<TAppBindings>) => {
   const result = await userService.updateSocialLinks(
     c.get("user"),
@@ -144,6 +156,7 @@ const getFollowingByUserId = async (c: Context<TAppBindings, string>) => {
 export const userController = {
   getAllUsers,
   updateProfile,
+  updateProfileByAdmin,
   updateSocialLinks,
   blockUser,
   unBlockUser,

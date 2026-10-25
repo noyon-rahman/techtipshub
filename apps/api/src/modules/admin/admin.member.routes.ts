@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import type { TAppBindings } from "../../interface/bindings";
-import { validate } from "../../middlewares";
+import { validate, withUploads } from "../../middlewares";
 import { commentController } from "../comment/comment.controller";
 import { contactController } from "../contact/contact.controller";
 import { contactValidationSchema } from "../contact/contact.validation";
 import { userController } from "../user/user.controller";
+import { userValidationSchema } from "../user/user.validation";
 import { adminCommentController } from "./admin.comment.controller";
 
 const adminUserRouter = new Hono<TAppBindings>();
@@ -18,6 +19,16 @@ adminUserRouter.patch("/:id/restore", userController.restoreUser);
 adminUserRouter.patch("/:id/block", userController.blockUser);
 adminUserRouter.patch("/:id/unblock", userController.unBlockUser);
 adminUserRouter.patch("/:id/make-admin", userController.makeAdmin);
+adminUserRouter.patch(
+  "/:id",
+  withUploads({
+    field: "image",
+    target: "profilePicture",
+    resourceType: "auto",
+  }),
+  validate({ json: userValidationSchema.updateProfileByAdmin }),
+  userController.updateProfileByAdmin,
+);
 adminUserRouter.delete("/:id", userController.deleteUserAccount);
 
 const adminCommentRouter = new Hono<TAppBindings>();

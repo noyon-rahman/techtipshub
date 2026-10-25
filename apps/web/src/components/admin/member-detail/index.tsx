@@ -41,6 +41,7 @@ import {
   RiDeleteBinLine,
 } from "react-icons/ri";
 import StatusPill from "@/components/ui/status-pill";
+import EditMemberProfile from "./edit-member-profile";
 
 const linkClass = `rounded font-medium text-primary-accessible underline-offset-4 hover:underline ${focusRing}`;
 
@@ -428,6 +429,8 @@ const MemberDetail = ({ memberId }: { memberId: string }) => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <EditMemberProfile member={member} onSaved={refreshMember} />
+
             {publicProfile && (
               <Link href={publicProfile} className={quietButton}>
                 <RiExternalLinkLine aria-hidden className="size-4" />

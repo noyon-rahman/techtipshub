@@ -12,10 +12,16 @@ import { useState } from "react";
 import {
   cloneElement,
   isValidElement,
+  type MouseEvent,
   type ReactElement,
   type ReactNode,
 } from "react";
 import { focusRing } from "./tau";
+
+interface ITriggerProps {
+  onPress?: () => void;
+  onClick?: (event: MouseEvent<HTMLElement>) => void;
+}
 
 interface IProps {
   /** The button that opens the dialog. It receives the open handler. */
@@ -52,10 +58,21 @@ export default function ConfirmDialog({
 
   const danger = tone === "danger";
 
+  // HeroUI components expose `onPress`; a native `<button>` only listens for
+  // `onClick`. Stop that click from bubbling, or a row menu unmounts the
+  // dialog it just opened.
   const triggerNode = isValidElement(trigger)
     ? cloneElement(
-        trigger as ReactElement<{ onPress?: () => void; onClick?: () => void }>,
-        { onPress: onOpen },
+        trigger as ReactElement<ITriggerProps> & { type?: unknown },
+        typeof (trigger as { type?: unknown }).type === "string"
+          ? {
+              onClick: (event: MouseEvent<HTMLElement>) => {
+                (trigger.props as ITriggerProps).onClick?.(event);
+                event.stopPropagation();
+                onOpen();
+              },
+            }
+          : { onPress: onOpen },
       )
     : null;
 

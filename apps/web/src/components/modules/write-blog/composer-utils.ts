@@ -151,14 +151,20 @@ export const buildBlogPayload = (
   return formData;
 };
 
-/** Builds the multipart body for `PUT /blogs/:id`. */
+/**
+ * Builds the multipart body for `PUT /blogs/:id` and `PUT /admin/blogs/:id`.
+ *
+ * `extra` carries the fields only the admin update accepts, such as `userId`;
+ * member callers leave it out.
+ */
 export const buildUpdatePayload = (
   values: BlogFormData,
   coverImage: File | null,
+  extra?: Record<string, unknown>,
 ) => {
   const formData = new FormData();
 
-  // Only the fields the update schema accepts: it is `.strict()`, so any extra
+  // Only the fields the update schema accepts: it is `.strict()`, so any other
   // key (an `id`, a `description`) fails the whole request with a 400.
   formData.append(
     "data",
@@ -168,6 +174,7 @@ export const buildUpdatePayload = (
       category: values.category,
       tags: values.tags,
       contentType: "html",
+      ...extra,
     }),
   );
 

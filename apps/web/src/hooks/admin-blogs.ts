@@ -18,9 +18,11 @@
  * search, so debounce the input before passing it.
  *
  * useTrashCounts() -> data: { blogs?, users? }
- * Mutations: useDeleteAdminBlog(), useRestoreTrashedBlog().
+ * Mutations: useDeleteAdminBlog(), useDeleteAdminBlogPermanently(),
+ * useRestoreTrashedBlog().
  */ import {
   deleteAdminBlog,
+  deleteAdminBlogPermanently,
   getAdminBlogList,
   getAdminTrashedBlogList,
   readBlogPage,
@@ -161,6 +163,39 @@ export const useDeleteAdminBlog = () => {
     onError: (error) => {
       toast.error(error?.message || "The article could not be deleted.", {
         id: "admin-delete-blog",
+      });
+    },
+  });
+};
+
+/** Erases a trashed article for good; refreshes the trash and both badges. */
+export const useDeleteAdminBlogPermanently = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, { id: string; onDeleted?: () => void }>({
+    mutationKey: ["ADMIN_DELETE_BLOG_PERMANENT"],
+    mutationFn: async ({ id }) => await deleteAdminBlogPermanently(id),
+    onSuccess: (data, variables) => {
+      if (data?.success === false) {
+        toast.error(data?.message || "The article could not be deleted.", {
+          id: "admin-delete-blog-permanent",
+        });
+        return;
+      }
+
+      toast.success(data?.message || "Article deleted for good", {
+        id: "admin-delete-blog-permanent",
+      });
+
+      queryClient.invalidateQueries({ queryKey: TRASHED_BLOGS_KEY });
+      queryClient.invalidateQueries({ queryKey: ADMIN_BLOGS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASH_COUNTS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_BLOGS"] });
+      variables.onDeleted?.();
+    },
+    onError: (error) => {
+      toast.error(error?.message || "The article could not be deleted.", {
+        id: "admin-delete-blog-permanent",
       });
     },
   });

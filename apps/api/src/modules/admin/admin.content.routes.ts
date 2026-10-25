@@ -18,7 +18,11 @@ adminBlogRouter.get("/", blogController.getAdminList);
 
 adminBlogRouter.get("/trash", blogController.getDeletedBlogs);
 
+adminBlogRouter.get("/:id", blogController.getAdminSingle);
+
 adminBlogRouter.patch("/:id/restore", blogController.restoreBlog);
+
+adminBlogRouter.delete("/:id/permanent", blogController.deleteBlogPermanently);
 
 adminBlogRouter.delete("/:id", blogController.deleteBlogByAdminUsingId);
 

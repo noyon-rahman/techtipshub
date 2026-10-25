@@ -3,12 +3,13 @@
 /**
  * Trash hooks.
  *
- * useTrashedUsers({ page?, limit? })
+ * useTrashedUsers({ page?, limit?, searchTerm? })
  *   -> { data: <API envelope>, rows: ITrashedUser[], meta, isLoading,
  *        isFetching, isError, refetch }
  *      reads `GET /admin/users/trash`. `data` is the raw `{ success, data,
  *      meta }` body (what the current table reads); `rows` and `meta` are the
- *      same answer already unpacked.
+ *      same answer already unpacked. `searchTerm` narrows the whole trash, not
+ *      the page on screen.
  *
  * useTrashedBlogs lives in `admin-blogs.ts` (it gained `searchTerm`).
  *
@@ -60,9 +61,13 @@ export const useTrashedUsers = (
   const limit = params.limit ?? TRASH_PAGE_SIZE;
 
   const query = useQuery({
-    queryKey: [...TRASHED_USERS_KEY, page, limit],
+    queryKey: [...TRASHED_USERS_KEY, page, limit, params.searchTerm ?? ""],
     queryFn: async () => {
-      const payload = await getTrashedUsers({ page, limit });
+      const payload = await getTrashedUsers({
+        page,
+        limit,
+        searchTerm: params.searchTerm || undefined,
+      });
       const { rows, meta } = readTrashedUserPage(payload, { page, limit });
 
       return { rows, meta, raw: payload };

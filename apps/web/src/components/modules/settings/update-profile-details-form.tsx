@@ -1,9 +1,10 @@
 "use client";
 
-import { manageBlogsPath } from "@/lib/blog-routes";
+import { manageBlogsPath } from "@/lib/blog-routes";
 
 
 import THForm from "@/components/form/th-from";
+import THGenderSelect from "@/components/form/th-gender-select";
 import THInput from "@/components/form/th-input";
 import THTextarea from "@/components/form/th-textarea";
 import Loading from "@/components/loading";
@@ -13,6 +14,7 @@ import SettingsSection from "@/components/modules/settings/settings-section";
 import { useUpdateProfile } from "@/hooks/user.hook";
 import { IUser } from "@/types";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import { HiOutlineArrowRight } from "react-icons/hi2";
@@ -34,19 +36,33 @@ const UpdateProfileDetailsForm = ({
   location,
   phone,
   bio,
+  gender,
+  dateOfBirth,
   profilePicture,
   articleCount,
 }: IProps) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  // Only a save can clear the stored photo, so removing one is a pending edit.
+  const [photoRemoved, setPhotoRemoved] = useState(false);
   const { mutate: updateProfile, isPending } = useUpdateProfile();
+  const router = useRouter();
 
   const onSubmit: SubmitHandler<FieldValues> = (values) => {
     const formData = new FormData();
-    formData.append("data", JSON.stringify(values));
+    const payload = { ...values };
+
+    // An untouched field is left out rather than sent empty: the API validates
+    // whatever it receives, and "" is not a gender or a date.
+    if (!payload.username) delete payload.username;
+    if (!payload.gender) delete payload.gender;
+    if (!payload.dateOfBirth) delete payload.dateOfBirth;
+    // An empty profilePicture is the only signal the API clears a stored photo.
+    if (photoRemoved && !selectedImage) payload.profilePicture = "";
+
+    formData.append("data", JSON.stringify(payload));
 
     // The photo is part of the same save. Sending it only when one was picked
-    // keeps the stored image untouched otherwise — but it must be sent at all,
-    // or the reader has to press save twice to see it.
+    // keeps the stored image untouched otherwise.
     if (selectedImage) {
       formData.append("image", selectedImage);
     }
@@ -54,7 +70,13 @@ const UpdateProfileDetailsForm = ({
     updateProfile(formData, {
       onSuccess: (data) => {
         // Start a clean state only once the server accepted the change.
-        if (data?.success) setSelectedImage(null);
+        if (data?.success) {
+          setSelectedImage(null);
+          setPhotoRemoved(false);
+          // The avatar and the public-profile link come from the server, so
+          // the saved photo and handle need a fresh render to show up.
+          router.refresh();
+        }
       },
     });
   };
@@ -64,7 +86,16 @@ const UpdateProfileDetailsForm = ({
       {isPending && <Loading />}
       <THForm
         onSubmit={onSubmit}
-        defaultValues={{ fullName, designation, location, phone, bio }}
+        defaultValues={{
+          fullName,
+          username,
+          designation,
+          location,
+          phone,
+          bio,
+          gender,
+          dateOfBirth: dateOfBirth ? dateOfBirth.slice(0, 10) : "",
+        }}
       >
         <div className="space-y-6">
           <SettingsSection
@@ -89,9 +120,13 @@ const UpdateProfileDetailsForm = ({
               location={location}
               bio={bio}
               username={username}
-              savedPicture={profilePicture}
+              savedPicture={photoRemoved ? undefined : profilePicture}
               selectedImage={selectedImage}
               onSelectImage={setSelectedImage}
+              onRemoveExisting={() => {
+                setPhotoRemoved(true);
+                setSelectedImage(null);
+              }}
             />
             {typeof articleCount === "number" && articleCount > 0 && (
               <p className="mt-5 border-t border-default/60 pt-4 text-xs text-default-600">
@@ -111,7 +146,7 @@ const UpdateProfileDetailsForm = ({
           <SettingsSection
             id="details"
             title="Public details"
-            description="Shown on your profile and next to every article you write."
+            description="What readers see on your profile. A few fields stay private to your account."
           >
             <div className="grid gap-5 sm:grid-cols-2">
               <div className="sm:col-span-2">
@@ -124,6 +159,22 @@ const UpdateProfileDetailsForm = ({
                   placeholder="Your name"
                   radius="lg"
                   id="fullName"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="username" className={fieldLabel}>
+                  Username
+                </label>
+                <THInput
+                  name="username"
+                  variant="bordered"
+                  placeholder="your-handle"
+                  radius="lg"
+                  id="username"
+                  isRequired
+                  maxLength={30}
+                  autoComplete="username"
+                  description="Your profile address: /profile/@your-handle"
                 />
               </div>
               <div>
@@ -150,6 +201,25 @@ const UpdateProfileDetailsForm = ({
                   id="location"
                 />
               </div>
+              <div>
+                <label htmlFor="gender" className={fieldLabel}>
+                  Gender
+                </label>
+                <THGenderSelect name="gender" id="gender" aria-label="Gender" />
+              </div>
+              <div>
+                <label htmlFor="dateOfBirth" className={fieldLabel}>
+                  Date of birth
+                </label>
+                <THInput
+                  name="dateOfBirth"
+                  type="date"
+                  variant="bordered"
+                  radius="lg"
+                  id="dateOfBirth"
+                  description="Private. Never shown on your profile."
+                />
+              </div>
               <div className="sm:col-span-2">
                 <label htmlFor="phone" className={fieldLabel}>
                   Phone
@@ -160,7 +230,7 @@ const UpdateProfileDetailsForm = ({
                   placeholder="Never shown publicly"
                   radius="lg"
                   id="phone"
-                  description="For account recovery only — readers never see it."
+                  description="For account recovery only. Readers never see it."
                 />
               </div>
               <div className="sm:col-span-2">
@@ -170,7 +240,7 @@ const UpdateProfileDetailsForm = ({
                 <THTextarea
                   name="bio"
                   variant="bordered"
-                  placeholder="A short introduction — what you work on, what you write about."
+                  placeholder="A short introduction: what you work on, what you write about."
                   radius="lg"
                   id="bio"
                   maxLength={MAX_BIO}
@@ -182,7 +252,7 @@ const UpdateProfileDetailsForm = ({
 
           <SettingsSaveBar
             isPending={isPending}
-            filePending={!!selectedImage}
+            filePending={Boolean(selectedImage) || photoRemoved}
             hint="Changes appear on your public profile right away."
           >
             Save changes

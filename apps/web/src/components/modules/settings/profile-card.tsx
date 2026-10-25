@@ -16,6 +16,8 @@ interface IProps {
   savedPicture?: string;
   selectedImage: File | null;
   onSelectImage: (file: File | null) => void;
+  /** Lets the form know the stored photo should be cleared when saving. */
+  onRemoveExisting?: () => void;
 }
 
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -36,6 +38,7 @@ const ProfileCard = ({
   savedPicture,
   selectedImage,
   onSelectImage,
+  onRemoveExisting,
 }: IProps) => {
   // A preview URL is already downloaded and decoded, so it can be built during
   // render instead of in an effect. The memo drops it when the file changes,
@@ -77,6 +80,13 @@ const ProfileCard = ({
     onSelectImage(file);
   };
 
+  // The stored photo stays until the form is saved, so the form owns the flag.
+  const handleRemove = () => {
+    setRemoved(true);
+    onSelectImage(null);
+    onRemoveExisting?.();
+  };
+
   const initials = (fullName || username || "?").charAt(0).toUpperCase();
   const photo = removed ? undefined : previewUrl || savedPicture;
 
@@ -95,10 +105,7 @@ const ProfileCard = ({
             inputRef={inputRef}
             hasPhoto={!!photo}
             onChange={handleChange}
-            onRemove={() => {
-              setRemoved(true);
-              onSelectImage(null);
-            }}
+            onRemove={handleRemove}
           />
         </div>
       </div>
@@ -120,10 +127,7 @@ const ProfileCard = ({
             inputRef={inputRef}
             hasPhoto={!!photo}
             onChange={handleChange}
-            onRemove={() => {
-              setRemoved(true);
-              onSelectImage(null);
-            }}
+            onRemove={handleRemove}
           />
 
           {username && (

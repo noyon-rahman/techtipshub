@@ -27,6 +27,22 @@ export const getAdminBlogList = async (params: IAdminBlogQuery = {}) => {
   }
 };
 
+/**
+ * `GET /admin/blogs/:id` (Admin) -> `{ success, data: IBlog }`.
+ *
+ * The editor reads the article through this route, so opening it does not
+ * count as a reader's view. Throws on failure.
+ */
+export const getAdminBlog = async (id: string) => {
+  try {
+    const res = await axiosInstance.get(`/admin/blogs/${id}`);
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The article did not load.");
+  }
+};
+
 /** Rows and `meta` of `getAdminBlogList`, read defensively. */
 export const readBlogPage = (
   payload: unknown,
@@ -67,6 +83,22 @@ export const restoreAdminBlog = async (id: string) => {
     return res.data;
   } catch (error) {
     throw toServiceError(error, "The article could not be restored.");
+  }
+};
+
+/**
+ * `DELETE /admin/blogs/:id/permanent` (Admin).
+ *
+ * Erases a trashed article. Only a trashed article can be erased, so this is
+ * the second step after `deleteAdminBlog`, never a replacement for it.
+ */
+export const deleteAdminBlogPermanently = async (id: string) => {
+  try {
+    const res = await axiosInstance.delete(`/admin/blogs/${id}/permanent`);
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The article could not be deleted for good.");
   }
 };
 

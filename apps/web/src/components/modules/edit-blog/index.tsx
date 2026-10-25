@@ -1,14 +1,19 @@
 "use client";
 
 import { useComposerEditor } from "@/components/editor/rich-text-editor";
-import { useUpdateBlogByUserUsingId } from "@/hooks/blog.hook";
 import {
+  useUpdateBlogByAdmin,
+  useUpdateBlogByUserUsingId,
+} from "@/hooks/blog.hook";
+import {
+  adminManageBlogsPath,
   editBlogPath,
   manageBlogsPath,
 } from "@/lib/blog-routes";
 import { getAllCategories } from "@/services/category";
 import { ICategory, IBlog } from "@/types";
 import { Button } from "@heroui/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuEye, LuRotateCcw, LuTriangleAlert } from "react-icons/lu";
@@ -71,9 +76,29 @@ const editableFingerprint = (values: BlogFormData) =>
  * already see: changes are measured against the saved blog, the primary button
  * says whether there is anything to save, and leaving asks first.
  */
-const EditBlog = ({ blog }: { blog: IBlog }) => {
+const EditBlog = ({
+  blog,
+  adminMode = false,
+}: {
+  blog: IBlog;
+  adminMode?: boolean;
+}) => {
   const router = useRouter();
-  const { mutate: updateBlog, isPending } = useUpdateBlogByUserUsingId();
+  const queryClient = useQueryClient();
+  // An admin edits other writers' articles, which only the admin endpoint
+  // accepts, so both mutations exist here and one is picked per save.
+  const memberUpdate = useUpdateBlogByUserUsingId();
+  const adminUpdate = useUpdateBlogByAdmin();
+  const { mutate: updateBlog, isPending } = adminMode
+    ? adminUpdate
+    : memberUpdate;
+
+  const authorId =
+    typeof blog.author === "object" && blog.author
+      ? blog.author._id
+      : (blog.author as string | undefined);
+
+  const manageHref = adminMode ? adminManageBlogsPath : manageBlogsPath;
 
   const initial = useMemo(() => initialValues(blog), [blog]);
 
@@ -85,6 +110,11 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Partial<Record<DraftField, string>>>({});
   const [previewOpen, setPreviewOpen] = useState(false);
+  // The public address. Only the admin editor exposes it; the member editor
+  // keeps deriving it from the title.
+  const [slug, setSlug] = useState(blog.slug ?? "");
+  const [savedSlug, setSavedSlug] = useState(blog.slug ?? "");
+  const [slugError, setSlugError] = useState<string | undefined>();
 
   // A cover picked here is only stored once the save succeeds, so abandoning an
   // edit cannot leave a replacement image behind.
@@ -143,7 +173,12 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
       .catch(() => setCategories([]));
   }, []);
 
-  const dirty = editableFingerprint(values) !== savedFingerprint || Boolean(coverImage);
+  const slugChanged = adminMode && slug.trim() !== savedSlug;
+
+  const dirty =
+    editableFingerprint(values) !== savedFingerprint ||
+    Boolean(coverImage) ||
+    slugChanged;
 
   const dirtyLabels = useMemo(() => {
     const labels: string[] = [];
@@ -152,8 +187,9 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
     if (values.category !== initial.category) labels.push("category");
     if (values.tags.join(",") !== initial.tags.join(",")) labels.push("tags");
     if (coverImage) labels.push("cover image");
+    if (slugChanged) labels.push("address");
     return labels;
-  }, [values, initial, coverImage]);
+  }, [values, initial, coverImage, slugChanged]);
 
   /* ---------------------------------------------------------------- actions */
 
@@ -184,6 +220,12 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
     titleRef.current?.focus();
   };
 
+  const focusSlug = () => {
+    const input = document.getElementById("editor-slug");
+    input?.scrollIntoView({ behavior: "smooth", block: "center" });
+    input?.focus();
+  };
+
   const save = (options?: { stay?: boolean }) => {
     // An existing blog already has a cover, so only a newly chosen file has to
     // be there for the update payload.
@@ -199,15 +241,54 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
       return;
     }
 
+    // The address is only exposed in the admin editor. The API normalises what
+    // it receives, so this only rejects something too short to be a slug.
+    const nextAddress = slug.trim();
+    if (adminMode) {
+      if (nextAddress.length < 3) {
+        const message = "The address needs at least 3 characters.";
+        setSlugError(message);
+        focusSlug();
+        toast.error(message, { id: "edit-check" });
+        return;
+      }
+      setSlugError(undefined);
+    }
+
     updateBlog(
-      { blogId: blog._id, payload: buildUpdatePayload(values, coverImage) },
+      {
+        blogId: blog._id,
+        payload: buildUpdatePayload(
+          values,
+          coverImage,
+          adminMode
+            ? {
+                ...(authorId ? { userId: authorId } : {}),
+                slug: nextAddress,
+              }
+            : undefined,
+        ),
+      },
       {
         onSuccess: (data) => {
           if (!data?.success) {
-            toast.error(data?.message || "The changes were not saved.", {
-              id: "edit-failed",
-            });
+            const message =
+              data?.message || "The changes were not saved.";
+            if (adminMode && /address|slug/i.test(message)) {
+              setSlugError(message);
+            }
+            toast.error(message, { id: "edit-failed" });
             return;
+          }
+
+          // The admin table and the trash counts cache this article separately,
+          // so an admin save has to refresh them before the page moves on.
+          if (adminMode) {
+            void queryClient.invalidateQueries({ queryKey: ["ADMIN_BLOGS"] });
+            void queryClient.invalidateQueries({ queryKey: ["TRASHED_BLOGS"] });
+            void queryClient.invalidateQueries({
+              queryKey: ["ADMIN_TRASH_COUNTS"],
+            });
           }
 
           // The text fields are the baseline; the cover is tracked by whether a
@@ -224,11 +305,17 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
           }
           setSavedFingerprint(editableFingerprint(values));
 
-          // The API writes a new slug from the title, so the address changes
-          // with it. Carry the reader across instead of leaving the old one in
-          // the URL, and only then refresh from the server.
+          // The API writes a new slug from the title, so the member editor's
+          // address changes with it. The admin editor sends its own address and
+          // is keyed by id, so it stays put across a retitle.
           const nextSlug = data?.data?.slug as string | undefined;
-          if (nextSlug && nextSlug !== blog.slug) {
+          if (adminMode) {
+            if (nextSlug) {
+              setSlug(nextSlug);
+              setSavedSlug(nextSlug);
+            }
+            setSlugError(undefined);
+          } else if (nextSlug && nextSlug !== blog.slug) {
             router.replace(editBlogPath(nextSlug));
             return;
           }
@@ -257,6 +344,8 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
   const discard = () => {
     setValues(initial);
     setErrors({});
+    setSlug(savedSlug);
+    setSlugError(undefined);
     setCoverImage(null);
     setCoverRemoved(false);
     setSavedCover(typeof blog.coverImage === "string" ? blog.coverImage : null);
@@ -268,7 +357,7 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
   const { prompt, askToLeave } = useUnsavedChangesGuard({
     dirty,
     discard,
-    onLeave: () => router.push(manageBlogsPath),
+    onLeave: () => router.push(manageHref),
     title: "Leave without saving?",
     description:
       "Your unsaved edits will be lost. The published article keeps its current version.",
@@ -281,31 +370,43 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
   );
 
   const words = wordCount(values.content);
-  const errorCount = Object.values(errors).filter(Boolean).length;
+  const errorCount =
+    Object.values(errors).filter(Boolean).length + (slugError ? 1 : 0);
   const publishedAt = new Date(blog.createdAt).toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 
+  // The address readers can open now: the saved one while an edit is pending.
+  const liveSlug = adminMode ? savedSlug : blog.slug;
+
   return (
     <EditorShell
+      // Inside the admin shell the sticky bar belongs under its 3.5rem top bar,
+      // not under the site header the member composer sits beneath.
+      barStickyClass={
+        adminMode ? "top-[calc(3.5rem+1px)]" : undefined
+      }
+      railStickyClass={
+        adminMode ? "lg:top-[calc(3.5rem+1px+3.5rem)]" : undefined
+      }
       onLeave={() => {
         if (!dirty) {
-          router.push(manageBlogsPath);
+          router.push(manageHref);
           return;
         }
         askToLeave();
       }}
-      leaveLabel="My articles"
+      leaveLabel={adminMode ? "Articles" : "My articles"}
       eyebrow={
         <>
-          Editing
-          {blog.slug && (
+          {adminMode ? "Admin edit" : "Editing"}
+          {liveSlug && (
             <>
               {" "}
               <a
-                href={`/blogs/${blog.slug}`}
+                href={`/blogs/${liveSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hidden font-normal underline-offset-4 hover:text-foreground hover:underline sm:inline"
@@ -368,6 +469,16 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
       sidebar={
         <PublishingDetails
           idPrefix="editor"
+          slug={adminMode ? slug : undefined}
+          onSlugChange={
+            adminMode
+              ? (value) => {
+                  setSlug(value);
+                  setSlugError(undefined);
+                }
+              : undefined
+          }
+          slugError={adminMode ? slugError : undefined}
           categories={categories}
           category={values.category}
           onCategoryChange={(value) => update("category", value)}
@@ -405,7 +516,11 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
         titleRef={titleRef}
         title={values.title}
         titlePlaceholder="Title of your article"
-        titleHint="Changing the title changes the article's address."
+        titleHint={
+          adminMode
+            ? "The address is set in publishing details."
+            : "Changing the title changes the article's address."
+        }
         onTitleChange={(value) => update("title", value)}
         titleError={errors.title}
         onTitleEnter={() => editor?.chain().focus("start").run()}
@@ -473,8 +588,8 @@ const EditBlog = ({ blog }: { blog: IBlog }) => {
             : "This is the version readers see now."
         }
         previewHref={
-          blog.slug
-            ? { href: `/blogs/${blog.slug}`, label: "View live" }
+          liveSlug
+            ? { href: `/blogs/${liveSlug}`, label: "View live" }
             : undefined
         }
         onPreview={() => setPreviewOpen(true)}
