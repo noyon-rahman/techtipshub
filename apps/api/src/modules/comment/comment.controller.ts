@@ -1,72 +1,49 @@
 import httpStatus from "http-status";
-import { catchAsync, sendResponse } from "../../utils";
-import { commentService } from "./comment.service";
+import type { Context } from "hono";
+import type { TAppBindings } from "../../interface/bindings";
 import type { TRouteParams } from "../../interface/params";
+import sendResponse from "../../utils/sendResponse";
+import { commentService } from "./comment.service";
 
-const deleteComment = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
-  const isAdmin = req.user?.role === "Admin";
+const deleteComment = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const user = c.get("user");
+  const isAdmin = user?.role === "Admin";
 
   const result = await commentService.deleteComment(
     id,
-    isAdmin ? req.user.email : undefined,
-    isAdmin ? undefined : req.user?.email,
+    isAdmin ? user.email : undefined,
+    isAdmin ? undefined : user?.email,
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Comment deleted successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const updateComment = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const updateComment = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await commentService.updateComment(id, req.body);
+  const result = await commentService.updateComment(id, c.get("validatedBody"));
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Comment updated successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const getAll = catchAsync(async (req, res) => {
-  const { result, meta } = await commentService.getAll(req.query);
+const getAll = async (c: Context<TAppBindings>) => {
+  const { result, meta } = await commentService.getAll(c.req.query());
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Comments retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
-const getLatest = catchAsync(async (req, res) => {
-  const result = await commentService.getLatest(req.query.limit);
+const getLatest = async (c: Context<TAppBindings>) => {
+  const result = await commentService.getLatest(c.req.query("limit"));
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Latest comments retrieved successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const getCounts = catchAsync(async (_req, res) => {
+const getCounts = async (c: Context<TAppBindings>) => {
   const result = await commentService.getCounts();
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Comment counts retrieved successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 export const commentController = {
   deleteComment,

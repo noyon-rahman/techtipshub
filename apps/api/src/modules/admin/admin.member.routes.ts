@@ -1,4 +1,5 @@
-import { Router } from "express";
+import { Hono } from "hono";
+import type { TAppBindings } from "../../interface/bindings";
 import { validateRequest } from "../../middlewares";
 import { commentController } from "../comment/comment.controller";
 import { contactController } from "../contact/contact.controller";
@@ -6,7 +7,7 @@ import { contactValidationSchema } from "../contact/contact.validation";
 import { userController } from "../user/user.controller";
 import { adminCommentController } from "./admin.comment.controller";
 
-const adminUserRouter: Router = Router();
+const adminUserRouter = new Hono<TAppBindings>();
 
 adminUserRouter.get("/", userController.getAllUsers);
 
@@ -19,7 +20,7 @@ adminUserRouter.patch("/:id/unblock", userController.unBlockUser);
 adminUserRouter.patch("/:id/make-admin", userController.makeAdmin);
 adminUserRouter.delete("/:id", userController.deleteUserAccount);
 
-const adminCommentRouter: Router = Router();
+const adminCommentRouter = new Hono<TAppBindings>();
 
 // Literal paths must stay above "/:id".
 adminCommentRouter.get("/", commentController.getAll);
@@ -28,7 +29,7 @@ adminCommentRouter.get("/counts", commentController.getCounts);
 
 adminCommentRouter.delete("/:id", adminCommentController.deleteComment);
 
-const adminMessageRouter: Router = Router();
+const adminMessageRouter = new Hono<TAppBindings>();
 
 adminMessageRouter.get("/", contactController.getAll);
 adminMessageRouter.get("/:id", contactController.getSingle);

@@ -1,6 +1,7 @@
 "use server";
 
 import envConfig from "@/config/env.config";
+import { legacyResponse } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
 import { TSocialLink } from "@/types";
 import { updateTag } from "next/cache";
@@ -21,7 +22,7 @@ export const getUserByUsername = async (username: string) => {
       },
     });
 
-    return await res?.json();
+    return legacyResponse<unknown>(res);
   } catch (err: any) {
     throw new Error(err?.message);
   }
@@ -76,7 +77,7 @@ export const getFollowersByUserId = async (userId: string) => {
       next: { tags: ["followers"], revalidate: 43200 },
     });
 
-    return await res?.json();
+    return legacyResponse<unknown>(res);
   } catch (error: any) {
     throw new Error(error?.message);
   }
@@ -92,7 +93,7 @@ export const getFollowingByUserId = async (userId: string) => {
       next: { tags: ["following"], revalidate: 43200 },
     });
 
-    return await res?.json();
+    return legacyResponse<unknown>(res);
   } catch (error: any) {
     throw new Error(error?.message);
   }

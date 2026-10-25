@@ -1,33 +1,35 @@
-import { Router } from "express";
-import { validateRequest } from "../../middlewares";
+import { Hono } from "hono";
+import type { TAppBindings } from "../../interface/bindings";
+import { validateRequest, withUploads } from "../../middlewares";
+import { blogValidationSchema } from "../blog/blog.validation";
 import { blogController } from "../blog/blog.controller";
 import { categoryController } from "../category/category.controller";
 import { categoryValidationSchema } from "../category/category.validation";
-import { updateBlogByAdminHandlers } from "./admin.middleware";
 
-const adminBlogRouter: Router = Router();
+/**
+ * Body parsing for admin blog writes.
+ *
+ * `coverImage` is only replaced when a file actually arrives, so a JSON update
+ * that carries no image keeps the stored one.
+ */
+const adminBlogRouter = new Hono<TAppBindings>();
 
-// admin article table: page, limit, searchTerm, category, author, sort, status
 adminBlogRouter.get("/", blogController.getAdminList);
 
-// soft-deleted blogs, newest first
 adminBlogRouter.get("/trash", blogController.getDeletedBlogs);
 
-// restore a soft-deleted blog
 adminBlogRouter.patch("/:id/restore", blogController.restoreBlog);
 
-// remove a blog
 adminBlogRouter.delete("/:id", blogController.deleteBlogByAdminUsingId);
 
-// edit a blog (multipart `image` + `data`, same as the old by-admin route).
-// The DELETE above wins over PUT on the same path, so one path serves both.
 adminBlogRouter.put(
   "/:id",
-  ...updateBlogByAdminHandlers,
+  withUploads({ field: "image", target: "coverImage" }),
+  validateRequest(blogValidationSchema.updateByAdmin),
   blogController.updateBlogByAdmin,
 );
 
-const adminCategoryRouter: Router = Router();
+const adminCategoryRouter = new Hono<TAppBindings>();
 
 adminCategoryRouter.get("/", categoryController.getAdminList);
 

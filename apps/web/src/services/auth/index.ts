@@ -1,6 +1,7 @@
 "use server";
 
 import envConfig from "@/config/env.config";
+import { legacyResponse } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
 import { getAccessToken } from "@/lib/fetch-with-auth";
 import { TLoggedInUser, TLogin } from "@/types";
@@ -107,7 +108,7 @@ export const getProfileInfo = async () => {
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     });
 
-    return res.json();
+    return legacyResponse<unknown>(res);
   } catch (err: any) {
     return err;
   }

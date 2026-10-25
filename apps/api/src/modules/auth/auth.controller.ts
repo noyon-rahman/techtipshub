@@ -1,120 +1,103 @@
 import httpStatus from "http-status";
+import type { Context } from "hono";
+import { setCookie } from "hono/cookie";
 import config from "../../config";
 import { AppError } from "../../errors";
-import { catchAsync, sendResponse } from "../../utils";
+import type { TAppBindings } from "../../interface/bindings";
+import sendResponse from "../../utils/sendResponse";
 import { authService } from "./auth.service";
 
-const register = catchAsync(async (req, res) => {
-  const result = await authService.register(req.body);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CREATED,
-    message: "User Registered successfully",
-    data: result,
-  });
-});
-
-const login = catchAsync(async (req, res) => {
-  const { accessToken, refreshToken } = await authService.login(req.body);
-
-  res.cookie("refreshToken", refreshToken, {
+/**
+ * The refresh token as an httpOnly cookie.
+ *
+ * The browser never reads it; it is only sent back on `/auth/refresh-token`.
+ * `sameSite` is set explicitly because Hono, unlike Express, does not add a
+ * default one.
+ */
+const setRefreshCookie = (c: Context<TAppBindings>, refreshToken: string) => {
+  setCookie(c, "refreshToken", refreshToken, {
     secure: config.NODE_ENV === "production",
     httpOnly: true,
+    sameSite: "Lax",
+    path: "/",
     maxAge: 1000 * 60 * 60 * 24 * 60 * 365,
   });
+};
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User Logged in successfully",
-    data: { accessToken, refreshToken },
-  });
-});
+const register = async (c: Context<TAppBindings>) => {
+  const result = await authService.register(c.get("validatedBody"));
 
-const socialLogin = catchAsync(async (req, res) => {
-  const { accessToken, refreshToken } = await authService.socialLogin(req.body);
+  return sendResponse(c, httpStatus.CREATED, { data: result });
+};
 
-  res.cookie("refreshToken", refreshToken, {
-    secure: config.NODE_ENV === "production",
-    httpOnly: true,
-    maxAge: 1000 * 60 * 60 * 24 * 60 * 365,
-  });
+const login = async (c: Context<TAppBindings>) => {
+  const { accessToken, refreshToken } = await authService.login(
+    c.get("validatedBody"),
+  );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User Logged in successfully",
-    data: { accessToken, refreshToken },
-  });
-});
+  setRefreshCookie(c, refreshToken);
+
+  return sendResponse(c, httpStatus.OK, { data: { accessToken, refreshToken } });
+};
+
+const socialLogin = async (c: Context<TAppBindings>) => {
+  const { accessToken, refreshToken } = await authService.socialLogin(
+    c.get("validatedBody"),
+  );
+
+  setRefreshCookie(c, refreshToken);
+
+  return sendResponse(c, httpStatus.OK, { data: { accessToken, refreshToken } });
+};
 
 // get me (current logged in user)
-const getMe = catchAsync(async (req, res) => {
-  const user = await authService.getMe(req.user);
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User fetched successfully",
-    data: user,
-  });
-});
+const getMe = async (c: Context<TAppBindings>) => {
+  const user = await authService.getMe(c.get("user"));
+
+  return sendResponse(c, httpStatus.OK, { data: user });
+};
 
 // change password (current logged in user)
-const changePassword = catchAsync(async (req, res) => {
-  const result = await authService.changePassword(req.user, req.body);
+const changePassword = async (c: Context<TAppBindings>) => {
+  const result = await authService.changePassword(
+    c.get("user"),
+    c.get("validatedBody"),
+  );
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Password changed successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // forget password
-const forgetPassword = catchAsync(async (req, res) => {
-  const { email } = req.body;
+const forgetPassword = async (c: Context<TAppBindings>) => {
+  const { email } = c.get("validatedBody") as { email: string };
   const result = await authService.forgetPassword(email);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Password reset link sent successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // reset password
-const resetPassword = catchAsync(async (req, res) => {
-  const token = req.headers?.authorization?.split(" ")[1];
+const resetPassword = async (c: Context<TAppBindings>) => {
+  const token = c.req.header("authorization")?.split(" ")[1];
 
   if (!token) {
     throw new AppError(httpStatus.FORBIDDEN, "Access Forbidden");
   }
-  const result = await authService.resetPassword(req.body, token);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Password reset successfully",
-    data: result,
-  });
-});
+  const result = await authService.resetPassword(c.get("validatedBody"), token);
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // generate access token via refresh token
-const generateNewAccessToken = catchAsync(async (req, res) => {
-  const { refreshToken } = req.cookies;
+const generateNewAccessToken = async (c: Context<TAppBindings>) => {
+  const { refreshToken } = c.get("validatedCookies") as {
+    refreshToken: string;
+  };
 
   const newAccessToken = await authService.generateNewAccessToken(refreshToken);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Access token retrieved successfully",
-    data: { accessToken: newAccessToken },
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: { accessToken: newAccessToken } });
+};
 
 export const authController = {
   register,

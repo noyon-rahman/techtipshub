@@ -1,39 +1,21 @@
-import { NextFunction, Request, Response, Router } from "express";
-import { multerUpload } from "../../config/multer.config";
+import { Hono } from "hono";
 import { USER_ROLE } from "../../constant";
-import { auth, validateRequest } from "../../middlewares";
-import { catchAsync } from "../../utils";
+import type { TAppBindings } from "../../interface/bindings";
+import { auth, validateRequest, withUploads } from "../../middlewares";
 import { userController } from "./user.controller";
 import { userValidationSchema } from "./user.validation";
 
-const userRouter: Router = Router();
+const userRouter = new Hono<TAppBindings>();
 
 // Literal paths must stay above "/:username", or they are read as a username.
 userRouter.patch(
   "/update-profile",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
-  multerUpload.single("image"),
-  catchAsync((req: Request, _res: Response, next: NextFunction) => {
-    if (req.file?.path) {
-      req.body.data = JSON.stringify({
-        ...JSON.parse(req.body.data || "{}"),
-        profilePicture: req.file.path,
-      });
-    }
-
-    if (typeof req.body.data === "string" && req.body.data.trim()) {
-      req.body = { ...JSON.parse(req.body.data) };
-    } else {
-      req.body = {};
-    }
-
-    next();
-  }),
+  withUploads({ field: "image", target: "profilePicture", resourceType: "auto" }),
   validateRequest(userValidationSchema.updateProfile),
   userController.updateProfile,
 );
 
-// update user profile social links
 userRouter.put(
   "/profile/update-social-links",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
@@ -41,36 +23,26 @@ userRouter.put(
   userController.updateSocialLinks,
 );
 
-// follow a user (id: indicates that the user wanted to follow)
-userRouter.put("/:id/follow", auth(USER_ROLE.USER), userController.followUser);
-
-// unfollow a user (id: indicates that the user wanted to unfollow)
-userRouter.delete(
-  "/:id/unfollow",
-  auth(USER_ROLE.USER),
-  userController.unfollowUser,
-);
-
-// check the follow status
-userRouter.get(
-  "/:id/follow-status",
-  auth(USER_ROLE.USER),
-  userController.getFollowStatus,
-);
-
-// get current logged is user followers
 userRouter.get(
   "/my-followers",
   auth(USER_ROLE.USER),
   userController.getLoggedInUserFollowers,
 );
 
-// get current logged is user following
 userRouter.get(
   "/my-following",
   auth(USER_ROLE.USER),
   userController.getLoggedInUserFollowing,
 );
+
+// follow a user (id: indicates that the user wanted to follow)
+userRouter.put("/:id/follow", auth(USER_ROLE.USER), userController.followUser);
+
+// unfollow a user (id: indicates that the user wanted to unfollow)
+userRouter.delete("/:id/unfollow", auth(USER_ROLE.USER), userController.unfollowUser);
+
+// check the follow status
+userRouter.get("/:id/follow-status", auth(USER_ROLE.USER), userController.getFollowStatus);
 
 // get all followers by user id
 userRouter.get("/:id/followers", userController.getFollowersByUserId);

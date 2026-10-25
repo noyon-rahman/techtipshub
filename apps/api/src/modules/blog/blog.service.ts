@@ -972,24 +972,20 @@ const getDeletedBlogs = async (rawQuery: Record<string, unknown>) => {
     return { $or: [{ title: match }, { slug: match }] };
   });
 
-  // Mongoose 8.24 offers no public way past query middleware. The
-  // `pre("find")` hook merges its `isDeleted: { $ne: true }` into an `$and`,
-  // and `cast()` leaves unknown operators such as `$nor` untouched, so
-  // `$nor: [{ isDeleted: true }]` survives next to the hook filter and narrows
-  // the results to deleted rows only. The search joins the same `$and`; a
-  // separate `.find()` would replace `$nor` and resurrect live articles.
+  // The find hook hides deleted rows, so the trash view is the one place that
+  // opts out of it and asks for them itself.
   const [result, total] = await Promise.all([
     Blog.find({
-      $nor: [{ isDeleted: true }],
+      isDeleted: true,
       ...(search.length ? { $and: search } : {}),
     })
+      .setOptions({ bypassMiddleware: true })
       .sort({ updatedAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .select("-content -__v")
       .populate({ path: "author", select: "fullName username" })
       .lean(),
-    // countDocuments runs no find hook, so it counts only deleted rows.
     Blog.countDocuments({
       isDeleted: true,
       ...(search.length ? { $and: search } : {}),
@@ -1012,6 +1008,12 @@ const restoreBlog = async (blogId: string, adminEmail?: string) => {
   session.startTransaction();
 
   try {
+    // A malformed id is a bad request, not a server fault: the driver's own
+    // ObjectId constructor throws a plain error that would surface as a 500.
+    if (!mongoose.Types.ObjectId.isValid(blogId)) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid blog Id");
+    }
+
     // The find hook hides deleted rows, so confirm the raw state first.
     const raw = await Blog.collection.findOne({
       _id: new Types.ObjectId(blogId),
@@ -1054,7 +1056,10 @@ const restoreBlog = async (blogId: string, adminEmail?: string) => {
       summary: `Restored article "${blog.title}"`,
     });
 
-    return blog.populate({ path: "author", select: "fullName username" });
+    // Await this before the session ends. The document still points at the
+    // transaction's session, and a populate left in flight is issued after
+    // that session is closed, which Mongo rejects as an expired session.
+    return await blog.populate({ path: "author", select: "fullName username" });
   } catch (error) {
     await session.abortTransaction();
     throw error;

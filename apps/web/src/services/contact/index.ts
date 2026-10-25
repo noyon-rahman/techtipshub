@@ -1,6 +1,7 @@
 "use server";
 
 import envConfig from "@/config/env.config";
+import { legacyResponse } from "@/lib/api-contract";
 
 export type TContactPayload = {
   firstName: string;
@@ -23,13 +24,13 @@ export const submitContactForm = async (payload: TContactPayload) => {
       cache: "no-store",
     });
 
-    const data = await res.json().catch(() => null);
+    const data = await legacyResponse<unknown>(res);
 
     if (!res.ok) {
       return {
         success: false,
         message:
-          data?.message ||
+          (data as { message?: string } | undefined)?.message ||
           "We could not send your message. Please try again shortly.",
       };
     }

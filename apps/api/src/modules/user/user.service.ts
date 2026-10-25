@@ -393,17 +393,15 @@ const getDeletedUsers = async (rawQuery: Record<string, unknown>) => {
     },
   });
 
-  // Mongoose 8.24 has no public way past query middleware. `cast()` leaves
-  // unknown operators such as `$nor` untouched, so alongside the hook's own
-  // `isDeleted: { $ne: true }` this narrows the list to deleted members only.
-  // The search joins the same filter: a separate `.where()` would replace
-  // `$nor` and quietly bring live members back into the trash.
-  const visibleFilter = {
-    $and: [{ $nor: [{ isDeleted: true }] }, ...(search ? [search] : [])],
+  // The find hook hides deleted members, so the trash view is the one place
+  // that opts out of it and asks for them itself.
+  const deletedFilter = {
+    $and: [{ isDeleted: true }, ...(search ? [search] : [])],
   } as FilterQuery<IUser>;
 
   const [result, total] = await Promise.all([
-    User.find(visibleFilter)
+    User.find(deletedFilter)
+      .setOptions({ bypassMiddleware: true })
       .sort({ updatedAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -411,10 +409,8 @@ const getDeletedUsers = async (rawQuery: Record<string, unknown>) => {
         "fullName username email profilePicture role status createdAt updatedAt totalPosts",
       )
       .lean(),
-    // countDocuments runs no find hook, so it counts only deleted rows.
-    User.countDocuments({
-      $and: [{ isDeleted: true }, ...(search ? [search] : [])],
-    } as FilterQuery<IUser>),
+    // countDocuments runs no find hook, so it already counts deleted rows.
+    User.countDocuments(deletedFilter),
   ]);
 
   return {
@@ -429,6 +425,12 @@ const getDeletedUsers = async (rawQuery: Record<string, unknown>) => {
 };
 
 const restoreUser = async (id: string, adminEmail?: string) => {
+  // A malformed id is a bad request, not a server fault: the driver's own
+  // ObjectId constructor throws a plain error that would surface as a 500.
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid user Id");
+  }
+
   // The find hook hides deleted members, so read the raw document.
   const raw = await User.collection.findOne({
     _id: new mongoose.Types.ObjectId(id),

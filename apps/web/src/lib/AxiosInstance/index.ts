@@ -1,4 +1,5 @@
 import envConfig from "@/config/env.config";
+import { legacyBody } from "@/lib/api-contract";
 import { getAccessToken } from "@/lib/fetch-with-auth";
 import axios from "axios";
 
@@ -61,15 +62,34 @@ axiosInstance.interceptors.request.use(
 );
 
 // Add a response interceptor
+//
+// The API answers `{ data, meta? }` on success and `{ error: { message, code?,
+// details? } }` on failure. The screens were written against the older
+// `{ success, data, meta, message }` body, so each answer is translated back to
+// that shape here instead of at every call site. Errors are translated but
+// still rejected, which is how callers already handle a failed request.
 axiosInstance.interceptors.response.use(
   function (response) {
-    // Any status code that lie within the range of 2xx cause this function to trigger
-    // Do something with response data
+    response.data = legacyBody(
+      response.data,
+      true,
+      undefined,
+      response.status,
+    );
     return response;
   },
   function (error) {
     // 401s are handled before they are sent (see the request interceptor), so
     // there is nothing to retry here; callers get the API's own answer.
+    if (error?.response) {
+      error.response.data = legacyBody(
+        error.response.data,
+        false,
+        error.response.statusText || "Something went wrong.",
+        error.response.status,
+      );
+    }
+
     return Promise.reject(error);
   },
 );

@@ -1,6 +1,7 @@
 "use server";
 
 import envConfig from "@/config/env.config";
+import { legacyResponse } from "@/lib/api-contract";
 
 /**
  * The public category list.
@@ -18,7 +19,7 @@ export const getCategories = async () => {
       },
     });
 
-    return res.json();
+    return legacyResponse<unknown>(res);
   } catch (err: any) {
     return err?.response?.data;
   }

@@ -1,257 +1,167 @@
 import httpStatus from "http-status";
-import { catchAsync, sendResponse } from "../../utils";
-import { blogService } from "./blog.service";
+import type { Context } from "hono";
+import type { TAppBindings } from "../../interface/bindings";
 import type { TRouteParams } from "../../interface/params";
+import sendResponse from "../../utils/sendResponse";
+import { blogService } from "./blog.service";
 
-const create = catchAsync(async (req, res) => {
-  const result = await blogService.create(req.user, req.body);
+const create = async (c: Context<TAppBindings>) => {
+  const result = await blogService.create(c.get("user"), c.get("validatedBody"));
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CREATED,
-    message: "Blog created successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.CREATED, { data: result });
+};
 
-const getAll = catchAsync(async (req, res) => {
-  const { meta, result } = await blogService.getAll(req.query);
+const getAll = async (c: Context<TAppBindings>) => {
+  const { meta, result } = await blogService.getAll(c.req.query());
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blogs retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 // get following users blogs
-const getFollowingUsersBlogs = catchAsync(async (req, res) => {
+const getFollowingUsersBlogs = async (c: Context<TAppBindings>) => {
   const { result, meta } = await blogService.getFollowingUsersBlogs(
-    req.user,
-    req.query,
+    c.get("user"),
+    c.req.query(),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blogs retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
-const getLoggedInUserBlogs = catchAsync(async (req, res) => {
+const getLoggedInUserBlogs = async (c: Context<TAppBindings>) => {
   const { meta, result } = await blogService.getLoggedInUserBlogs(
-    req.user,
-    req.query,
+    c.get("user"),
+    c.req.query(),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blogs retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 // get a single blog by slug.
 // Returns the whole article to guests as well; the website decides how much of
 // it to show. A signed-in reader also has their view counted.
-const getSingleBlog = catchAsync<TRouteParams>(async (req, res) => {
-  const { slug } = req.params;
-  const result = await blogService.getSingleBlog(req.user, slug);
+const getSingleBlog = async (c: Context<TAppBindings, string>) => {
+  const slug = c.req.param("slug")!;
+  const result = await blogService.getSingleBlog(c.get("user"), slug);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blog retrieved successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // vote
-const voteOnBlog = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
-  const { voteType } = req.query;
+const voteOnBlog = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const voteType = c.req.query("voteType") as "upvote" | "downvote";
 
-  const result = await blogService.voteOnBlog(
-    req.user,
-    id,
-    voteType as "upvote" | "downvote",
-  );
+  const result = await blogService.voteOnBlog(c.get("user"), id, voteType);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Vote on blog successfully updated",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // get vote status
-const getVoteStatus = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
-  const result = await blogService.getVoteStatus(req.user, id);
+const getVoteStatus = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const result = await blogService.getVoteStatus(c.get("user"), id);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Vote status retrieved successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // comment on blog
-const commentOnBlog = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
-  const result = await blogService.commentOnBlog(req.user, id, req.body);
+const commentOnBlog = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const result = await blogService.commentOnBlog(
+    c.get("user"),
+    id,
+    c.get("validatedBody"),
+  );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CREATED,
-    message: "Add comment successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.CREATED, { data: result });
+};
 
 // get all comments by blog id
-const getAllCommentsByBlogId = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const getAllCommentsByBlogId = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
   const { result, meta } = await blogService.getAllCommentsByBlogId(
     id,
-    req.query,
+    c.req.query(),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Comments retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 // get all blogs by user id
-const getAllBlogsByUserId = catchAsync<TRouteParams>(async (req, res) => {
-  const { userId } = req.params;
+const getAllBlogsByUserId = async (c: Context<TAppBindings, string>) => {
+  const { userId } = c.req.param() as TRouteParams;
   const { result, meta } = await blogService.getAllBlogsByUserId(
     userId,
-    req.query,
+    c.req.query(),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blogs retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 // delete a blog by admin using admin
-const deleteBlogByAdminUsingId = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const deleteBlogByAdminUsingId = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const body = (await c.req.json().catch(() => ({}))) as Record<string, string>;
 
   const result = await blogService.deleteBlogByAdminUsingId(
     id,
-    req.body,
-    req.user.email,
+    body,
+    c.get("user").email,
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blog deleted successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // admin article table: every live article, server-side filtered and paged
-const getAdminList = catchAsync(async (req, res) => {
-  const { result, meta } = await blogService.getAdminList(req.query);
+const getAdminList = async (c: Context<TAppBindings>) => {
+  const { result, meta } = await blogService.getAdminList(c.req.query());
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blogs retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
-const getDeletedBlogs = catchAsync(async (req, res) => {
-  const { result, meta } = await blogService.getDeletedBlogs(req.query);
+const getDeletedBlogs = async (c: Context<TAppBindings>) => {
+  const { result, meta } = await blogService.getDeletedBlogs(c.req.query());
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Deleted blogs retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
-const restoreBlog = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const restoreBlog = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await blogService.restoreBlog(id, req.user.email);
+  const result = await blogService.restoreBlog(id, c.get("user").email);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message:
-      "Blog restored successfully. Its comments, views and votes were removed when it was deleted, so they are not back.",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // delete blog by user using blog id
-const deleteBlogByUserUsingId = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const deleteBlogByUserUsingId = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await blogService.deleteBlogByUserUsingId(req.user, id);
+  const result = await blogService.deleteBlogByUserUsingId(c.get("user"), id);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blog deleted successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // update blog by user using blog id
-const updateBlogByUserUsingId = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const updateBlogByUserUsingId = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
   const result = await blogService.updateBlogByUserUsingId(
-    req.user,
+    c.get("user"),
     id,
-    req.body,
+    c.get("validatedBody"),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blog updated successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const updateBlogByAdmin = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const updateBlogByAdmin = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await blogService.updateBlogByAdmin(id, req.body);
+  const result = await blogService.updateBlogByAdmin(id, c.get("validatedBody"));
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Blog updated successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 export const blogController = {
   create,

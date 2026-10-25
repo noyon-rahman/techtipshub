@@ -1,16 +1,14 @@
 import httpStatus from "http-status";
-import { catchAsync, sendResponse } from "../../utils";
+import type { Context } from "hono";
+import type { TAppBindings } from "../../interface/bindings";
+import sendResponse from "../../utils/sendResponse";
 import { metricsService } from "./metrics.service";
 
-const dashboard = catchAsync(async (req, res) => {
+const dashboard = async (c: Context<TAppBindings>) => {
   const result = await metricsService.dashboard();
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Dashboard Metrics retrieved successfully",
-    data: result,
-  });
-});
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 export const metricsController = {
   dashboard,

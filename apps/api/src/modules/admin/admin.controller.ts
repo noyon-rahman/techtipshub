@@ -1,51 +1,32 @@
 import httpStatus from "http-status";
-import { catchAsync, sendResponse } from "../../utils";
+import type { Context } from "hono";
+import type { TAppBindings } from "../../interface/bindings";
+import sendResponse from "../../utils/sendResponse";
 import { adminService } from "./admin.service";
 
-const overview = catchAsync(async (_req, res) => {
+const overview = async (c: Context<TAppBindings>) => {
   const result = await adminService.overview();
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Admin overview retrieved successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const search = catchAsync(async (req, res) => {
-  const result = await adminService.search(req.query.q);
+const search = async (c: Context<TAppBindings>) => {
+  const result = await adminService.search(c.req.query("q"));
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Search results retrieved successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const activity = catchAsync(async (req, res) => {
-  const result = await adminService.activity(req.query.days);
+const activity = async (c: Context<TAppBindings>) => {
+  const result = await adminService.activity(c.req.query("days"));
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Activity retrieved successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const getLogs = catchAsync(async (req, res) => {
-  const { result, meta } = await adminService.getLogs(req.query);
+const getLogs = async (c: Context<TAppBindings>) => {
+  const { result, meta } = await adminService.getLogs(c.req.query());
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Activity log retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 export const adminController = {
   overview,

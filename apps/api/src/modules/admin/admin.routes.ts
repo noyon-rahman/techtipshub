@@ -49,8 +49,9 @@
  *
  * `GET /api/v1/metrics/dashboard` still exists for older callers.
  */
-import { Router } from "express";
+import { Hono } from "hono";
 import { USER_ROLE } from "../../constant";
+import type { TAppBindings } from "../../interface/bindings";
 import { auth } from "../../middlewares";
 import { metricsController } from "../metrics/metrics.controller";
 import { adminController } from "./admin.controller";
@@ -61,9 +62,12 @@ import {
   adminUserRouter,
 } from "./admin.member.routes";
 
-const adminRouter: Router = Router();
+const adminRouter = new Hono<TAppBindings>();
 
-adminRouter.use(auth(USER_ROLE.ADMIN));
+// One guard for the whole tree. A Hono route's middleware only runs for that
+// route, so this is registered as a wildcard before anything is mounted;
+// otherwise a request would reach a nested handler before being checked.
+adminRouter.use("*", auth(USER_ROLE.ADMIN));
 
 adminRouter.get("/overview", adminController.overview);
 adminRouter.get("/search", adminController.search);
@@ -71,10 +75,10 @@ adminRouter.get("/activity", adminController.activity);
 adminRouter.get("/logs", adminController.getLogs);
 adminRouter.get("/metrics/dashboard", metricsController.dashboard);
 
-adminRouter.use("/users", adminUserRouter);
-adminRouter.use("/blogs", adminBlogRouter);
-adminRouter.use("/categories", adminCategoryRouter);
-adminRouter.use("/comments", adminCommentRouter);
-adminRouter.use("/messages", adminMessageRouter);
+adminRouter.route("/users", adminUserRouter);
+adminRouter.route("/blogs", adminBlogRouter);
+adminRouter.route("/categories", adminCategoryRouter);
+adminRouter.route("/comments", adminCommentRouter);
+adminRouter.route("/messages", adminMessageRouter);
 
 export default adminRouter;

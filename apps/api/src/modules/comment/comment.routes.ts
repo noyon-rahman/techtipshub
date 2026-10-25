@@ -1,12 +1,11 @@
-import { NextFunction, Request, Response, Router } from "express";
-import { multerUpload } from "../../config/multer.config";
+import { Hono } from "hono";
 import { USER_ROLE } from "../../constant";
-import { auth, validateRequest } from "../../middlewares";
-import { catchAsync } from "../../utils";
+import type { TAppBindings } from "../../interface/bindings";
+import { auth, validateRequest, withUploads } from "../../middlewares";
 import { commentController } from "./comment.controller";
 import { commentValidationSchema } from "./comment.validation";
 
-const commentRouter: Router = Router();
+const commentRouter = new Hono<TAppBindings>();
 
 // Listing and moderation live under "/admin/comments".
 
@@ -19,26 +18,7 @@ commentRouter.delete(
 commentRouter.put(
   "/:id",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
-  multerUpload.array("images"),
-  catchAsync((req: Request, _res: Response, next: NextFunction) => {
-    if (req.files && req.files.length) {
-      const imagePaths = (
-        req.files as { fieldname: string; path: string }[]
-      ).map((file) => file.path);
-
-      req.body.data = JSON.stringify({
-        ...JSON.parse(req.body.data || "{}"),
-        images: imagePaths,
-      });
-    }
-
-    if (typeof req.body.data === "string" && req.body.data.trim()) {
-      req.body = { ...JSON.parse(req.body.data) };
-    } else {
-      req.body = {};
-    }
-    next();
-  }),
+  withUploads({ field: "images", target: "images", multiple: true }),
   validateRequest(commentValidationSchema.updateComment),
   commentController.updateComment,
 );

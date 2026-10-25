@@ -1,6 +1,8 @@
 "use server";
 
 import envConfig from "@/config/env.config";
+import { legacyResponse } from "@/lib/api-contract";
+import type { TLegacyBody } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
 import { getAccessToken } from "@/lib/fetch-with-auth";
 import { forgetRenderedArticles } from "@/lib/article-renders";
@@ -65,16 +67,14 @@ const blogListUrl = (params?: Record<string, string | undefined>) => {
  * the live version for the browser's infinite scroll, where a stale page would
  * be a bug.
  */
-export const getBlogs = async (
-  params?: Record<string, string | undefined>,
-) => {
+export const getBlogs = async (params?: Record<string, string | undefined>) => {
   try {
     const res = await fetch(blogListUrl(params).toString(), {
       next: { tags: ["allBlogs"], revalidate: 1800 },
     });
 
     if (!res.ok) return undefined;
-    return res.json();
+    return legacyResponse<unknown>(res);
   } catch (err: any) {
     return err?.response?.data;
   }
@@ -91,7 +91,7 @@ export const getAllBlogs = async (
       },
     });
 
-    return res?.json();
+    return legacyResponse<unknown>(res);
   } catch (err: any) {
     return err;
   }
@@ -132,7 +132,7 @@ export const getFollowingUsersBlogs = async (
       },
     });
 
-    return res.json();
+    return legacyResponse<unknown>(res);
   } catch (err: any) {
     return err; // Handle the error as you see fit
   }
@@ -162,9 +162,16 @@ export const getBlogBySlug = async (slug: string) => {
   }
 };
 
+/**
+ * The signed-in member's own articles.
+ *
+ * Both the success and the failure branch answer with the same legacy body, so
+ * a caller checks `success` and then reads `data` and `meta` without guarding
+ * for a missing field.
+ */
 export const getLoggedInUserBlogs = async (
   params?: Record<string, string | undefined>,
-) => {
+): Promise<TLegacyBody<unknown[]>> => {
   try {
     const url = new URL(`${envConfig.baseApi}/blogs/my-blogs`);
 
@@ -189,19 +196,23 @@ export const getLoggedInUserBlogs = async (
       headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
     });
 
-    const data = await res.json();
+    const data = await legacyResponse<unknown[]>(res);
 
-    // A visitor with no usable session still gets `{ success: false }` with no
-    // `data`. Callers treat `data` as a list, so normalise it here rather than
+    // A visitor with no usable session gets a failed answer with no `data`.
+    // Callers treat `data` as a list, so normalise it here rather than
     // spreading `undefined` and crashing the page — and keep the reason, so the
     // page can say "sign in again" instead of "you have no articles".
-    if (!res.ok || data?.success === false || !Array.isArray(data?.data)) {
+    if (!res.ok || !Array.isArray(data?.data)) {
       return { ...data, success: false, data: [] as unknown[] };
     }
 
     return data;
   } catch (err: any) {
-    return { success: false, data: [] as unknown[], error: err?.message };
+    return {
+      success: false,
+      data: [] as unknown[],
+      message: err?.message,
+    };
   }
 };
 
@@ -228,7 +239,7 @@ export const getBlogsByUserId = async (
       },
     });
 
-    return res.json();
+    return legacyResponse<unknown>(res);
   } catch (err: any) {
     throw new Error(err?.message);
   }

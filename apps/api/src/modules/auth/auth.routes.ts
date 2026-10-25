@@ -1,41 +1,20 @@
-import { NextFunction, Request, Response, Router } from "express";
-import { multerUpload } from "../../config/multer.config";
+import { Hono } from "hono";
 import { USER_ROLE } from "../../constant";
-import { auth, validateRequest } from "../../middlewares";
-import { catchAsync } from "../../utils";
+import type { TAppBindings } from "../../interface/bindings";
+import { auth, validateRequest, withUploads } from "../../middlewares";
 import { authController } from "./auth.controller";
 import { authValidationSchema } from "./auth.validation";
 
-const authRoutes: Router = Router();
+const authRoutes = new Hono<TAppBindings>();
 
 authRoutes.post(
   "/register",
-  multerUpload.single("image"),
-  catchAsync((req: Request, _res: Response, next: NextFunction) => {
-    if (req.file?.path) {
-      req.body.data = JSON.stringify({
-        ...JSON.parse(req.body.data || "{}"),
-        profilePicture: req.file.path,
-      });
-    }
-
-    if (typeof req.body.data === "string" && req.body.data.trim()) {
-      req.body = { ...JSON.parse(req.body.data) };
-    } else {
-      req.body = {};
-    }
-
-    next();
-  }),
+  withUploads({ field: "image", target: "profilePicture", resourceType: "auto" }),
   validateRequest(authValidationSchema.register),
   authController.register,
 );
 
-authRoutes.post(
-  "/login",
-  validateRequest(authValidationSchema.login),
-  authController.login,
-);
+authRoutes.post("/login", validateRequest(authValidationSchema.login), authController.login);
 
 authRoutes.post(
   "/social-login",
@@ -49,11 +28,7 @@ authRoutes.post(
   authController.generateNewAccessToken,
 );
 
-authRoutes.get(
-  "/me",
-  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
-  authController.getMe,
-);
+authRoutes.get("/me", auth(USER_ROLE.USER, USER_ROLE.ADMIN), authController.getMe);
 
 authRoutes.put(
   "/change-password",

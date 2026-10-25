@@ -7,7 +7,7 @@ const connectToDatabase = async () => {
       serverSelectionTimeoutMS: 5000,
     });
     // eslint-disable-next-line no-console
-    console.log("Connected to database".cyan);
+    console.log("Connected to database");
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error("Failed to connect to the database", err);

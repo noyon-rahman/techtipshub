@@ -1,10 +1,11 @@
+import type { MiddlewareHandler } from "hono";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import config from "../config";
+import type { TAppBindings } from "../interface/bindings";
 import User from "../modules/user/user.model";
-import { catchAsync } from "../utils";
 
 /**
- * Attaches the decoded user to `req.user` when a valid access token is sent,
+ * Attaches the decoded user to the context when a valid access token is sent,
  * and simply continues when it is missing or invalid.
  *
  * Use this on routes that must stay open to guests but behave differently for
@@ -12,8 +13,8 @@ import { catchAsync } from "../utils";
  * for a guest, and a member's own article is excluded from their view count).
  * Never use it where a user is required — use the `auth()` middleware for that.
  */
-const optionalAuth = catchAsync(async (req, _res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
+const optionalAuth: MiddlewareHandler<TAppBindings> = async (c, next) => {
+  const token = c.req.header("authorization")?.split(" ")[1];
   if (!token) {
     return next();
   }
@@ -29,12 +30,12 @@ const optionalAuth = catchAsync(async (req, _res, next) => {
       return next();
     }
 
-    req.user = decoded;
+    c.set("user", decoded as TAppBindings["Variables"]["user"]);
   } catch {
     // An expired or malformed token just means "guest" on this route.
   }
 
-  next();
-});
+  return next();
+};
 
 export default optionalAuth;

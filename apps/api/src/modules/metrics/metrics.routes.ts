@@ -1,9 +1,11 @@
-import { Router } from "express";
+import { Hono } from "hono";
 import { USER_ROLE } from "../../constant";
+import type { TAppBindings } from "../../interface/bindings";
 import { auth } from "../../middlewares";
 import { metricsController } from "./metrics.controller";
-const router: Router = Router();
 
-router.get("/dashboard", auth(USER_ROLE.ADMIN), metricsController.dashboard);
+const metricsRouter = new Hono<TAppBindings>();
 
-export default router;
+metricsRouter.get("/dashboard", auth(USER_ROLE.ADMIN), metricsController.dashboard);
+
+export default metricsRouter;

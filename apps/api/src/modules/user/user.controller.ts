@@ -1,242 +1,158 @@
 import httpStatus from "http-status";
-import { catchAsync, sendResponse } from "../../utils";
-import { userService } from "./user.service";
+import type { Context } from "hono";
+import type { TAppBindings } from "../../interface/bindings";
 import type { TRouteParams } from "../../interface/params";
+import sendResponse from "../../utils/sendResponse";
+import { userService } from "./user.service";
 
 // get all users (admin only)
-const getAllUsers = catchAsync(async (req, res) => {
-  const { result, meta } = await userService.getAllUsers(req.query);
+const getAllUsers = async (c: Context<TAppBindings>) => {
+  const { result, meta } = await userService.getAllUsers(c.req.query());
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "All users retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
-const getSingleUserByUsername = catchAsync<TRouteParams>(async (req, res) => {
-  const { username } = req.params;
+const getSingleUserByUsername = async (c: Context<TAppBindings, string>) => {
+  const { username } = c.req.param() as TRouteParams;
   const result = await userService.getSingleUserByUsername(username);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User retrieved successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const updateProfile = catchAsync(async (req, res) => {
-  const result = await userService.updateProfile(req.user, req.body);
+const updateProfile = async (c: Context<TAppBindings>) => {
+  const result = await userService.updateProfile(
+    c.get("user"),
+    c.get("validatedBody"),
+  );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User profile updated successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // update user profile social links
-const updateSocialLinks = catchAsync(async (req, res) => {
-  const result = await userService.updateSocialLinks(req.user, req.body);
+const updateSocialLinks = async (c: Context<TAppBindings>) => {
+  const result = await userService.updateSocialLinks(
+    c.get("user"),
+    c.get("validatedBody"),
+  );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User social links updated successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // block user (only admin)
-const blockUser = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const blockUser = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await userService.blockUser(id, req.user.email);
+  const result = await userService.blockUser(id, c.get("user").email);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User blocked successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // unblock user (only admin)
-const unBlockUser = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const unBlockUser = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await userService.unBlockUser(id, req.user.email);
+  const result = await userService.unBlockUser(id, c.get("user").email);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User unblock successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // make a user to admin (admin only)
-const makeAdmin = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const makeAdmin = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await userService.makeAdmin(id, req.user.email);
+  const result = await userService.makeAdmin(id, c.get("user").email);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User role updated successfully: User is now an Admin.",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // delete user account (admin only)
-const deleteUserAccount = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const deleteUserAccount = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await userService.deleteUserAccount(id, req.user.email);
+  const result = await userService.deleteUserAccount(id, c.get("user").email);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "User account deleted successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
-const getDeletedUsers = catchAsync(async (req, res) => {
-  const { result, meta } = await userService.getDeletedUsers(req.query);
+const getDeletedUsers = async (c: Context<TAppBindings>) => {
+  const { result, meta } = await userService.getDeletedUsers(c.req.query());
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Deleted users retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
-const restoreUser = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const restoreUser = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
 
-  const result = await userService.restoreUser(id, req.user.email);
+  const result = await userService.restoreUser(id, c.get("user").email);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message:
-      "User account restored. Its blogs, comments, views and votes were removed when the account was deleted, so the profile comes back empty.",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // follow user
-const followUser = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params; // user id want's to follow
-  const result = await userService.followUser(req.user, id);
+const followUser = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams; // user id want's to follow
+  const result = await userService.followUser(c.get("user"), id);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Successfully followed the user",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // unfollow user
-const unfollowUser = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params; // user id want's to follow
-  const result = await userService.unfollowUser(req.user, id);
+const unfollowUser = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams; // user id want's to follow
+  const result = await userService.unfollowUser(c.get("user"), id);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Successfully unfollowed the user",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 // get follow status
-const getFollowStatus = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params; // user id want's to follow
-  const isFollowing = await userService.getFollowStatus(req.user, id);
+const getFollowStatus = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams; // user id want's to follow
+  const isFollowing = await userService.getFollowStatus(c.get("user"), id);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Follow status retrieved successfully",
-    data: { isFollowing },
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: { isFollowing } });
+};
 
 // get current logged in user followers
-const getLoggedInUserFollowers = catchAsync(async (req, res) => {
+const getLoggedInUserFollowers = async (c: Context<TAppBindings>) => {
   const { result, meta } = await userService.getLoggedInUserFollowers(
-    req.user,
-    req.query,
+    c.get("user"),
+    c.req.query(),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Followers retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 // get current logged in user following
-const getLoggedInUserFollowing = catchAsync(async (req, res) => {
+const getLoggedInUserFollowing = async (c: Context<TAppBindings>) => {
   const { result, meta } = await userService.getLoggedInUserFollowing(
-    req.user,
-    req.query,
+    c.get("user"),
+    c.req.query(),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Following retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 // get followers by user id
-const getFollowersByUserId = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const getFollowersByUserId = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
   const { result, meta } = await userService.getFollowersByUserId(
     id,
-    req.query,
+    c.req.query(),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Followers retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 // get following by user id
-const getFollowingByUserId = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
+const getFollowingByUserId = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
   const { result, meta } = await userService.getFollowingByUserId(
     id,
-    req.query,
+    c.req.query(),
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Following retrieved successfully",
-    meta,
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
 export const userController = {
   getAllUsers,

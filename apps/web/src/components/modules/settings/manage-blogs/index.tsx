@@ -57,10 +57,15 @@ const ManageBlogs = async ({
   const total = Number(data?.meta?.total);
 
   // A failed session is neither an account with no articles nor a network
-  // blip with a retry, so it gets its own way forward: sign in again.
+  // blip with a retry, so it gets its own way forward: sign in again. The API
+  // answers a dead session with 401; the message check stays for an answer that
+  // never reached the API through a path that records the status.
+  const signedOut =
+    data?.statusCode === 401 || data?.message === "Unauthorized Access";
+
   const sessionError =
     data?.success === false
-      ? data?.statusCode === 401 || data?.message === "Unauthorized Access"
+      ? signedOut
         ? "Your session has expired. Sign in again to see and manage your articles."
         : data?.message ||
           "Your articles could not be loaded. Reload the page to try again."
@@ -109,7 +114,7 @@ const ManageBlogs = async ({
             className="border-y border-default-200 py-10 text-center"
           >
             <h2 className="text-base font-semibold">
-              {data?.statusCode === 401
+              {signedOut
                 ? "Your session has expired"
                 : "Your articles did not load"}
             </h2>
@@ -118,13 +123,13 @@ const ManageBlogs = async ({
             </p>
             <Link
               href={
-                data?.statusCode === 401
+                signedOut
                   ? `/login?redirect=${encodeURIComponent(manageBlogsPath)}`
                   : manageBlogsPath
               }
               className="mt-5 inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300"
             >
-              {data?.statusCode === 401 ? "Sign in again" : "Try again"}
+              {signedOut ? "Sign in again" : "Try again"}
               <HiOutlineArrowRight aria-hidden className="size-4" />
             </Link>
           </div>

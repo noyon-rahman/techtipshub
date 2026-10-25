@@ -46,7 +46,7 @@ export const POST = async (
     );
   } catch {
     return NextResponse.json(
-      { success: false, message: "The API did not answer" },
+      { error: { message: "The API did not answer" } },
       { status: 502 },
     );
   }

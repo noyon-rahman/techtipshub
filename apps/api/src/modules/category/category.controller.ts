@@ -1,81 +1,63 @@
 import httpStatus from "http-status";
-import { catchAsync, sendResponse } from "../../utils";
-import { categoryService } from "./category.service";
+import type { Context } from "hono";
+import type { TAppBindings } from "../../interface/bindings";
 import type { TRouteParams } from "../../interface/params";
+import sendResponse from "../../utils/sendResponse";
+import { categoryService } from "./category.service";
 
-const create = catchAsync(async (req, res) => {
-  const result = await categoryService.create(req.body, req.user?.email);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CREATED,
-    message: "Category created successfully",
-    data: result,
-  });
-});
-
-const getAll = catchAsync(async (req, res) => {
-  const { meta, result } = await categoryService.getAll(req.query);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Categories retrieved successfully",
-    data: result,
-    meta,
-  });
-});
-
-const getSingleCategory = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
-  const result = await categoryService.getSingleCategory(id);
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Category retrieved successfully",
-    data: result,
-  });
-});
-
-const deleteSingleCategory = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
-  const result = await categoryService.deleteSingleCategory(
-    id,
-    req.user?.email,
+const create = async (c: Context<TAppBindings>) => {
+  const result = await categoryService.create(
+    c.get("validatedBody"),
+    c.get("user")?.email,
   );
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Category deleted successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.CREATED, { data: result });
+};
 
-const update = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
-  const result = await categoryService.update(id, req.body, req.user?.email);
+const getAll = async (c: Context<TAppBindings>) => {
+  const { meta, result } = await categoryService.getAll(c.req.query());
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Category updated successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result, meta });
+};
 
-const getAdminList = catchAsync(async (req, res) => {
-  const { result, total, meta } = await categoryService.getAdminList(req.query);
+const getSingleCategory = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const result = await categoryService.getSingleCategory(id);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Categories retrieved successfully",
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const deleteSingleCategory = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const result = await categoryService.deleteSingleCategory(
+    id,
+    c.get("user")?.email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const update = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const result = await categoryService.update(
+    id,
+    c.get("validatedBody"),
+    c.get("user")?.email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const getAdminList = async (c: Context<TAppBindings>) => {
+  const { result, total, meta } = await categoryService.getAdminList(
+    c.req.query(),
+  );
+
+  return sendResponse(c, httpStatus.OK, {
     data: { result, total },
     meta,
   });
-});
+};
 
 export const categoryController = {
   create,

@@ -1,7 +1,9 @@
 import { createHash } from "crypto";
-import { Request } from "express";
 import httpStatus from "http-status";
-import { catchAsync, sendResponse } from "../../utils";
+import type { Context } from "hono";
+import { AppError } from "../../errors";
+import type { TAppBindings } from "../../interface/bindings";
+import sendResponse from "../../utils/sendResponse";
 import { recordView } from "./view.service";
 
 /**
@@ -12,18 +14,22 @@ import { recordView } from "./view.service";
  * one device and changes when any of those change, which is the right scope
  * for "unique views". Only the SHA-256 digest is stored, never the IP itself.
  */
-const guestVisitorKey = (req: Request): string | undefined => {
-  const body = req.body as { visitorId?: unknown } | undefined;
+const guestVisitorKey = (
+  c: Context<TAppBindings>,
+  body: unknown,
+): string | undefined => {
+  const payload = body as { visitorId?: unknown } | undefined;
   const visitorId =
-    typeof body?.visitorId === "string" ? body.visitorId.slice(0, 64) : "";
+    typeof payload?.visitorId === "string"
+      ? payload.visitorId.slice(0, 64)
+      : "";
   if (!visitorId) return undefined;
 
-  const forwarded = req.headers["x-forwarded-for"];
-  const firstForwarded = Array.isArray(forwarded)
-    ? forwarded[0]
-    : forwarded?.split(",")[0];
-  const ip = firstForwarded?.trim() || req.socket?.remoteAddress || "unknown";
-  const userAgent = String(req.headers["user-agent"] || "unknown");
+  // The edge proxy in front of the app is the first entry of the forwarded
+  // chain; a direct connection has none and falls back to the socket address.
+  const forwarded = c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+  const ip = forwarded || clientAddress(c) || "unknown";
+  const userAgent = c.req.header("user-agent") || "unknown";
   const salt = process.env.JWT_ACCESS_TOKEN_SECRET || "techtipshub";
 
   return createHash("sha256")
@@ -31,31 +37,41 @@ const guestVisitorKey = (req: Request): string | undefined => {
     .digest("hex");
 };
 
-const recordBlogView = catchAsync(async (req, res) => {
-  const slug = String(req.params.slug);
+/**
+ * The connecting address when the request did not come through a proxy.
+ *
+ * Hono has no cross-runtime equivalent of Express's `req.socket`, so this
+ * reads the Node adapter's raw request when it is there. `unknown` is a fine
+ * answer for a hash input, so nothing depends on it being present.
+ */
+const clientAddress = (c: Context<TAppBindings>): string | undefined => {
+  const nodeContext = c as unknown as {
+    env?: { incoming?: { socket?: { remoteAddress?: string } } };
+    req: { raw?: { socket?: { remoteAddress?: string } } };
+  };
+
+  return (
+    nodeContext.env?.incoming?.socket?.remoteAddress ??
+    nodeContext.req?.raw?.socket?.remoteAddress
+  );
+};
+
+const recordBlogView = async (c: Context<TAppBindings>) => {
+  const slug = c.req.param("slug")!;
+  const user = c.get("user");
+  const body = c.get("validatedBody");
 
   const totalViews = await recordView(slug, {
-    user: req.user,
-    visitorKey: req.user ? undefined : guestVisitorKey(req),
+    user,
+    visitorKey: user ? undefined : guestVisitorKey(c, body),
   });
 
   if (totalViews === null) {
-    sendResponse(res, {
-      success: false,
-      statusCode: httpStatus.NOT_FOUND,
-      message: "Blog not found",
-      data: null,
-    });
-    return;
+    throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
   }
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "View recorded",
-    data: { totalViews },
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: { totalViews } });
+};
 
 export const viewController = {
   recordBlogView,

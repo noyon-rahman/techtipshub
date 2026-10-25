@@ -198,7 +198,7 @@ export async function proxy(request: NextRequest) {
   if (!isStale(accessToken)) {
     if (isAdminApiPath(pathname) && roleOf(accessToken) !== "Admin") {
       return NextResponse.json(
-        { success: false, message: "Admin access required" },
+        { error: { message: "Admin access required" } },
         { status: 403 },
       );
     }
@@ -217,7 +217,7 @@ export async function proxy(request: NextRequest) {
     // is what asks them to sign in.
     if (isAdminApiPath(pathname)) {
       return NextResponse.json(
-        { success: false, message: "Not signed in" },
+        { error: { message: "Not signed in" } },
         { status: 401 },
       );
     }
@@ -237,7 +237,7 @@ export async function proxy(request: NextRequest) {
 
   if (isAdminApiPath(pathname) && roleOf(renewed) !== "Admin") {
     return NextResponse.json(
-      { success: false, message: "Admin access required" },
+      { error: { message: "Admin access required" } },
       { status: 403 },
     );
   }

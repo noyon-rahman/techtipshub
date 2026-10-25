@@ -1,14 +1,16 @@
 import httpStatus from "http-status";
+import type { Context } from "hono";
 import { AppError } from "../../errors";
-import { catchAsync, sendResponse } from "../../utils";
-import { commentService } from "../comment/comment.service";
+import type { TAppBindings } from "../../interface/bindings";
 import type { TRouteParams } from "../../interface/params";
+import sendResponse from "../../utils/sendResponse";
+import { commentService } from "../comment/comment.service";
 
 // Admin moderation delete. Unlike the shared route, this always records the
 // admin in the audit log.
-const deleteComment = catchAsync<TRouteParams>(async (req, res) => {
-  const { id } = req.params;
-  const adminEmail = req.user?.email;
+const deleteComment = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const adminEmail = c.get("user")?.email;
 
   if (!adminEmail) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Unauthorized Access");
@@ -16,12 +18,7 @@ const deleteComment = catchAsync<TRouteParams>(async (req, res) => {
 
   const result = await commentService.deleteComment(id, adminEmail);
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: "Comment deleted successfully",
-    data: result,
-  });
-});
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
 
 export const adminCommentController = { deleteComment };

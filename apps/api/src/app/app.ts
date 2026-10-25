@@ -1,19 +1,18 @@
-import "colors";
-import cookieParser from "cookie-parser";
-import cors from "cors";
-import express from "express";
-import helmet from "helmet";
-import morgan from "morgan";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
+import { secureHeaders } from "hono/secure-headers";
+import mainRoutes from "../routes";
+import type { TAppBindings } from "../interface/bindings";
+import errorHandler, { notFound } from "./errorHandler";
 
-// local imports
-import applicationRoutes from "./routes";
-
-const app = express();
+const app = new Hono<TAppBindings>();
 
 // middlewares
-app.use(morgan("dev"));
-app.use(helmet());
+app.use("*", logger());
+app.use("*", secureHeaders());
 app.use(
+  "*",
   cors({
     origin: [
       "http://localhost:3000",
@@ -22,13 +21,18 @@ app.use(
       "https://techtipshub-password-reset.vercel.app",
     ],
     credentials: true,
-    methods: "*",
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
   }),
 );
-app.use(express.json());
-app.use(cookieParser());
+
+app.get("/", (c) => c.json({ data: { message: "Hello World!" } }));
+app.get("/health", (c) => c.text("OK✅"));
 
 // application routes
-app.use(applicationRoutes);
+app.route("/api/v1", mainRoutes);
+
+app.notFound(notFound);
+app.onError(errorHandler);
 
 export default app;

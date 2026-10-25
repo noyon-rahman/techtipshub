@@ -47,7 +47,7 @@ const handler = async (
     const host = request.headers.get("host");
     if (!host || new URL(origin).host !== host) {
       return NextResponse.json(
-        { success: false, message: "Cross-origin request refused" },
+        { error: { message: "Cross-origin request refused" } },
         { status: 403 },
       );
     }
@@ -70,7 +70,7 @@ const handler = async (
     });
   } catch {
     return NextResponse.json(
-      { success: false, message: "The API did not answer" },
+      { error: { message: "The API did not answer" } },
       { status: 502 },
     );
   }

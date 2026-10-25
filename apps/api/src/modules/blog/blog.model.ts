@@ -77,13 +77,21 @@ const blogSchema = new Schema<IBlog>(
   },
 );
 
+// Soft-deleted articles are hidden from every query unless the call says it
+// is looking at them, which only the trash view and the restore path do.
+// `setOptions({ bypassMiddleware: true })` is that permission, the same one
+// the member model uses.
 blogSchema.pre("find", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  if (!this.getOptions()?.bypassMiddleware) {
+    this.find({ isDeleted: { $ne: true } });
+  }
   next();
 });
 
 blogSchema.pre("findOne", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  if (!this.getOptions()?.bypassMiddleware) {
+    this.find({ isDeleted: { $ne: true } });
+  }
   next();
 });
 
