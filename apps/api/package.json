@@ -9,6 +9,7 @@
     "start": "cross-env NODE_ENV=production node --env-file=.env.production ./dist/main.js",
     "dev:prod": "cross-env NODE_ENV=production tsx watch --env-file=.env.production ./src/main.ts",
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix",
     "format": "prettier ./src --write",
