@@ -9,9 +9,9 @@ import { siteCategories } from "@/lib/site-settings";
  * The public pages that exist without asking the API.
  *
  * Articles and member profiles are data, so they live in `sitemap.ts` next to
- * the code that fetches them. Auth screens, `/me`, `/settings` and the admin
- * shell are deliberately absent: they are disallowed in `robots.ts` and have
- * nothing worth indexing.
+ * the code that fetches them. Auth screens, `/profile` and the admin shell are
+ * deliberately absent: they are disallowed in `robots.ts` and have nothing
+ * worth indexing.
  */
 const staticPages: Array<{
   path: string;

@@ -122,7 +122,20 @@ letter for the name. It is the only place a solid amber fill appears at rest, so
 the mark and the primary button speak the same language. Full assets and sizes:
 `apps/web/public/brand/README.md`.
 
-## The account area (`/me/blogs`)
+## The account area (`/profile`)
+
+The member's profile (`/profile/@handle`) and the article list (`/profile/blogs`)
+share one shell: the sticky account rail on the left, the content column beside
+it. The composer (`/blogs/new`) and the article editor (`/blogs/<slug>/edit`)
+sit at the site root beside the published article they are about, and keep the
+editor's own full-width frame: a writing page should not be narrowed by the
+account rail.
+
+**The profile page is also the editor.** There is no separate settings screen:
+"Edit profile" turns the identity block into a form and opens the fields a reader
+never sees below it, and one save writes the details, the photo and the social
+links. A member edits what they are looking at, so the preview and the result
+cannot drift apart.
 
 **Job of the screen:** find the article you want to change and open it, or start
 a new one. The decision is "which article", so the articles are the page and

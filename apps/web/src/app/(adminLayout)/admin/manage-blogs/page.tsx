@@ -8,6 +8,7 @@ import ButtonLink from "@/components/ui/button-link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { FiPlus } from "react-icons/fi";
+import { writeBlogPath } from "@/lib/blog-routes";
 
 /** `?sort=` seeds the table's starting tab, read verbatim. */
 function ManageBlogsTable() {
@@ -28,7 +29,7 @@ const ManageBlogsPage = () => {
         description="Every published piece, newest first. Open one to read it, jump to the editor, or remove it with a reason. Removed articles move to the Deleted tab on this screen, and they stay in Trash too."
         actions={
           <ButtonLink
-            href="/me/blogs/new"
+            href={writeBlogPath}
             size="sm"
             startContent={<FiPlus aria-hidden />}
           >

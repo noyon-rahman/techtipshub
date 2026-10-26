@@ -19,7 +19,7 @@ import {
 } from "@/hooks/admin-blogs";
 import { useAdminCategories } from "@/hooks/admin-categories";
 import { useRestoreBlog, useTrashedBlogs } from "@/hooks/admin-trash";
-import { adminEditBlogPath } from "@/lib/blog-routes";
+import { adminEditBlogPath, writeBlogPath } from "@/lib/blog-routes";
 import type { IBlog } from "@/types";
 import Link from "next/link";
 import { useCallback, useState } from "react";
@@ -277,7 +277,7 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
           title="No published articles yet"
           description="When a member publishes, the piece appears here for review, editing and removal."
           action={
-            <Link href="/me/blogs/new" className={quietButton}>
+            <Link href={writeBlogPath} className={quietButton}>
               Write the first article
             </Link>
           }

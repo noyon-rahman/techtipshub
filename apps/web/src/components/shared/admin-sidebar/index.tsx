@@ -12,13 +12,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef } from "react";
 import { FiChevronDown, FiExternalLink, FiLogOut, FiX } from "react-icons/fi";
-import { HiOutlineCog6Tooth, HiOutlinePencilSquare } from "react-icons/hi2";
+import { HiOutlinePencilSquare, HiOutlineUserCircle } from "react-icons/hi2";
 import {
   TbLayoutSidebarLeftCollapse,
   TbLayoutSidebarLeftExpand,
 } from "react-icons/tb";
 import { logOutUser } from "@/services/auth";
 import { useUser } from "@/context/user.provider";
+import { manageBlogsPath, ownProfilePath } from "@/lib/blog-routes";
 import {
   ADMIN_GROUPS,
   adminLinks,
@@ -269,22 +270,22 @@ const AdminSidebar = () => {
         {accountTrigger(collapsed)}
         <DropdownMenu aria-label="Account" classNames={{ base: "min-w-56" }}>
           <DropdownItem
+            key="profile"
+            as={Link}
+            href={ownProfilePath(user?.username ?? "")}
+            startContent={<HiOutlineUserCircle aria-hidden className="size-4" />}
+          >
+            Your profile
+          </DropdownItem>
+          <DropdownItem
             key="articles"
             as={Link}
-            href="/me/blogs"
+            href={manageBlogsPath}
             startContent={
               <HiOutlinePencilSquare aria-hidden className="size-4" />
             }
           >
             Your articles
-          </DropdownItem>
-          <DropdownItem
-            key="settings"
-            as={Link}
-            href="/settings"
-            startContent={<HiOutlineCog6Tooth aria-hidden className="size-4" />}
-          >
-            Account settings
           </DropdownItem>
           <DropdownItem
             key="site"

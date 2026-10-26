@@ -14,7 +14,15 @@ so the rail, the breadcrumb and the quick links cannot drift apart.
   The proxy is the door, the API is the lock.
 - Old addresses redirect: `/admin` lands on the dashboard, and the old
   `/settings/admin*` screens land on the page that replaced them
-  (`src/proxy.ts`, `LEGACY_REDIRECTS` / `LEGACY_EXACT`).
+  (`src/proxy.ts`, `LEGACY_REDIRECTS` / `LEGACY_EXACT`). The member-facing old
+  addresses follow the same table: `/me/blogs*` → `/profile/blogs*`, and
+  `/settings`, `/settings/manage-blogs` and `/me/blogs` → the member's own
+  `/profile/@<handle>`, which is where the profile is now edited
+  (`LEGACY_SETTINGS`). That table needs the session to know whose profile, so a
+  signed-out visitor goes through the login redirect first. The composer and
+  editor live beside the articles (`/blogs/new`, `/blogs/<slug>/edit`); the
+  older `/write-blog`, `/profile/blogs/new` and `/profile/blogs/<slug>/edit`
+  addresses redirect there (`LEGACY_EXACT` / `LEGACY_REDIRECTS`).
 - A signed-out visitor asking for `/admin/*` is sent to `/login?redirect=/admin/...`
   rather than the home page, so the destination survives sign-in.
 

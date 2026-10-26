@@ -18,11 +18,12 @@ import {
   useState,
 } from "react";
 import { FiExternalLink, FiLogOut, FiSearch } from "react-icons/fi";
-import { HiOutlineCog6Tooth, HiOutlinePencilSquare } from "react-icons/hi2";
+import { HiOutlinePencilSquare, HiOutlineUserCircle } from "react-icons/hi2";
 import { MdMenu } from "react-icons/md";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 import { useUser } from "@/context/user.provider";
 import { useAdminSearch } from "@/hooks/admin";
+import { manageBlogsPath, ownProfilePath } from "@/lib/blog-routes";
 import { logOutUser } from "@/services/auth";
 import { findAdminLink } from "./admin-links";
 import { useAdminShell } from "./admin-shell";
@@ -454,24 +455,24 @@ export default function AdminTopbar() {
                 </p>
               </DropdownItem>
               <DropdownItem
+                key="profile"
+                as={Link}
+                href={ownProfilePath(user?.username ?? "")}
+                startContent={
+                  <HiOutlineUserCircle aria-hidden className="size-4" />
+                }
+              >
+                Your profile
+              </DropdownItem>
+              <DropdownItem
                 key="articles"
                 as={Link}
-                href="/me/blogs"
+                href={manageBlogsPath}
                 startContent={
                   <HiOutlinePencilSquare aria-hidden className="size-4" />
                 }
               >
                 Your articles
-              </DropdownItem>
-              <DropdownItem
-                key="settings"
-                as={Link}
-                href="/settings"
-                startContent={
-                  <HiOutlineCog6Tooth aria-hidden className="size-4" />
-                }
-              >
-                Account settings
               </DropdownItem>
               <DropdownItem
                 key="site"

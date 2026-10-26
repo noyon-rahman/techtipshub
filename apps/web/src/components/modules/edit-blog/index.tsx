@@ -68,7 +68,7 @@ const editableFingerprint = (values: BlogFormData) =>
   });
 
 /**
- * The article editor, at `/me/blogs/<slug>/edit`.
+ * The article editor, at `/blogs/<slug>/edit`.
  *
  * Same tool as the composer — `EditorShell`, `WritingPane`, the same details
  * panel — so moving between writing and editing is moving between pages of one

@@ -78,7 +78,7 @@ const isDirty = hasDraftContent;
 };
 
 /**
- * The composer, at `/me/blogs/new`.
+ * The composer, at `/blogs/new`.
  *
  * A cover strip, the formatting tools, the title and the writing surface in one
  * measured column, with the required publishing details beside it rather than

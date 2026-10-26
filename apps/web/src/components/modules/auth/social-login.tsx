@@ -15,8 +15,8 @@ import { safeRedirectPath } from "@/lib/blog-routes";
  * for a response; the reader leaves the page instead.
  *
  * The reader's destination travels with them. Without it, someone sent here
- * from `/me/blogs` by the proxy would sign in and land on the feed, losing the
- * page they were trying to reach.
+ * from `/profile/blogs` by the proxy would sign in and land on the feed, losing
+ * the page they were trying to reach.
  */
 const GoogleSignIn = () => {
   const searchParams = useSearchParams();

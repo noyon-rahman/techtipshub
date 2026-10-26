@@ -1,6 +1,6 @@
 "use client";
 
-import { manageBlogsPath } from "@/lib/blog-routes";
+import { manageBlogsPath, ownProfilePath } from "@/lib/blog-routes";
 
 
 import { protectedRoutes } from "@/constant";
@@ -39,14 +39,14 @@ const NavarDropdown: React.FC<IProps> = () => {
       href: "/admin/dashboard",
     },
     {
-      label: "Settings",
-      href: "/settings",
+      label: "Profile",
+      href: ownProfilePath(user?.username ?? ""),
     }
   ];
   const userLinks = [
     {
-      label: "Settings",
-      href: "/settings",
+      label: "Profile",
+      href: ownProfilePath(user?.username ?? ""),
     },
     {
       label: "Manage Blogs",
@@ -78,7 +78,7 @@ const NavarDropdown: React.FC<IProps> = () => {
         <DropdownItem key="profile">
           <NextLink
             className="w-full block"
-            href={`/profile/@${user?.username}`}
+            href={ownProfilePath(user?.username ?? "")}
           >
             My Profile
           </NextLink>

@@ -24,8 +24,7 @@ const SORTS: Record<string, string> = {
 };
 
 /**
- * The account's article list, shared by `/me/blogs` and the legacy
- * `/settings/manage-blogs` so the two can never show different things.
+ * The account's article list at `/profile/blogs`.
  *
  * One heading, one primary action. The list below owns the filters and the
  * states, because they are about the list; the page only supplies the count
