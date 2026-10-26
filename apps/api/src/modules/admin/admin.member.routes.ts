@@ -6,6 +6,7 @@ import { contactController } from "../contact/contact.controller";
 import { contactValidationSchema } from "../contact/contact.validation";
 import { userController } from "../user/user.controller";
 import { userValidationSchema } from "../user/user.validation";
+import { adminController } from "./admin.controller";
 import { adminCommentController } from "./admin.comment.controller";
 
 const adminUserRouter = new Hono<TAppBindings>();
@@ -14,6 +15,10 @@ adminUserRouter.get("/", userController.getAllUsers);
 
 // Literal path before "/:id" routes.
 adminUserRouter.get("/trash", userController.getDeletedUsers);
+
+// One member for the detail screen. The list endpoint cannot stand in: it is
+// capped at 100 rows and only matches names, handles and emails.
+adminUserRouter.get("/:id", adminController.getMember);
 
 adminUserRouter.patch("/:id/restore", userController.restoreUser);
 adminUserRouter.patch("/:id/block", userController.blockUser);

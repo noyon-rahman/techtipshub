@@ -3,16 +3,33 @@ import type { IAdminMembersParams } from "@/types/admin.type";
 import type { IUser } from "@/types";
 import { cleanParams, readMeta, readRows, toServiceError } from "./shared";
 
-/** The API caps a list page at this many rows. */
-const PAGE_SIZE = 100;
-/** A guard against a server that never reports a last page. */
-const MAX_PAGES = 20;
+/**
+ * `GET /admin/users/:id` (Admin) -> `{ success, data: IUser }`.
+ *
+ * Answers one live member, whatever page of the list they sit on. A deleted
+ * account is not in it: that answers 404, because deletion is a soft delete
+ * and the trash is the only view that opts out of it.
+ *
+ * `undefined` means "no such member". Any other failure throws, so the screen
+ * can tell a missing member from a lookup that never arrived.
+ */
+export const getAdminMember = async (
+  memberId: string,
+): Promise<IUser | undefined> => {
+  try {
+    const res = await axiosInstance.get(`/admin/users/${memberId}`);
 
-interface IUsersPage {
-  success?: boolean;
-  data?: IUser[];
-  meta?: { total?: number; totalPages?: number };
-}
+    return (res.data?.data as IUser | undefined) ?? undefined;
+  } catch (error) {
+    const failed = toServiceError(error, "This member could not be loaded.");
+
+    if ((failed as Error & { status?: number }).status === 404) {
+      return undefined;
+    }
+
+    throw failed;
+  }
+};
 
 /**
  * `GET /admin/users` (Admin) -> `{ success, data: IUser[], meta }`.
@@ -42,97 +59,6 @@ export const readMemberPage = (
     rows,
     meta: readMeta(payload, rows.length, params.page, params.limit),
   };
-};
-
-/**
- * One account by id, through the admin directory search.
- *
- * The API has no lookup by id: `GET /admin/search?q=` answers exactly the rows
- * it was asked about (the accounting behind it matches ids as well as names,
- * usernames and emails), and `GET /admin/users?searchTerm=` matches the same
- * fields when the search endpoint comes back without the row. Neither pages by
- * ten here: the request asks for the smallest page that can hold a match and
- * keeps the row only if it carries this exact id.
- *
- * `undefined` covers both "not found" and "the request failed". The screen
- * separates those two by what the member list already told it.
- */
-export const searchMember = async (
-  memberId: string,
-): Promise<IUser | undefined> => {
-  try {
-    const res = await axiosInstance.get("/admin/search", {
-      params: { q: memberId },
-    });
-
-    const payload = res.data;
-    const rows: IUser[] = Array.isArray(payload?.data?.members)
-      ? payload.data.members
-      : Array.isArray(payload?.data)
-        ? payload.data
-        : Array.isArray(payload?.data?.users)
-          ? payload.data.users
-          : [];
-
-    const found = rows.find((user) => user?._id === memberId);
-    if (found) return found;
-  } catch {
-    // Fall through to the member list below.
-  }
-
-  try {
-    const res = await axiosInstance.get("/admin/users", {
-      params: { searchTerm: memberId },
-    });
-
-    const payload = res.data as IUsersPage | undefined;
-    if (!Array.isArray(payload?.data)) return undefined;
-
-    return payload.data.find((user) => user._id === memberId);
-  } catch {
-    return undefined;
-  }
-};
-
-/**
- * One account by id, scanned out of the paged admin member list.
- *
- * Used when the search above comes back empty: it walks pages of 100 and stops
- * at the page holding the id, reading the server's `totalPages` to know where
- * the list ends. `undefined` when the account is deleted or gone.
- */
-export const scanMemberList = async (
-  memberId: string,
-): Promise<IUser | undefined> => {
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
-    let payload: IUsersPage | undefined;
-
-    try {
-      const res = await axiosInstance.get("/admin/users", {
-        params: { page, limit: PAGE_SIZE },
-      });
-      payload = res.data;
-    } catch {
-      return undefined;
-    }
-
-    const rows = Array.isArray(payload?.data) ? payload.data : [];
-    const match = rows.find((user) => user._id === memberId);
-    if (match) return match;
-
-    const { totalPages, total } = payload?.meta ?? {};
-    const lastPage = Number.isFinite(Number(totalPages))
-      ? Number(totalPages)
-      : Number.isFinite(Number(total))
-        ? Math.ceil(Number(total) / PAGE_SIZE)
-        : rows.length < PAGE_SIZE
-          ? page
-          : MAX_PAGES;
-
-    if (page >= Math.min(lastPage, MAX_PAGES)) return undefined;
-  }
-
-  return undefined;
 };
 
 // Members who follow this account. Rows are `{ follower: {...} }` wrappers,

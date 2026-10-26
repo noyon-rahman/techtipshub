@@ -17,11 +17,11 @@
  * refreshes the member row plus every list that shows it.
  */
 import {
+  getAdminMember,
   getAdminUsers,
   getMemberFollowers,
   getMemberFollowing,
   readMemberPage,
-  searchMember,
   updateMemberProfile,
 } from "@/services/admin/members";
 import type { IAdminMembersParams } from "@/types/admin.type";
@@ -110,16 +110,16 @@ export interface IPeoplePage {
 /**
  * The member behind a route id.
  *
- * The shared member list query only holds the API's first page of ten, so it
- * cannot find most members. This asks the admin search endpoint by id, which
- * answers the row itself. No row means no live account: the screen shows the
- * not-found state rather than pretending the member is gone for good.
+ * Reads `GET /admin/users/:id`, so the screen opens any member, not only the
+ * ten on the list's first page. A 404 is "no such member" and settles as a
+ * success with no data; the screen shows the not-found state for that and its
+ * error state for everything else.
  */
 export const useFoundMember = (memberId?: string) => {
   const query = useQuery({
-    queryKey: ["ADMIN_MEMBER_SEARCH", memberId],
+    queryKey: ["ADMIN_MEMBER", memberId],
     queryFn: async (): Promise<IUser | undefined> =>
-      await searchMember(memberId!),
+      await getAdminMember(memberId!),
     enabled: Boolean(memberId),
     staleTime: 30_000,
   });
@@ -174,9 +174,9 @@ export const memberProfileHref = (username?: string) =>
 /**
  * Saves a member profile from the admin screen.
  *
- * The row itself is cached under the search key as well as the list keys, so
- * all four are refreshed: the detail screen reads the member, and the tables
- * read their own lists.
+ * The row itself is cached under the member-detail key as well as the list
+ * keys, so all four are refreshed: the detail screen reads the member, and the
+ * tables read their own lists.
  */
 export const useUpdateMemberProfile = () => {
   const queryClient = useQueryClient();
@@ -188,7 +188,7 @@ export const useUpdateMemberProfile = () => {
     onSuccess: (_data, variables) => {
       toast.success("Profile saved", { id: "admin-update-member" });
       queryClient.invalidateQueries({
-        queryKey: ["ADMIN_MEMBER_SEARCH", variables.id],
+        queryKey: ["ADMIN_MEMBER", variables.id],
       });
       queryClient.invalidateQueries({ queryKey: ADMIN_MEMBERS_KEY });
       queryClient.invalidateQueries({ queryKey: ["GET_ALL_USERS"] });

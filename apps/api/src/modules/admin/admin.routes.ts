@@ -17,6 +17,7 @@
  * Members
  *   GET    /admin/users?page=&limit=&sort=&role=&status=&searchTerm=
  *   GET    /admin/users/trash?page=&limit=&searchTerm=
+ *   GET    /admin/users/:id
  *   PATCH  /admin/users/:id/restore
  *   PATCH  /admin/users/:id/block
  *   PATCH  /admin/users/:id/unblock
