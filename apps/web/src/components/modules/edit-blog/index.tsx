@@ -467,48 +467,51 @@ const EditBlog = ({
         </>
       }
       sidebar={
-        <PublishingDetails
-          idPrefix="editor"
-          slug={adminMode ? slug : undefined}
-          onSlugChange={
-            adminMode
-              ? (value) => {
-                  setSlug(value);
-                  setSlugError(undefined);
-                }
-              : undefined
-          }
-          slugError={adminMode ? slugError : undefined}
-          categories={categories}
-          category={values.category}
-          onCategoryChange={(value) => update("category", value)}
-          categoryError={errors.category}
-          tags={values.tags}
-          onTagsChange={(next) => update("tags", next)}
-          tagInput={tagInput}
-          onTagInputChange={setTagInput}
-          tagSuggestions={tagSuggestions}
-          tagsError={errors.tags}
-          onTagsRejected={(_raw, rejected) => {
-            if (rejected.length) {
-              toast.error("Add up to 8 tags, kept the first 8.", {
-                id: "edit-tags-limit",
-              });
+        <div className="lg:hidden">
+          <PublishingDetails
+            idPrefix="editor"
+            placement="page"
+            slug={adminMode ? slug : undefined}
+            onSlugChange={
+              adminMode
+                ? (value) => {
+                    setSlug(value);
+                    setSlugError(undefined);
+                  }
+                : undefined
             }
-          }}
-          footer={
-            dirty ? (
-              <button
-                type="button"
-                onClick={discard}
-                className="mt-6 flex items-center gap-1.5 border-t border-default-200 pt-4 text-[0.8125rem] font-medium text-default-600 transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300"
-              >
-                <LuRotateCcw aria-hidden className="size-3.5" />
-                Discard changes
-              </button>
-            ) : null
-          }
-        />
+            slugError={adminMode ? slugError : undefined}
+            categories={categories}
+            category={values.category}
+            onCategoryChange={(value) => update("category", value)}
+            categoryError={errors.category}
+            tags={values.tags}
+            onTagsChange={(next) => update("tags", next)}
+            tagInput={tagInput}
+            onTagInputChange={setTagInput}
+            tagSuggestions={tagSuggestions}
+            tagsError={errors.tags}
+            onTagsRejected={(_raw, rejected) => {
+              if (rejected.length) {
+                toast.error("Add up to 8 tags, kept the first 8.", {
+                  id: "edit-tags-limit",
+                });
+              }
+            }}
+            footer={
+              dirty ? (
+                <button
+                  type="button"
+                  onClick={discard}
+                  className="mt-6 flex items-center gap-1.5 border-t border-default-200 pt-4 text-[0.8125rem] font-medium text-default-600 transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300"
+                >
+                  <LuRotateCcw aria-hidden className="size-3.5" />
+                  Discard changes
+                </button>
+              ) : null
+            }
+          />
+        </div>
       }
       footer={
         <BottomActions

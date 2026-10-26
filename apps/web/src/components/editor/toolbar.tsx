@@ -206,7 +206,8 @@ const BlockStyleMenu = ({ editor }: { editor: Editor | null }) => {
  *
  * Deliberately small: the "/" menu and markdown shortcuts carry the block
  * commands, so the toolbar only needs the inline formatting people reach for
- * constantly.
+ * constantly. It draws no rule of its own: the composer already rules the block
+ * it sits in, and the boxed editor draws the card around it.
  */
 const Toolbar = ({ editor, onOpenMenu, children }: IProps) => {
   if (!editor) return null;
@@ -214,7 +215,7 @@ const Toolbar = ({ editor, onOpenMenu, children }: IProps) => {
   const chain = () => editor.chain().focus();
 
   return (
-    <div className="tth-toolbar flex flex-wrap items-center gap-0.5 border-b border-default-200 px-2 py-1.5">
+    <div className="tth-toolbar flex flex-wrap items-center gap-0.5 px-1 py-1.5 sm:px-2">
       <ToolbarButton label="Insert block" onClick={onOpenMenu}>
         <LuPlus className="size-4" />
       </ToolbarButton>

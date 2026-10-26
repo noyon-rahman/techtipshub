@@ -15,6 +15,7 @@ const base = {
   height: 20,
   viewBox: "0 0 20 20",
   width: 20,
+  stroke: "currentColor",
   strokeLinecap: "round",
   strokeLinejoin: "round",
   strokeWidth: 1.25,
@@ -72,5 +73,11 @@ export const EnterIcon = (props: IconProps) => (
   <svg {...base} {...props}>
     <path d="M15.5 4.5v5a2 2 0 0 1-2 2h-9" />
     <path d="M7.5 8.5l-3 3 3 3" />
+  </svg>
+);
+
+export const CloseIcon = (props: IconProps) => (
+  <svg {...base} {...props}>
+    <path d="M5.5 5.5l9 9M14.5 5.5l-9 9" />
   </svg>
 );

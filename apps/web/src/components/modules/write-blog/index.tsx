@@ -456,32 +456,35 @@ const WriteBlog = () => {
         ) : null
       }
       sidebar={
-        <PublishingDetails
-          idPrefix="composer"
-          categories={categories}
-          category={values.category}
-          onCategoryChange={(value) => update("category", value)}
-          categoryError={errors.category}
-          tags={values.tags}
-          onTagsChange={(next) => update("tags", next)}
-          tagInput={tagInput}
-          onTagInputChange={setTagInput}
-          tagSuggestions={tagSuggestions}
-          tagsError={errors.tags}
-          onTagsRejected={(_raw, rejected) => {
-            if (rejected.length) {
-              toast.error("Add up to 8 tags, kept the first 8.", {
-                id: "composer-tags-limit",
-              });
+        <div className="lg:hidden">
+          <PublishingDetails
+            idPrefix="composer"
+            placement="page"
+            categories={categories}
+            category={values.category}
+            onCategoryChange={(value) => update("category", value)}
+            categoryError={errors.category}
+            tags={values.tags}
+            onTagsChange={(next) => update("tags", next)}
+            tagInput={tagInput}
+            onTagInputChange={setTagInput}
+            tagSuggestions={tagSuggestions}
+            tagsError={errors.tags}
+            onTagsRejected={(_raw, rejected) => {
+              if (rejected.length) {
+                toast.error("Add up to 8 tags, kept the first 8.", {
+                  id: "composer-tags-limit",
+                });
+              }
+            }}
+            footer={
+              <p className="mt-6 border-t border-default-200 pt-4 text-xs leading-relaxed text-default-600">
+                The draft stays in this browser until you publish. Only you can
+                see it.
+              </p>
             }
-          }}
-          footer={
-            <p className="mt-6 border-t border-default-200 pt-4 text-xs leading-relaxed text-default-600">
-              The draft stays in this browser until you publish. Only you can
-              see it.
-            </p>
-          }
-        />
+          />
+        </div>
       }
       footer={
         <BottomActions

@@ -1,7 +1,11 @@
 "use client";
 
-import { manageBlogsPath, ownProfilePath } from "@/lib/blog-routes";
-
+import {
+  adminManageBlogsPath,
+  manageBlogsPath,
+  ownProfilePath,
+  writeBlogPath,
+} from "@/lib/blog-routes";
 
 import { protectedRoutes } from "@/constant";
 import { useUser } from "@/context/user.provider";
@@ -11,17 +15,92 @@ import {
   Dropdown,
   DropdownItem,
   DropdownMenu,
+  DropdownSection,
   DropdownTrigger,
 } from "@heroui/react";
-import NextLink from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import type { Key, ReactNode } from "react";
+import { FiLogOut } from "react-icons/fi";
+import {
+  HiOutlineArrowTopRightOnSquare,
+  HiOutlinePencilSquare,
+  HiOutlineQueueList,
+  HiOutlineSquares2X2,
+  HiOutlineUserCircle,
+} from "react-icons/hi2";
 
-interface IProps {}
+/** One row of the account menu. `key` is what the menu reports on press. */
+interface IAccountLink {
+  key: string;
+  label: string;
+  description: string;
+  href: string;
+  icon: ReactNode;
+}
 
-const NavarDropdown: React.FC<IProps> = () => {
+/**
+ * What a member can do from the header.
+ *
+ * It repeats the account rail's two destinations on purpose: the menu is where
+ * people look for "my articles" without leaving the page, and the rail is where
+ * they go to work on them. Admins get their own list, since the account screens
+ * are not their working surface.
+ */
+const accountLinks = (user: {
+  username: string;
+  role: string;
+}): IAccountLink[] => {
+  const profile: IAccountLink = {
+    key: "profile",
+    label: "Your profile",
+    description: "Public page, photo and bio",
+    href: ownProfilePath(user.username),
+    icon: <HiOutlineUserCircle />,
+  };
+
+  if (user.role === "Admin") {
+    return [
+      {
+        key: "dashboard",
+        label: "Admin dashboard",
+        description: "Traffic, content and members",
+        href: "/admin/dashboard",
+        icon: <HiOutlineSquares2X2 />,
+      },
+      {
+        key: "admin-articles",
+        label: "All articles",
+        description: "Review, edit or remove",
+        href: adminManageBlogsPath,
+        icon: <HiOutlineQueueList />,
+      },
+      profile,
+    ];
+  }
+
+  return [
+    profile,
+    {
+      key: "articles",
+      label: "Your articles",
+      description: "Edit or delete what you published",
+      href: manageBlogsPath,
+      icon: <HiOutlineQueueList />,
+    },
+  ];
+};
+
+const NavarDropdown: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { setIsLoading: setUserLoading, user } = useUser();
+
+  if (!user) return null;
+
+  const displayName = user.name || user.username;
+  const initial = displayName.charAt(0).toUpperCase();
+  const isAdmin = user.role === "Admin";
+  const links = accountLinks({ username: user.username, role: user.role });
 
   const handleLogoutUser = async () => {
     await logOutUser();
@@ -29,84 +108,143 @@ const NavarDropdown: React.FC<IProps> = () => {
 
     if (protectedRoutes.some((route) => pathname.match(route))) {
       router.push("/");
-      return;
     }
   };
 
-  const adminLinks = [
-    {
-      label: "Dashboard",
-      href: "/admin/dashboard",
-    },
-    {
-      label: "Profile",
-      href: ownProfilePath(user?.username ?? ""),
+  const onAction = (key: Key) => {
+    if (key === "logout") {
+      handleLogoutUser();
+      return;
     }
-  ];
-  const userLinks = [
-    {
-      label: "Profile",
-      href: ownProfilePath(user?.username ?? ""),
-    },
-    {
-      label: "Manage Blogs",
-      href: manageBlogsPath,
+    if (key === "write") {
+      router.push(writeBlogPath);
+      return;
     }
-  ];
+    const link = links.find((item) => item.key === key);
+    if (link) router.push(link.href);
+  };
 
   return (
-    <Dropdown placement="bottom-end">
+    <Dropdown
+      placement="bottom-end"
+      offset={10}
+      classNames={{
+        content: "w-[17.5rem] rounded-xl border border-default-200 p-0 shadow-lg",
+      }}
+    >
       <DropdownTrigger>
+        <button
+          type="button"
+          aria-label={`Account menu for ${displayName}`}
+          className="ml-0.5 flex size-9 items-center justify-center rounded-full transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[open=true]:ring-2 data-[open=true]:ring-primary-300"
+        >
           <Avatar
-            color="primary"
             size="sm"
-            isBordered
-            as="button"
-            className="transition-transform object-cover"
-            src={user?.profilePicture}
+            radius="full"
+            isBordered={isAdmin}
+            color="primary"
+            src={user.profilePicture}
+            name={initial}
+            classNames={{ base: "shrink-0", name: "text-xs font-semibold" }}
           />
+        </button>
       </DropdownTrigger>
+
       <DropdownMenu
-        aria-label="Profile Actions"
-        classNames={{ base: "border border-default-100" }}
-        variant="flat"
+        aria-label="Account"
+        variant="light"
+        itemClasses={{
+          base: "gap-3 rounded-lg px-2.5 py-2",
+          title: "text-sm font-medium",
+          description: "text-xs text-default-600",
+        }}
+        onAction={onAction}
       >
-        <DropdownItem key="user-email" className="h-14 gap-2">
-          <p className="font-semibold">Signed in as</p>
-          <p className="font-semibold">{user?.email}</p>
-        </DropdownItem>
-        <DropdownItem key="profile">
-          <NextLink
-            className="w-full block"
-            href={ownProfilePath(user?.username ?? "")}
+        {/* Who you are, and what account it is. Not a menu item: pressing it
+            would do nothing, and the menu has nowhere else to say it. */}
+        <DropdownSection showDivider>
+          <DropdownItem
+            key="identity"
+            isReadOnly
+            hideSelectedIcon
+            className="cursor-default opacity-100 data-[hover=true]:bg-transparent"
+            startContent={
+              <Avatar
+                size="md"
+                radius="full"
+                src={user.profilePicture}
+                name={initial}
+                classNames={{ base: "shrink-0", name: "text-sm font-semibold" }}
+              />
+            }
           >
-            My Profile
-          </NextLink>
-        </DropdownItem>
+            <div className="min-w-0">
+              <p className="truncate font-[family-name:var(--type-editorial)] text-base font-semibold leading-tight tracking-[-0.01em] text-foreground">
+                {displayName}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-default-600">
+                {user.email}
+              </p>
+            </div>
+          </DropdownItem>
+        </DropdownSection>
 
-        <>
-          {(user &&
-            user?.role === "Admin" &&
-            adminLinks.map((link) => (
-              <DropdownItem key={link.href}>
-                <NextLink className="w-full block" href={link.href}>
-                  {link.label}
-                </NextLink>
-              </DropdownItem>
-            ))) ||
-            (user?.role === "User" &&
-              userLinks.map((link) => (
-                <DropdownItem key={link.href}>
-                  <NextLink className="w-full block" href={link.href}>
-                    {link.label}
-                  </NextLink>
-                </DropdownItem>
-              )))}
-        </>
+        <DropdownSection>
+          {links.map((link) => (
+            <DropdownItem
+              key={link.key}
+              description={link.description}
+              startContent={
+                <span aria-hidden className="text-default-500">
+                  {link.icon}
+                </span>
+              }
+            >
+              {link.label}
+            </DropdownItem>
+          ))}
+        </DropdownSection>
 
-        <DropdownItem key="logout" color="danger" onClick={handleLogoutUser}>
-          Log out
-        </DropdownItem>
+        <DropdownSection showDivider>
+          <DropdownItem
+            key="write"
+            description="Start a new draft"
+            startContent={
+              <span aria-hidden className="text-default-500">
+                <HiOutlinePencilSquare />
+              </span>
+            }
+          >
+            Write a blog
+          </DropdownItem>
+          <DropdownItem
+            key="site"
+            href="/"
+            description="Open the public feed"
+            startContent={
+              <span aria-hidden className="text-default-500">
+                <HiOutlineArrowTopRightOnSquare />
+              </span>
+            }
+          >
+            View the site
+          </DropdownItem>
+        </DropdownSection>
+
+        <DropdownSection>
+          <DropdownItem
+            key="logout"
+            color="danger"
+            description="You can sign back in any time"
+            startContent={
+              <span aria-hidden>
+                <FiLogOut />
+              </span>
+            }
+          >
+            Log out
+          </DropdownItem>
+        </DropdownSection>
       </DropdownMenu>
     </Dropdown>
   );

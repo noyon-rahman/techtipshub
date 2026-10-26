@@ -23,7 +23,7 @@ import {
   lookupProfile,
   searchArticles,
 } from "./actions";
-import { ArrowIcon, CommandIcon, EnterIcon } from "./icons";
+import { ArrowIcon, CloseIcon, CommandIcon, EnterIcon } from "./icons";
 import {
   CommandGroup,
   CommandTarget,
@@ -417,6 +417,20 @@ const CommandPalette = ({ open, onClose }: IProps) => {
               spellCheck={false}
               className="h-14 min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-default-500"
             />
+            {/*
+              Esc, the backdrop and navigation all close the palette, but none
+              of them is discoverable on a phone: no Esc key, and tapping
+              outside is not obvious. The button carries the touch case; the
+              Esc chip still teaches the keyboard one.
+            */}
+            <button
+              type="button"
+              aria-label="Close search"
+              onClick={close}
+              className="-mr-2 flex size-9 shrink-0 items-center justify-center rounded-lg text-default-600 transition-colors hover:bg-default-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70 sm:mr-0"
+            >
+              <CloseIcon className="size-4" />
+            </button>
             <Kbd keys={["escape"]} className="hidden shrink-0 sm:inline-flex">
               Esc
             </Kbd>

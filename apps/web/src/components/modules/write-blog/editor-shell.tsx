@@ -26,18 +26,19 @@ import type { ReactNode, RefObject } from "react";
 import { LuArrowLeft, LuEye, LuExternalLink } from "react-icons/lu";
 
 /**
- * The one measure every article screen uses.
+ * The width of a text column inside an article screen.
  *
  * `max-w-read` (48rem, from globals.css) is the column a published article
- * reads in, so the title, the body, the details and the actions start on the
- * same left edge here and on the live page.
+ * reads in, so the title, the body and the piece's actions keep that measure.
+ * The frame itself is full page width, so the cover and the toolbar run edge to
+ * edge with the rest of the site.
  */
-export const MEASURE = "mx-auto w-full max-w-read";
+export const MEASURE = "w-full max-w-read";
 
 /**
- * Outer gutters for an article screen. The page around the composer supplies
- * none, so this frame is the only place they are applied — the sticky page bar
- * uses the same string, which keeps its contents on the writing column's axis.
+ * Outer gutters for an article screen. These are `Container`'s, so the page bar
+ * and the frame around the piece line up with the header, the footer and every
+ * other page instead of sitting in a narrower box of their own.
  */
 const FRAME_GUTTERS = "px-4 sm:px-6 lg:px-8";
 
@@ -54,10 +55,10 @@ export const EditorMessageFrame = ({ children }: { children: ReactNode }) => (
 /**
  * The frame every article screen sits in.
  *
- * A wide page holding a centred writing column, with the publishing details in
- * a rail beside it on large screens and directly under the piece below that.
- * The rail is sticky, so the category and tags are never a scroll away while
- * the writer works down a long body.
+ * The page's own width, holding the piece. The writing column is centred inside
+ * it, with the publishing details in a rail beside that column on large screens
+ * and directly under the piece below that. The rail is sticky, so the category
+ * and tags are never a scroll away while the writer works down a long body.
  *
  * The bar above holds only what is true at any scroll position: how to get out,
  * what state the piece is in, and what to do next.
@@ -108,7 +109,7 @@ export const EditorShell = ({
     />
 
     <div className={`mx-auto w-full max-w-page pb-24 pt-6 ${FRAME_GUTTERS}`}>
-      <div className="lg:grid lg:grid-cols-[minmax(0,48rem)_minmax(15rem,18rem)] lg:items-start lg:justify-center lg:gap-12 xl:gap-16">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(15rem,18rem)] lg:items-start lg:gap-12 xl:gap-16">
         <div className="min-w-0">
           {banner && <div className="mb-8">{banner}</div>}
           {children}
@@ -311,7 +312,7 @@ export const WritingPane = ({
     </div>
 
     {toolbar && (
-      <div className="tth-editor-tools mt-5 border-y border-default-200 py-1">
+      <div className={`${MEASURE} mt-5 border-y border-default-200 py-1`}>
         {toolbar}
       </div>
     )}
@@ -343,6 +344,11 @@ export const ComposerToolbar = ({
 
 interface IPublishingDetailsProps {
   idPrefix: string;
+  /**
+   * `rail` fills the sidebar column; `page` is the same panel under the piece
+   * at page width.
+   */
+  placement?: "rail" | "page";
   /** The stored address, when the screen lets the writer change it. */
   slug?: string;
   slugPrefix?: string;
@@ -364,16 +370,19 @@ interface IPublishingDetailsProps {
 }
 
 /**
- * Category and tags, as a rail beside the piece on wide screens and a section
+ * Category and tags: the rail beside the piece on wide screens, and the panel
  * under it otherwise.
  *
  * Both are required to publish, so neither is hidden behind a disclosure: a
  * writer who has finished the body should not have to discover that two more
  * fields are waiting. They sit in one quiet panel with a hairline rather than
  * floating on the page, because the rail is a separate object from the piece.
+ * The caller decides which of the two places it is in, since it knows whether
+ * it is rendering the rail or the band under the piece.
  */
 export const PublishingDetails = ({
   idPrefix,
+  placement = "page",
   slug,
   slugPrefix,
   onSlugChange,
@@ -403,7 +412,9 @@ export const PublishingDetails = ({
   return (
     <aside
       aria-labelledby={`${idPrefix}-details-title`}
-      className="mt-14 border-t border-default-200 pt-6 lg:mt-0 lg:rounded-[10px] lg:border lg:p-5 lg:pt-4"
+      className={`border-t border-default-200 pt-6 lg:rounded-[10px] lg:border lg:p-5 lg:pt-4 ${
+        placement === "rail" ? "" : "mt-14"
+      }`}
     >
       <h2
         id={`${idPrefix}-details-title`}
@@ -623,7 +634,9 @@ export const SavingOverlay = ({ label }: { label: string }) => (
   </div>
 );
 
-/** The article's reading time, at the pace the published page uses. */
+/**
+ * The article's reading time, at the pace the published page uses.
+ */
 const readingMinutes = (html: string) => {
   const words = html.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
   return words ? Math.max(1, Math.round(words / 220)) : null;
@@ -665,7 +678,11 @@ export const PreviewModal = ({
   return (
     <Modal
       scrollBehavior="inside"
-      size="5xl"
+      placement="top"
+      size="full"
+      classNames={{
+        base: "mt-[var(--header-height)] h-[calc(100dvh-var(--header-height))] max-h-[calc(100dvh-var(--header-height))] overflow-hidden rounded-none rounded-b-[14px]",
+      }}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
     >
@@ -682,7 +699,7 @@ export const PreviewModal = ({
                 Readers will not see this until it is saved.
               </span>
             </ModalHeader>
-            <ModalBody className="py-8">
+            <ModalBody className={`py-8 ${FRAME_GUTTERS}`}>
               <article className="mx-auto w-full max-w-read">
                 <header className="space-y-5">
                   {blog.category && (
@@ -691,7 +708,8 @@ export const PreviewModal = ({
                     </span>
                   )}
 
-                  <h1 className="text-pretty text-3xl font-bold leading-[1.15] tracking-tight lg:text-[2.75rem]">
+                  {/* The published headline is the editorial face, as it is on the article page. */}
+                  <h1 className="text-pretty font-[family-name:var(--type-editorial)] text-[1.9rem] font-semibold leading-[1.1] tracking-[-0.015em] sm:text-[2.4rem] lg:text-[2.75rem]">
                     {blog.title.trim() || "Untitled"}
                   </h1>
 
