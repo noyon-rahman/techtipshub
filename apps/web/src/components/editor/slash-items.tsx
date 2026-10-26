@@ -1,4 +1,5 @@
 import type { ChainedCommands, Editor } from "@tiptap/core";
+import { requestEditorDialog } from "./editor-dialog-events";
 import {
   LuCode,
   LuHeading1,
@@ -115,10 +116,7 @@ export const slashItems: SlashItem[] = [
     hint: "Embed a hosted image",
     keywords: ["image", "img", "picture", "photo"],
     icon: LuImage,
-    run: (editor) => {
-      const url = window.prompt("Image URL");
-      if (url) editor.chain().focus().setImage({ src: url }).run();
-    },
+    run: (editor) => requestEditorDialog(editor, "image"),
     isActive: (editor) => editor.isActive("image"),
   },
   {
@@ -126,24 +124,7 @@ export const slashItems: SlashItem[] = [
     hint: "Link the selection or add a URL",
     keywords: ["a", "link", "url", "href"],
     icon: LuLink,
-    run: (editor) => {
-      const previous = editor.getAttributes("link").href as string | undefined;
-      const url = window.prompt("Link URL", previous ?? "https://");
-      if (url === null) return;
-      if (url === "") {
-        editor.chain().focus().extendMarkRange("link").unsetLink().run();
-        return;
-      }
-      const chain = editor
-        .chain()
-        .focus()
-        .extendMarkRange("link")
-        .setLink({ href: url });
-      // With no selection there is no text to attach the link to, so the URL
-      // becomes the visible text rather than a mark the author cannot see.
-      if (editor.state.selection.empty) chain.insertContent(url).run();
-      else chain.run();
-    },
+    run: (editor) => requestEditorDialog(editor, "link"),
     isActive: (editor) => editor.isActive("link"),
   },
 ];

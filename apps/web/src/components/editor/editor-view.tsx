@@ -2,6 +2,8 @@
 
 import type { Editor } from "@tiptap/core";
 import { EditorContent } from "@tiptap/react";
+import EditorDialogs from "./editor-dialogs";
+import SelectionMenu from "./selection-menu";
 import SlashMenu from "./slash-menu";
 
 interface IProps {
@@ -40,6 +42,8 @@ const EditorView = ({ editor, hasError, variant = "card" }: IProps) => {
         className={`tth-editor-content ${surface ? "tth-editor-content-surface" : ""}`}
       />
       <SlashMenu editor={editor} />
+      <SelectionMenu editor={editor} />
+      <EditorDialogs editor={editor} />
     </div>
   );
 };

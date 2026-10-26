@@ -510,6 +510,30 @@ const EditBlog = ({
           }
         />
       }
+      footer={
+        <BottomActions
+          note={
+            dirty
+              ? "Your changes are not live yet."
+              : "This is the version readers see now."
+          }
+          previewHref={
+            liveSlug
+              ? { href: `/blogs/${liveSlug}`, label: "View live" }
+              : undefined
+          }
+          onPreview={() => setPreviewOpen(true)}
+          primary={
+            <Button
+              color="primary"
+              isDisabled={isPending || !dirty}
+              onPress={() => save()}
+            >
+              Save changes
+            </Button>
+          }
+        />
+      }
     >
       <WritingPane
         titleId="editor-title"
@@ -524,7 +548,7 @@ const EditBlog = ({
         onTitleChange={(value) => update("title", value)}
         titleError={errors.title}
         onTitleEnter={() => editor?.chain().focus("start").run()}
-        coverLabel="Cover image"
+        coverLabel={displayedCover ? "Cover image" : undefined}
         cover={
           <CoverUpload
             file={coverImage}
@@ -578,29 +602,6 @@ const EditBlog = ({
               {words.toLocaleString()} {words === 1 ? "word" : "words"}
             </span>
           </div>
-        }
-      />
-
-      <BottomActions
-        note={
-          dirty
-            ? "Your changes are not live yet."
-            : "This is the version readers see now."
-        }
-        previewHref={
-          liveSlug
-            ? { href: `/blogs/${liveSlug}`, label: "View live" }
-            : undefined
-        }
-        onPreview={() => setPreviewOpen(true)}
-        primary={
-          <Button
-            color="primary"
-            isDisabled={isPending || !dirty}
-            onPress={() => save()}
-          >
-            Save changes
-          </Button>
         }
       />
 

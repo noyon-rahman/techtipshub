@@ -70,6 +70,7 @@ export const EditorShell = ({
   actions,
   banner,
   sidebar,
+  footer,
   children,
   barStickyClass,
   railStickyClass,
@@ -85,6 +86,11 @@ export const EditorShell = ({
   banner?: ReactNode;
   /** Publishing details on wide screens; rendered under the piece below that. */
   sidebar: ReactNode;
+  /**
+   * Actions under the piece. On phones they render after the publishing
+   * details, so the fields the publish button needs come before it.
+   */
+  footer?: ReactNode;
   children: ReactNode;
   /** Sticky offset under the surrounding shell's header, e.g. the admin bar. */
   barStickyClass?: string;
@@ -107,6 +113,7 @@ export const EditorShell = ({
           {banner && <div className="mb-8">{banner}</div>}
           {children}
           <div className="lg:hidden">{sidebar}</div>
+          {footer}
         </div>
         <div
           className={`hidden lg:block lg:sticky ${
@@ -259,7 +266,7 @@ export const WritingPane = ({
     {coverError && <FieldError className="mt-1.5">{coverError}</FieldError>}
     {coverNote}
 
-    <div className="mt-8">
+    <div className="mt-6">
       <label htmlFor={titleId} className="sr-only">
         Title
       </label>
@@ -304,7 +311,7 @@ export const WritingPane = ({
     </div>
 
     {toolbar && (
-      <div className="tth-editor-tools mt-6 border-y border-default-200 py-1">
+      <div className="tth-editor-tools mt-5 border-y border-default-200 py-1">
         {toolbar}
       </div>
     )}
@@ -383,119 +390,130 @@ export const PublishingDetails = ({
   tagsError,
   onTagsRejected,
   footer,
-}: IPublishingDetailsProps) => (
-  <aside
-    aria-labelledby={`${idPrefix}-details-title`}
-    className="mt-14 border-t border-default-200 pt-6 lg:mt-0 lg:rounded-[10px] lg:border lg:p-5 lg:pt-4"
-  >
-    <h2
-      id={`${idPrefix}-details-title`}
-      className="text-[0.8125rem] font-medium text-foreground"
-    >
-      Publishing details
-    </h2>
-    <p className="mt-1 text-xs leading-relaxed text-default-600">
-      Where the blog is filed. Both are needed to publish.
-    </p>
+}: IPublishingDetailsProps) => {
+  const requirement =
+    category && tags.length
+      ? "Category and tags are set."
+      : !category && !tags.length
+        ? "Publishing needs a category and tags."
+        : !category
+          ? "Publishing needs a category."
+          : "Publishing needs tags.";
 
-    {onSlugChange && (
+  return (
+    <aside
+      aria-labelledby={`${idPrefix}-details-title`}
+      className="mt-14 border-t border-default-200 pt-6 lg:mt-0 lg:rounded-[10px] lg:border lg:p-5 lg:pt-4"
+    >
+      <h2
+        id={`${idPrefix}-details-title`}
+        className="text-[0.8125rem] font-medium text-foreground"
+      >
+        Publishing details
+      </h2>
+      <p className="mt-1 text-xs leading-relaxed text-default-600">
+        Where the blog is filed. {requirement}
+      </p>
+
+      {onSlugChange && (
+        <div className="mt-5">
+          <label
+            htmlFor={`${idPrefix}-slug`}
+            className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
+          >
+            Address
+          </label>
+          <Input
+            id={`${idPrefix}-slug`}
+            aria-label="Article address"
+            value={slug ?? ""}
+            onValueChange={onSlugChange}
+            variant="bordered"
+            radius="sm"
+            size="sm"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
+            startContent={
+              <span className="shrink-0 text-sm text-default-600">
+                {slugPrefix ?? "/blogs/"}
+              </span>
+            }
+            isInvalid={Boolean(slugError)}
+            errorMessage={slugError}
+            classNames={{ inputWrapper: "min-h-10" }}
+          />
+          {!slugError && (
+            <p className="mt-1.5 text-xs leading-relaxed text-default-600">
+              Lowercase letters, numbers and hyphens. Changing it moves the
+              article.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mt-5">
         <label
-          htmlFor={`${idPrefix}-slug`}
+          htmlFor={`${idPrefix}-category`}
           className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
         >
-          Address
+          Category
         </label>
-        <Input
-          id={`${idPrefix}-slug`}
-          aria-label="Article address"
-          value={slug ?? ""}
-          onValueChange={onSlugChange}
+        <Select
+          id={`${idPrefix}-category`}
+          aria-label="Category"
+          placeholder="Choose a category"
+          selectedKeys={category ? [category] : []}
+          onSelectionChange={(keys) => {
+            const [key] = Array.from(keys as Set<string>);
+            onCategoryChange(key ?? "");
+          }}
+          isInvalid={Boolean(categoryError)}
+          errorMessage={categoryError}
           variant="bordered"
           radius="sm"
           size="sm"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck="false"
-          startContent={
-            <span className="shrink-0 text-sm text-default-600">
-              {slugPrefix ?? "/blogs/"}
-            </span>
-          }
-          isInvalid={Boolean(slugError)}
-          errorMessage={slugError}
-          classNames={{ inputWrapper: "min-h-10" }}
+          classNames={{
+            trigger: "min-h-10",
+            popoverContent: "border border-default-100",
+          }}
+        >
+          {categories.map((item) => (
+            <SelectItem key={item._id}>{item.name}</SelectItem>
+          ))}
+        </Select>
+      </div>
+
+      <div className="mt-5">
+        <label
+          htmlFor={`${idPrefix}-tags`}
+          className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
+        >
+          Tags
+        </label>
+        <TagInput
+          id={`${idPrefix}-tags`}
+          tags={tags}
+          onChange={onTagsChange}
+          input={tagInput}
+          onInputChange={onTagInputChange}
+          suggestions={tagSuggestions}
+          invalid={Boolean(tagsError)}
+          onTagsRejected={onTagsRejected}
         />
-        {!slugError && (
-          <p className="mt-1.5 text-xs leading-relaxed text-default-600">
-            Lowercase letters, numbers and hyphens. Changing it moves the
-            article.
+        {tagsError ? (
+          <FieldError className="mt-1.5">{tagsError}</FieldError>
+        ) : (
+          <p className="mt-1.5 text-xs text-default-600">
+            Up to 8, separated by commas.
           </p>
         )}
       </div>
-    )}
 
-    <div className="mt-5">
-      <label
-        htmlFor={`${idPrefix}-category`}
-        className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
-      >
-        Category
-      </label>
-      <Select
-        id={`${idPrefix}-category`}
-        aria-label="Category"
-        placeholder="Choose a category"
-        selectedKeys={category ? [category] : []}
-        onSelectionChange={(keys) => {
-          const [key] = Array.from(keys as Set<string>);
-          onCategoryChange(key ?? "");
-        }}
-        isInvalid={Boolean(categoryError)}
-        errorMessage={categoryError}
-        variant="bordered"
-        radius="sm"
-        size="sm"
-        classNames={{
-          trigger: "min-h-10",
-          popoverContent: "border border-default-100",
-        }}
-      >
-        {categories.map((item) => (
-          <SelectItem key={item._id}>{item.name}</SelectItem>
-        ))}
-      </Select>
-    </div>
-
-    <div className="mt-5">
-      <label
-        htmlFor={`${idPrefix}-tags`}
-        className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
-      >
-        Tags
-      </label>
-      <TagInput
-        id={`${idPrefix}-tags`}
-        tags={tags}
-        onChange={onTagsChange}
-        input={tagInput}
-        onInputChange={onTagInputChange}
-        suggestions={tagSuggestions}
-        invalid={Boolean(tagsError)}
-        onTagsRejected={onTagsRejected}
-      />
-      {tagsError ? (
-        <FieldError className="mt-1.5">{tagsError}</FieldError>
-      ) : (
-        <p className="mt-1.5 text-xs text-default-600">
-          Up to 8, separated by commas.
-        </p>
-      )}
-    </div>
-
-    {footer}
-  </aside>
-);
+      {footer}
+    </aside>
+  );
+};
 
 /**
  * The actions under the piece, for a writer who has just finished it.

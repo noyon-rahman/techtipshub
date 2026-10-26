@@ -483,6 +483,17 @@ const WriteBlog = () => {
           }
         />
       }
+      footer={
+        <BottomActions
+          note="Publishing makes it live for everyone."
+          onPreview={() => setPreviewOpen(true)}
+          primary={
+            <Button color="primary" onPress={publish}>
+              Publish
+            </Button>
+          }
+        />
+      }
     >
       <WritingPane
         titleId="composer-title"
@@ -493,7 +504,7 @@ const WriteBlog = () => {
         onTitleChange={(value) => update("title", value)}
         titleError={errors.title}
         onTitleEnter={() => editor?.chain().focus("start").run()}
-        coverLabel="Cover image (optional)"
+        coverLabel={showCover && coverImage ? "Cover image" : undefined}
         cover={
           <CoverUpload
             file={showCover ? coverImage : null}
@@ -531,16 +542,6 @@ const WriteBlog = () => {
             </span>
             <span className="tabular-nums">{statusLine(values)}</span>
           </div>
-        }
-      />
-
-      <BottomActions
-        note="Publishing makes it live for everyone."
-        onPreview={() => setPreviewOpen(true)}
-        primary={
-          <Button color="primary" onPress={publish}>
-            Publish
-          </Button>
         }
       />
 
