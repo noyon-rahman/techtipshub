@@ -1,5 +1,5 @@
 import mjml2html from "mjml";
-import { CONTACT_INBOX } from "../config/mail";
+import { MAIL_REPLY_TO } from "../config/mail";
 
 export type TEmailMessage = {
   subject: string;
@@ -63,6 +63,11 @@ type TEmailLayout = {
   footerNote?: string;
   /** Off for internal mail, where the inbox already is the team address. */
   showContact?: boolean;
+  /**
+   * A one-click opt-out, drawn as the last line above the copyright. Only
+   * campaigns carry it: account mail has no list to leave.
+   */
+  unsubscribeUrl?: string;
 };
 
 const layout = ({
@@ -72,6 +77,7 @@ const layout = ({
   content,
   footerNote = "You received this email because you have a TechTipsHub account.",
   showContact = true,
+  unsubscribeUrl,
 }: TEmailLayout) => `<mjml lang="en">
   <mj-head>
     <mj-title>${escapeHtml(title)}</mj-title>
@@ -122,7 +128,14 @@ const layout = ({
         ${
           showContact
             ? `<mj-text font-size="13px" line-height="1.6" color="${brand.muted}" padding="0">
-          Questions? Write to <a href="mailto:${CONTACT_INBOX}" style="color:${brand.amberText};text-decoration:underline;">${CONTACT_INBOX}</a>
+          Questions? Write to <a href="mailto:${MAIL_REPLY_TO}" style="color:${brand.amberText};text-decoration:underline;">${MAIL_REPLY_TO}</a>
+        </mj-text>`
+            : ""
+        }
+        ${
+          unsubscribeUrl
+            ? `<mj-text font-size="13px" line-height="1.6" color="${brand.muted}" padding="12px 0 0 0">
+          No longer want these? <a href="${escapeHtml(unsubscribeUrl)}" style="color:${brand.amberText};text-decoration:underline;">Unsubscribe in one click</a>.
         </mj-text>`
             : ""
         }

@@ -1,5 +1,6 @@
 import BlogShare from "@/components/modules/blog/blog-share";
 import CommentJumpButton from "@/components/modules/blog/comment-jump-button";
+import NewsletterSignup from "@/components/modules/newsletter/newsletter-signup";
 import ButtonLink from "@/components/ui/button-link";
 import DownVoteButton from "@/components/ui/downvote-button";
 import FollowUnFollowButton from "@/components/ui/follow-unfollow-button";
@@ -113,6 +114,25 @@ export const ArticleTags = ({ tags }: { tags?: string[] }) => {
     </nav>
   );
 };
+
+/**
+ * The newsletter, at the end of an article.
+ *
+ * A reader who has just finished something is the one most likely to want the
+ * next one, so this sits after the tags and before the author panel. It is a
+ * ruled block, not a card, so it does not compete with that panel.
+ */
+export const ArticleNewsletter = () => (
+  <section
+    aria-label="Newsletter"
+    className="mt-10 print:hidden"
+  >
+    <NewsletterSignup
+      title="Get the next one in your inbox"
+      description="One email a month with the articles worth your time. No daily mail."
+    />
+  </section>
+);
 
 /**
  * Who wrote this, at the end of it.

@@ -249,6 +249,13 @@ const WriteBlog = () => {
     editor?.commands.setContent("", { emitUpdate: false });
   };
 
+  // The details panel is rendered twice, once in the rail and once under the
+  // piece; only one copy is visible, so the field is found by layout, not id.
+  const findVisible = (selector: string) =>
+    Array.from(document.querySelectorAll<HTMLElement>(selector)).find(
+      (element) => element.getClientRects().length > 0,
+    );
+
   const focusField = (field: DraftField) => {
     if (field === "content") {
       editor?.chain().focus().run();
@@ -261,22 +268,21 @@ const WriteBlog = () => {
       return;
     }
     if (field === "cover") {
-      const cover = document.getElementById("composer-cover");
+      const cover = findVisible("#composer-cover");
       cover?.scrollIntoView({ behavior: "smooth", block: "center" });
       cover?.focus();
       return;
     }
     if (field === "category") {
-      const trigger = document.getElementById("composer-category");
+      const trigger = findVisible('[id$="-category"]');
       trigger?.scrollIntoView({ behavior: "smooth", block: "center" });
       trigger?.focus();
       trigger?.click();
       return;
     }
-    document
-      .getElementById("composer-tags")
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    document.getElementById("composer-tags")?.focus();
+    const tags = findVisible('[id$="-tags"]');
+    tags?.scrollIntoView({ behavior: "smooth", block: "center" });
+    tags?.focus();
   };
 
   const publish = () => {
@@ -456,35 +462,32 @@ const WriteBlog = () => {
         ) : null
       }
       sidebar={
-        <div className="lg:hidden">
-          <PublishingDetails
-            idPrefix="composer"
-            placement="page"
-            categories={categories}
-            category={values.category}
-            onCategoryChange={(value) => update("category", value)}
-            categoryError={errors.category}
-            tags={values.tags}
-            onTagsChange={(next) => update("tags", next)}
-            tagInput={tagInput}
-            onTagInputChange={setTagInput}
-            tagSuggestions={tagSuggestions}
-            tagsError={errors.tags}
-            onTagsRejected={(_raw, rejected) => {
-              if (rejected.length) {
-                toast.error("Add up to 8 tags, kept the first 8.", {
-                  id: "composer-tags-limit",
-                });
-              }
-            }}
-            footer={
-              <p className="mt-6 border-t border-default-200 pt-4 text-xs leading-relaxed text-default-600">
-                The draft stays in this browser until you publish. Only you can
-                see it.
-              </p>
+        <PublishingDetails
+          idPrefix="composer"
+          categories={categories}
+          category={values.category}
+          onCategoryChange={(value) => update("category", value)}
+          categoryError={errors.category}
+          tags={values.tags}
+          onTagsChange={(next) => update("tags", next)}
+          tagInput={tagInput}
+          onTagInputChange={setTagInput}
+          tagSuggestions={tagSuggestions}
+          tagsError={errors.tags}
+          onTagsRejected={(_raw, rejected) => {
+            if (rejected.length) {
+              toast.error("Add up to 8 tags, kept the first 8.", {
+                id: "composer-tags-limit",
+              });
             }
-          />
-        </div>
+          }}
+          footer={
+            <p className="mt-6 border-t border-default-200 pt-4 text-xs leading-relaxed text-default-600">
+              The draft stays in this browser until you publish. Only you can
+              see it.
+            </p>
+          }
+        />
       }
       footer={
         <BottomActions

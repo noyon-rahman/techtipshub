@@ -22,7 +22,6 @@ import {
   BlogFormData,
   DraftField,
   buildUpdatePayload,
-  describeFailure,
   validateDraft,
   wordCount,
 } from "../write-blog/composer-utils";
@@ -106,6 +105,13 @@ const EditBlog = ({
   const [savedFingerprint, setSavedFingerprint] = useState(() =>
     editableFingerprint(initial),
   );
+  // The success toast is owned by this screen, not the mutation, so it waits
+  // until React has re-rendered with the new baseline. Shown any earlier, the
+  // button would still read "Save" when the toast appears, and a sticky page
+  // bar (the admin editor's) would still carry its z-index above it.
+  const savedRef = useRef(false);
+  // The mutation owns both toasts; the slug error below the address is this
+  // screen's own. It clears itself once the field is edited.
   const [categories, setCategories] = useState<ICategory[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Partial<Record<DraftField, string>>>({});
@@ -193,6 +199,14 @@ const EditBlog = ({
 
   /* ---------------------------------------------------------------- actions */
 
+  // The details panel is rendered twice: in the rail of a wide screen and in
+  // the band under the piece on a narrow one. Only one of the two is visible,
+  // so the field is looked up by `ClientRect` rather than by id.
+  const findVisible = (selector: string) =>
+    Array.from(document.querySelectorAll<HTMLElement>(selector)).find(
+      (element) => element.getClientRects().length > 0,
+    );
+
   const focusField = (field: DraftField) => {
     if (field === "content") {
       editor?.chain().focus().run();
@@ -202,17 +216,15 @@ const EditBlog = ({
 
     if (field === "category" || field === "tags") {
       if (field === "category") {
-        const trigger = document.getElementById("editor-category");
+        const trigger = findVisible('button[id$="-category"]');
         trigger?.scrollIntoView({ behavior: "smooth", block: "center" });
         trigger?.focus();
         trigger?.click();
         return;
       }
-      document.getElementById("editor-tags")?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-      document.getElementById("editor-tags")?.focus();
+      const tags = findVisible('[id$="-tags"]');
+      tags?.scrollIntoView({ behavior: "smooth", block: "center" });
+      tags?.focus();
       return;
     }
 
@@ -221,12 +233,12 @@ const EditBlog = ({
   };
 
   const focusSlug = () => {
-    const input = document.getElementById("editor-slug");
+    const input = findVisible('[id$="-slug"]');
     input?.scrollIntoView({ behavior: "smooth", block: "center" });
     input?.focus();
   };
 
-  const save = (options?: { stay?: boolean }) => {
+  const save = () => {
     // An existing blog already has a cover, so only a newly chosen file has to
     // be there for the update payload.
     const found = validateDraft(values, Boolean(coverImage || savedCover));
@@ -271,75 +283,68 @@ const EditBlog = ({
       },
       {
         onSuccess: (data) => {
-          if (!data?.success) {
-            const message =
-              data?.message || "The changes were not saved.";
-            if (adminMode && /address|slug/i.test(message)) {
-              setSlugError(message);
+          if (data?.success) {
+            // The admin table and the trash counts cache this article
+            // separately, so an admin save has to refresh them.
+            if (adminMode) {
+              void queryClient.invalidateQueries({ queryKey: ["ADMIN_BLOGS"] });
+              void queryClient.invalidateQueries({ queryKey: ["TRASHED_BLOGS"] });
+              void queryClient.invalidateQueries({
+                queryKey: ["ADMIN_TRASH_COUNTS"],
+              });
             }
-            toast.error(message, { id: "edit-failed" });
-            return;
-          }
 
-          // The admin table and the trash counts cache this article separately,
-          // so an admin save has to refresh them before the page moves on.
-          if (adminMode) {
-            void queryClient.invalidateQueries({ queryKey: ["ADMIN_BLOGS"] });
-            void queryClient.invalidateQueries({ queryKey: ["TRASHED_BLOGS"] });
-            void queryClient.invalidateQueries({
-              queryKey: ["ADMIN_TRASH_COUNTS"],
-            });
-          }
-
-          // The text fields are the baseline; the cover is tracked by whether a
-          // file is still pending. A saved cover keeps its own preview URL, so
-          // it survives `coverImage` being cleared and stays on screen until the
-          // refreshed page delivers the stored image.
-          if (coverImage) {
-            const savedPreview = URL.createObjectURL(coverImage);
-            setSavedCover(savedPreview);
-            savedPreviewUrls.current.push(savedPreview);
-            setCoverImage(null);
-            setCoverRemoved(false);
-            void syncCover(null);
-          }
-          setSavedFingerprint(editableFingerprint(values));
-
-          // The API writes a new slug from the title, so the member editor's
-          // address changes with it. The admin editor sends its own address and
-          // is keyed by id, so it stays put across a retitle.
-          const nextSlug = data?.data?.slug as string | undefined;
-          if (adminMode) {
-            if (nextSlug) {
-              setSlug(nextSlug);
-              setSavedSlug(nextSlug);
+            // The text fields are the baseline; the cover is tracked by whether
+            // a file is still pending. A saved cover keeps its own preview URL,
+            // so it survives `coverImage` being cleared and stays on screen
+            // until the refreshed page delivers the stored image.
+            if (coverImage) {
+              const savedPreview = URL.createObjectURL(coverImage);
+              setSavedCover(savedPreview);
+              savedPreviewUrls.current.push(savedPreview);
+              setCoverImage(null);
+              setCoverRemoved(false);
+              void syncCover(null);
             }
-            setSlugError(undefined);
-          } else if (nextSlug && nextSlug !== blog.slug) {
-            router.replace(editBlogPath(nextSlug));
-            return;
-          }
+            setSavedFingerprint(editableFingerprint(values));
 
-          // A long article leaves the writer at the bottom; show them the top,
-          // where the state line now says the change is live.
-          window.scrollTo({ top: 0, behavior: "smooth" });
-          router.refresh();
-          if (options?.stay) {
-            toast.success("Saved", { id: "edit-saved" });
+            // The API writes a new slug from the title, so the member editor's
+            // address changes with it. The admin editor sends its own address
+            // and is keyed by id, so it stays put across a retitle.
+            const nextSlug = data?.data?.slug as string | undefined;
+            if (adminMode) {
+              if (nextSlug) {
+                setSlug(nextSlug);
+                setSavedSlug(nextSlug);
+              }
+              setSlugError(undefined);
+            } else if (nextSlug && nextSlug !== blog.slug) {
+              // The editor is remounted at the new address, so the toast has to
+              // be shown by the hook here rather than by the screen.
+              router.replace(editBlogPath(nextSlug));
+              return;
+            }
+
+            // A long article leaves the writer at the bottom; show them the top,
+            // where the state line now says the change is live.
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            router.refresh();
+            savedRef.current = true;
           }
         },
-        onError: (error) => {
-          toast.error(
-            describeFailure(error, "The changes were not saved."),
-            {
-              id: "edit-failed",
-              description: "Your edits are still on this screen.",
-            },
-          );
+        onError: () => {
+          // Already reported by the update hook.
         },
       },
     );
   };
+
+  // The mutation owns the failure toast; this screen owns the success one.
+  useEffect(() => {
+    if (!savedRef.current) return;
+    savedRef.current = false;
+    toast.success("Changes saved", { id: "edit-saved" });
+  }, [savedFingerprint]);
 
   const discard = () => {
     setValues(initial);
@@ -467,51 +472,54 @@ const EditBlog = ({
         </>
       }
       sidebar={
-        <div className="lg:hidden">
-          <PublishingDetails
-            idPrefix="editor"
-            placement="page"
-            slug={adminMode ? slug : undefined}
-            onSlugChange={
-              adminMode
-                ? (value) => {
-                    setSlug(value);
-                    setSlugError(undefined);
-                  }
-                : undefined
+        <PublishingDetails
+          idPrefix="editor"
+          slug={adminMode ? slug : undefined}
+          onSlugChange={
+            adminMode
+              ? (value) => {
+                  setSlug(value);
+                  setSlugError(undefined);
+                }
+              : undefined
+          }
+          slugError={adminMode ? slugError : undefined}
+          slugTitle={adminMode ? "Address" : undefined}
+          slugHint={
+            adminMode
+              ? "The link readers get. Changing it breaks links to the old one, so update anywhere you have shared it."
+              : undefined
+          }
+          categories={categories}
+          category={values.category}
+          onCategoryChange={(value) => update("category", value)}
+          categoryError={errors.category}
+          tags={values.tags}
+          onTagsChange={(next) => update("tags", next)}
+          tagInput={tagInput}
+          onTagInputChange={setTagInput}
+          tagSuggestions={tagSuggestions}
+          tagsError={errors.tags}
+          onTagsRejected={(_raw, rejected) => {
+            if (rejected.length) {
+              toast.error("Add up to 8 tags, kept the first 8.", {
+                id: "edit-tags-limit",
+              });
             }
-            slugError={adminMode ? slugError : undefined}
-            categories={categories}
-            category={values.category}
-            onCategoryChange={(value) => update("category", value)}
-            categoryError={errors.category}
-            tags={values.tags}
-            onTagsChange={(next) => update("tags", next)}
-            tagInput={tagInput}
-            onTagInputChange={setTagInput}
-            tagSuggestions={tagSuggestions}
-            tagsError={errors.tags}
-            onTagsRejected={(_raw, rejected) => {
-              if (rejected.length) {
-                toast.error("Add up to 8 tags, kept the first 8.", {
-                  id: "edit-tags-limit",
-                });
-              }
-            }}
-            footer={
-              dirty ? (
-                <button
-                  type="button"
-                  onClick={discard}
-                  className="mt-6 flex items-center gap-1.5 border-t border-default-200 pt-4 text-[0.8125rem] font-medium text-default-600 transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300"
-                >
-                  <LuRotateCcw aria-hidden className="size-3.5" />
-                  Discard changes
-                </button>
-              ) : null
-            }
-          />
-        </div>
+          }}
+          footer={
+            dirty ? (
+              <button
+                type="button"
+                onClick={discard}
+                className="mt-6 flex items-center gap-1.5 border-t border-default-200 pt-4 text-[0.8125rem] font-medium text-default-600 transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300"
+              >
+                <LuRotateCcw aria-hidden className="size-3.5" />
+                Discard changes
+              </button>
+            ) : null
+          }
+        />
       }
       footer={
         <BottomActions

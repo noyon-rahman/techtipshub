@@ -351,9 +351,13 @@ interface IPublishingDetailsProps {
   placement?: "rail" | "page";
   /** The stored address, when the screen lets the writer change it. */
   slug?: string;
+  /** With `slug`, makes the address its own section above the panel. */
+  slugTitle?: string;
   slugPrefix?: string;
   onSlugChange?: (slug: string) => void;
   slugError?: string;
+  /** What happens to the address when saved. The admin editor is blunter. */
+  slugHint?: string;
   categories: ICategory[];
   category: string;
   onCategoryChange: (category: string) => void;
@@ -384,9 +388,11 @@ export const PublishingDetails = ({
   idPrefix,
   placement = "page",
   slug,
+  slugTitle,
   slugPrefix,
   onSlugChange,
   slugError,
+  slugHint = "Lowercase letters, numbers and hyphens. Changing it moves the article.",
   categories,
   category,
   onCategoryChange,
@@ -409,7 +415,45 @@ export const PublishingDetails = ({
           ? "Publishing needs a category."
           : "Publishing needs tags.";
 
-  return (
+  const address = onSlugChange ? (
+    <div className={slugTitle ? "" : "mt-5"}>
+      <label
+        htmlFor={`${idPrefix}-slug`}
+        className={`mb-1.5 block text-[0.8125rem] font-medium ${
+          slugTitle ? "text-foreground" : "text-default-600"
+        }`}
+      >
+        {slugTitle ?? "Address"}
+      </label>
+      <Input
+        id={`${idPrefix}-slug`}
+        aria-label="Article address"
+        value={slug ?? ""}
+        onValueChange={onSlugChange}
+        variant="bordered"
+        radius="sm"
+        size="sm"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck="false"
+        startContent={
+          <span className="shrink-0 text-sm text-default-600">
+            {slugPrefix ?? "/blogs/"}
+          </span>
+        }
+        isInvalid={Boolean(slugError)}
+        errorMessage={slugError}
+        classNames={{ inputWrapper: "min-h-10" }}
+      />
+      {!slugError && (
+        <p className="mt-1.5 text-xs leading-relaxed text-default-600">
+          {slugHint}
+        </p>
+      )}
+    </div>
+  ) : null;
+
+  const details = (
     <aside
       aria-labelledby={`${idPrefix}-details-title`}
       className={`border-t border-default-200 pt-6 lg:rounded-[10px] lg:border lg:p-5 lg:pt-4 ${
@@ -426,42 +470,7 @@ export const PublishingDetails = ({
         Where the blog is filed. {requirement}
       </p>
 
-      {onSlugChange && (
-        <div className="mt-5">
-          <label
-            htmlFor={`${idPrefix}-slug`}
-            className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
-          >
-            Address
-          </label>
-          <Input
-            id={`${idPrefix}-slug`}
-            aria-label="Article address"
-            value={slug ?? ""}
-            onValueChange={onSlugChange}
-            variant="bordered"
-            radius="sm"
-            size="sm"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck="false"
-            startContent={
-              <span className="shrink-0 text-sm text-default-600">
-                {slugPrefix ?? "/blogs/"}
-              </span>
-            }
-            isInvalid={Boolean(slugError)}
-            errorMessage={slugError}
-            classNames={{ inputWrapper: "min-h-10" }}
-          />
-          {!slugError && (
-            <p className="mt-1.5 text-xs leading-relaxed text-default-600">
-              Lowercase letters, numbers and hyphens. Changing it moves the
-              article.
-            </p>
-          )}
-        </div>
-      )}
+      {address}
 
       <div className="mt-5">
         <label
@@ -523,6 +532,25 @@ export const PublishingDetails = ({
 
       {footer}
     </aside>
+  );
+
+  // An address that lives in its own section, with its own heading, reads as
+  // the change it is: a different URL for something already published.
+  if (!slugTitle) return details;
+
+  return (
+    <div>
+      <section aria-labelledby={`${idPrefix}-address-title`}>
+        <h2
+          id={`${idPrefix}-address-title`}
+          className="text-[0.8125rem] font-medium text-foreground"
+        >
+          {slugTitle}
+        </h2>
+        <div className="mt-4">{address}</div>
+      </section>
+      {details}
+    </div>
   );
 };
 

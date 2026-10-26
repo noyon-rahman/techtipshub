@@ -148,6 +148,30 @@ everything else is a tool to narrow them.
 - Empty, filtered-to-nothing and failed-to-load are three different screens with
   three different next actions.
 
+## The newsletter (`/admin/newsletter`, and the signup blocks)
+
+Two tabs, one rail entry: **Issues** and **Subscribers**. They sit together
+because the first question about a send is who is on the list and the second is
+what went out last month.
+
+- **One focal point:** on the issue builder it is the subject, because it is the
+  only line most readers ever read; on the subscriber list it is the address.
+  Counts, sources and dates are muted type on the same row.
+- **Rules over boxes:** the list is one bordered panel with hairline row
+  dividers, not a card per subscriber. The builder is fields and a bordered
+  article list on the page itself, not a modal.
+- **The article order is the issue.** Picked articles are numbered, in the order
+  the reader picked them, because that is the order they appear in the email.
+- **Sending is stated, not decorated.** The start button is the danger tone and
+  the confirmation says how many inboxes it reaches. A progress bar carries its
+  counter beside it; the counter is the source of truth.
+- **Empty, failed and filtered-to-nothing** are three different screens, as on
+  every other admin list.
+
+The public signup blocks use the site's own type and spacing, and say one plain
+line ("We'll email you new articles. Unsubscribe any time.") with the privacy
+link beside it. No badge, no invitation illustration, no second button.
+
 ## Rules that are not negotiable on these screens
 
 - No fabricated numbers, no invented excerpts, no placeholder people.

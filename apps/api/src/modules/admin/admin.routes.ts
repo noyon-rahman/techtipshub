@@ -47,6 +47,24 @@
  *   GET    /admin/messages/:id
  *   PATCH  /admin/messages/:id/status
  *
+ * Newsletter
+ *   GET    /admin/newsletter/subscribers?page=&limit=&sort=&status=&source=&searchTerm=
+ *   GET    /admin/newsletter/subscribers/export        (CSV download)
+ *   POST   /admin/newsletter/subscribers               (add, optional welcome mail)
+ *   POST   /admin/newsletter/subscribers/unsubscribe   (body: `email`)
+ *   GET    /admin/newsletter/subscribers/:id
+ *   GET    /admin/newsletter/campaigns?page=&limit=
+ *   GET    /admin/newsletter/campaigns/suggestion      (articles since the last issue)
+ *   POST   /admin/newsletter/campaigns
+ *   GET    /admin/newsletter/campaigns/:id
+ *   PUT    /admin/newsletter/campaigns/:id             (drafts only)
+ *   DELETE /admin/newsletter/campaigns/:id             (drafts only)
+ *   GET    /admin/newsletter/campaigns/:id/preview
+ *   POST   /admin/newsletter/campaigns/:id/test
+ *   POST   /admin/newsletter/campaigns/:id/start
+ *   POST   /admin/newsletter/campaigns/:id/continue    (drain a batch by hand)
+ *   GET    /admin/newsletter/campaigns/:id/progress
+ *
  * `GET /api/v1/metrics/dashboard` still exists for older callers.
  */
 import { Hono } from "hono";
@@ -54,6 +72,10 @@ import { USER_ROLE } from "../../constant";
 import type { TAppBindings } from "../../interface/bindings";
 import { auth } from "../../middlewares";
 import { metricsController } from "../metrics/metrics.controller";
+import {
+  adminNewsletterCampaignRouter,
+  adminNewsletterSubscriberRouter,
+} from "../newsletter/newsletter-admin.routes";
 import { adminController } from "./admin.controller";
 import { adminBlogRouter, adminCategoryRouter } from "./admin.content.routes";
 import {
@@ -80,5 +102,7 @@ adminRouter.route("/blogs", adminBlogRouter);
 adminRouter.route("/categories", adminCategoryRouter);
 adminRouter.route("/comments", adminCommentRouter);
 adminRouter.route("/messages", adminMessageRouter);
+adminRouter.route("/newsletter/subscribers", adminNewsletterSubscriberRouter);
+adminRouter.route("/newsletter/campaigns", adminNewsletterCampaignRouter);
 
 export default adminRouter;

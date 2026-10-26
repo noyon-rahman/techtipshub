@@ -5,6 +5,7 @@ import categoryRoutes from "../modules/category/category.routes";
 import commentRoutes from "../modules/comment/comment.routes";
 import contactRoutes from "../modules/contact/contact.routes";
 import metricsRoutes from "../modules/metrics/metrics.routes";
+import newsletterRoutes from "../modules/newsletter/newsletter.routes";
 import blogRoutes from "../modules/blog/blog.routes";
 import userRoutes from "../modules/user/user.routes";
 import viewRoutes from "../modules/view/view.routes";
@@ -21,6 +22,7 @@ const moduleRoutes = [
   { path: "/comments", routes: commentRoutes },
   { path: "/metrics", routes: metricsRoutes },
   { path: "/contact", routes: contactRoutes },
+  { path: "/newsletter", routes: newsletterRoutes },
   // Unique-reader view counting for guests and signed-in readers alike.
   { path: "/views", routes: viewRoutes },
 ];

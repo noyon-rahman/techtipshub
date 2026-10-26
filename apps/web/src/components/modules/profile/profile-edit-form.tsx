@@ -7,6 +7,7 @@ import THTextarea from "@/components/form/th-textarea";
 import ProfileEditFrame from "@/components/modules/profile/profile-edit-frame";
 import ProfileCard from "@/components/modules/settings/profile-card";
 import ProfileFormSection from "@/components/modules/profile/profile-form-section";
+import NewsletterSwitch from "@/components/modules/newsletter/newsletter-switch";
 import { useUpdateProfile, useUpdateSocialLinks } from "@/hooks/user.hook";
 import { IUser, TSocialPlatform } from "@/types";
 import { FieldValues, SubmitHandler } from "react-hook-form";
@@ -436,6 +437,14 @@ const ProfileEditForm = ({
                 </div>
               ))}
             </div>
+          </ProfileFormSection>
+
+          <ProfileFormSection
+            id="newsletter"
+            title="Email"
+            description="The one email we send on purpose."
+          >
+            <NewsletterSwitch />
           </ProfileFormSection>
         </div>
       </THForm>

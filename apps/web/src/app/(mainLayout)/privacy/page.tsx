@@ -86,6 +86,14 @@ const sections: ILegalSection[] = [
           downvotes; the accounts you follow; and any reports you submit about
           content or other users.
         </p>
+        <h3>The newsletter</h3>
+        <p>
+          If you join the newsletter, from the form on the site or from the
+          switch on your profile, we store your first name, your email address,
+          the date you joined and where you joined from. We use them to send the
+          monthly roundup and nothing else. Every edition carries an unsubscribe
+          link, and using it removes your address from the list.
+        </p>
         <h3>Messages to us</h3>
         <p>
           If you use the contact form we collect your first name, last name,
@@ -188,6 +196,10 @@ const sections: ILegalSection[] = [
             emails;
           </li>
           <li>
+            send the monthly newsletter you asked for, and stop sending it when
+            you ask us to;
+          </li>
+          <li>
             investigate and resolve reports of charges made in error;
           </li>
           <li>
@@ -238,6 +250,10 @@ const sections: ILegalSection[] = [
                 <td>
                   Our legitimate interest in keeping the service safe and usable
                 </td>
+              </tr>
+              <tr>
+                <td>Sending the newsletter</td>
+                <td>Your consent, which you can withdraw at any time</td>
               </tr>
               <tr>
                 <td>Traffic measurement and site improvement</td>
@@ -389,7 +405,10 @@ const sections: ILegalSection[] = [
               </tr>
               <tr>
                 <td>Our email provider</td>
-                <td>Delivering service emails and contact-form messages</td>
+                <td>
+                  Delivering service emails, contact-form messages and the
+                  newsletter
+                </td>
               </tr>
             </tbody>
           </table>
@@ -480,6 +499,12 @@ const sections: ILegalSection[] = [
             contacted us about a charge.
           </li>
           <li>
+            <strong>Newsletter list</strong> while you are subscribed. When you
+            unsubscribe, your address is removed from the list; an address that
+            bounced or was reported as spam is kept as suppressed so it is never
+            mailed again, and so nobody can add it back.
+          </li>
+          <li>
             <strong>Moderation and security records</strong> for as long as
             needed to prevent repeat abuse and enforce our terms.
           </li>
@@ -534,8 +559,8 @@ const sections: ILegalSection[] = [
           </li>
           <li>
             withdraw consent you previously gave, such as consent for
-            personalised advertising cookies, without affecting processing that
-            happened before withdrawal;
+            personalised advertising cookies or for the newsletter, without
+            affecting processing that happened before withdrawal;
           </li>
           <li>
             lodge a complaint with your local data protection authority.
