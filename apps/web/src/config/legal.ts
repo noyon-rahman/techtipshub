@@ -19,8 +19,8 @@ export const legalConfig = {
   legalEntity: "[YOUR COMPANY NAME]",
   /** Registered address / jurisdiction of the legal entity. */
   legalAddress: "[YOUR REGISTERED ADDRESS]",
-  lastUpdated: "2026-10-22",
-  lastUpdatedLabel: "22 October 2026",
+  lastUpdated: "2026-10-26",
+  lastUpdatedLabel: "26 October 2026",
   /** Minimum age for an account, in years. */
   minimumAge: 13,
   governingLaw: "the laws of the People's Republic of Bangladesh",

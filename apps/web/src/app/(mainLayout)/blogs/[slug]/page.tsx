@@ -4,6 +4,7 @@ import ArticleState from "@/components/modules/blog/article-state";
 import {
   ArticleAuthor,
   ArticleEndMatter,
+  ArticleNewsletter,
   ArticleTags,
   BackToTop,
 } from "@/components/modules/blog/article-end-matter";
@@ -337,6 +338,8 @@ const DynamicBlogPage = async ({ params }: Props) => {
           {readableColumn}
 
           <ArticleTags tags={tags} />
+
+          <ArticleNewsletter />
 
           <ArticleAuthor author={author} isOwnArticle={isOwnArticle} />
 

@@ -2,6 +2,7 @@ import { AdSlot } from "@/components/adsense";
 import FactList, { Fact, FactLink } from "@/components/editorial/fact-list";
 import PageHero from "@/components/editorial/page-hero";
 import ContactForm from "@/components/modules/contact/contact-form";
+import NewsletterSignup from "@/components/modules/newsletter/newsletter-signup";
 import ButtonLink from "@/components/ui/button-link";
 import Container from "@/components/ui/container";
 import { legalConfig } from "@/config/legal";
@@ -190,6 +191,25 @@ const Contact = () => {
         <div className="pb-4">
           <AdSlot variant="display" placement="contact-form-end" />
         </div>
+
+        {/* The list, for readers with no question of their own. It sits beside
+            the closing invitation so the page ends on two ways to stay in
+            touch rather than one. */}
+        <section
+          aria-labelledby="newsletter"
+          className="grid gap-8 border-b border-default/60 py-12 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16"
+        >
+          <div className="lg:pt-2">
+            <h2 id="newsletter" className="tth-label leading-6">
+              The newsletter
+            </h2>
+            <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">
+              Nothing to say yet? Get the monthly roundup instead, and write to
+              us when something comes up.
+            </p>
+          </div>
+          <NewsletterSignup layout="stack" className="max-w-xl" />
+        </section>
 
         {/* Close, matching the other editorial pages. */}
         <section className="py-16 lg:py-20">

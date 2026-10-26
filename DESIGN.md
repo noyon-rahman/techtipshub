@@ -122,7 +122,20 @@ letter for the name. It is the only place a solid amber fill appears at rest, so
 the mark and the primary button speak the same language. Full assets and sizes:
 `apps/web/public/brand/README.md`.
 
-## The account area (`/me/blogs`)
+## The account area (`/profile`)
+
+The member's profile (`/profile/@handle`) and the article list (`/profile/blogs`)
+share one shell: the sticky account rail on the left, the content column beside
+it. The composer (`/blogs/new`) and the article editor (`/blogs/<slug>/edit`)
+sit at the site root beside the published article they are about, and keep the
+editor's own full-width frame: a writing page should not be narrowed by the
+account rail.
+
+**The profile page is also the editor.** There is no separate settings screen:
+"Edit profile" turns the identity block into a form and opens the fields a reader
+never sees below it, and one save writes the details, the photo and the social
+links. A member edits what they are looking at, so the preview and the result
+cannot drift apart.
 
 **Job of the screen:** find the article you want to change and open it, or start
 a new one. The decision is "which article", so the articles are the page and
@@ -134,6 +147,30 @@ everything else is a tool to narrow them.
   quieter.
 - Empty, filtered-to-nothing and failed-to-load are three different screens with
   three different next actions.
+
+## The newsletter (`/admin/newsletter`, and the signup blocks)
+
+Two tabs, one rail entry: **Issues** and **Subscribers**. They sit together
+because the first question about a send is who is on the list and the second is
+what went out last month.
+
+- **One focal point:** on the issue builder it is the subject, because it is the
+  only line most readers ever read; on the subscriber list it is the address.
+  Counts, sources and dates are muted type on the same row.
+- **Rules over boxes:** the list is one bordered panel with hairline row
+  dividers, not a card per subscriber. The builder is fields and a bordered
+  article list on the page itself, not a modal.
+- **The article order is the issue.** Picked articles are numbered, in the order
+  the reader picked them, because that is the order they appear in the email.
+- **Sending is stated, not decorated.** The start button is the danger tone and
+  the confirmation says how many inboxes it reaches. A progress bar carries its
+  counter beside it; the counter is the source of truth.
+- **Empty, failed and filtered-to-nothing** are three different screens, as on
+  every other admin list.
+
+The public signup blocks use the site's own type and spacing, and say one plain
+line ("We'll email you new articles. Unsubscribe any time.") with the privacy
+link beside it. No badge, no invitation illustration, no second button.
 
 ## Rules that are not negotiable on these screens
 

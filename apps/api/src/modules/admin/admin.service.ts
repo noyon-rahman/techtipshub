@@ -1,5 +1,7 @@
+import httpStatus from "http-status";
 import { FilterQuery, Types } from "mongoose";
 import { QueryBuilder } from "../../builder";
+import { AppError } from "../../errors";
 import Blog from "../blog/blog.model";
 import Category from "../category/category.model";
 import Comment from "../comment/comment.model";
@@ -523,9 +525,34 @@ const getLogs = async (query: Record<string, unknown>) => {
   return { result, meta };
 };
 
+/**
+ * The fields the member screen reads, as `GET /admin/users` already returns
+ * them: the list is built by QueryBuilder without a `select`, so a single
+ * member has to answer with the same document a list row carries.
+ */
+const MEMBER_FIELDS =
+  "fullName username email profilePicture role status isVerified createdAt updatedAt totalPosts designation location phone bio gender dateOfBirth socialLinks totalFollowers totalFollowing";
+
+const getMember = async (id: string) => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid user Id");
+  }
+
+  // The find hook hides deleted accounts, so this is the live directory: a
+  // deleted member answers 404 and is read from the trash instead.
+  const member = await User.findById(id).select(MEMBER_FIELDS).lean();
+
+  if (!member) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  return member;
+};
+
 export const adminService = {
   overview,
   search,
   activity,
   getLogs,
+  getMember,
 };

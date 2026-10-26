@@ -304,14 +304,97 @@
 
 /* Code blocks: keep long lines readable without breaking the layout. */
 .tth-editor-content pre {
+  max-width: 100%;
   overflow-x: auto;
+  background-color: var(--color-content-2);
+  border: 1px solid
+    color-mix(in srgb, var(--color-default-300) 70%, transparent);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.65;
   tab-size: 2;
 }
 
 .tth-editor-content pre code {
-  background: transparent;
+  background: none;
+  border: 0;
+  border-radius: 0;
   padding: 0;
+  font-size: inherit;
+  white-space: pre;
+  overflow-wrap: normal;
+}
+
+/* Lists, quotes, links and inline code are part of the document, not
+   decoration: an author has to see what they inserted. These mirror the
+   published article (`.tth-article`) so the composer and the live page agree. */
+.tth-editor-content .tth-prose ul,
+.tth-editor-content .tth-prose ol {
+  padding-left: 1.35em;
+}
+
+.tth-editor-content .tth-prose ul {
+  list-style: disc;
+}
+
+.tth-editor-content .tth-prose ol {
+  list-style: decimal;
+}
+
+.tth-editor-content .tth-prose li {
+  padding-left: 0.2em;
+}
+
+.tth-editor-content .tth-prose li + li {
+  margin-top: 0.35em;
+}
+
+.tth-editor-content .tth-prose li > ul,
+.tth-editor-content .tth-prose li > ol {
+  margin-top: 0.35em;
+}
+
+.tth-editor-content .tth-prose li::marker {
+  color: var(--color-default-500);
+}
+
+.tth-editor-content .tth-prose blockquote {
+  border-left: 2px solid var(--color-primary);
+  padding: 0.1em 0 0.1em 1.1em;
+  color: var(--color-default-700);
+  font-size: 1.05em;
+  line-height: 1.6;
+}
+
+.tth-editor-content .tth-prose a {
+  color: hsl(var(--heroui-primary-800));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.dark .tth-editor-content .tth-prose a {
+  color: hsl(var(--heroui-primary-400));
+}
+
+.tth-editor-content .tth-prose code {
+  font-family:
+    "Fira Code", var(--font-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
   font-size: 0.875em;
+  background-color: var(--color-content-2);
+  border: 1px solid
+    color-mix(in srgb, var(--color-default-300) 60%, transparent);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  overflow-wrap: break-word;
+}
+
+.tth-editor-content .tth-prose hr {
+  border: 0;
+  border-top: 1px solid var(--color-default-300);
+  margin: 1.75rem 0;
 }
 
 .tth-editor-content img {
@@ -321,7 +404,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Full-page composer surface (/me/blogs/new and the editor).
+   Full-page composer surface (/blogs/new and the editor).
 
    The page supplies the column, so the editor has no card of its own: no
    border, no background, generous vertical space, and type sized for writing

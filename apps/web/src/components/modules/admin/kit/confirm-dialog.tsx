@@ -24,8 +24,14 @@ interface ITriggerProps {
 }
 
 interface IProps {
-  /** The button that opens the dialog. It receives the open handler. */
-  trigger: ReactNode;
+  /**
+   * The button that opens the dialog. It receives the open handler.
+   * Omit it and pass `isOpen`/`onOpenChange` to drive the modal yourself,
+   * when the dialog is opened from a row rather than a standing button.
+   */
+  trigger?: ReactNode;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
   title: string;
   description: string;
   confirmLabel: string;
@@ -46,6 +52,8 @@ interface IProps {
  */
 export default function ConfirmDialog({
   trigger,
+  isOpen,
+  onOpenChange,
   title,
   description,
   confirmLabel,
@@ -53,8 +61,15 @@ export default function ConfirmDialog({
   isPending = false,
   onConfirm,
 }: IProps) {
-  const { isOpen, onOpen, onOpenChange, onClose } = useDisclosure();
+  const own = useDisclosure();
   const [hasPressed, setHasPressed] = useState(false);
+
+  // Controlled when the caller passes `isOpen`; otherwise the trigger opens it.
+  const controlled = typeof isOpen === "boolean";
+  const open = controlled ? isOpen : own.isOpen;
+  const setOpen = controlled ? onOpenChange : own.onOpenChange;
+  const onClose = controlled ? () => setOpen?.(false) : own.onClose;
+  const onOpen = controlled ? () => setOpen?.(true) : own.onOpen;
 
   const danger = tone === "danger";
 
@@ -83,13 +98,13 @@ export default function ConfirmDialog({
 
   return (
     <>
-      {triggerNode ?? trigger}
+      {triggerNode}
 
       <Modal
-        isOpen={isOpen}
-        onOpenChange={(open) => {
-          if (!open) setHasPressed(false);
-          onOpenChange();
+        isOpen={open}
+        onOpenChange={(next) => {
+          if (!next) setHasPressed(false);
+          setOpen?.(next);
         }}
         radius="lg"
         size="sm"

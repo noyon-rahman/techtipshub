@@ -1,0 +1,208 @@
+"use client";
+
+import {
+  PAGE_SIZES,
+  ListSelect,
+  useDebouncedTerm,
+} from "@/components/admin/list-controls";
+import ConfirmDialog from "@/components/modules/admin/kit/confirm-dialog";
+import AdminPagination from "@/components/modules/admin/kit/pagination";
+import { focusRing } from "@/components/modules/admin/kit/tau";
+import {
+  useExportSubscribers,
+  useNewsletterSubscribers,
+  useRemoveSubscriber,
+} from "@/hooks/admin-newsletter";
+import type { INewsletterSubscriber } from "@/services/admin/newsletter";
+import { Spinner, useDisclosure } from "@heroui/react";
+import { useCallback, useState } from "react";
+import { FiDownload, FiPlus, FiSearch, FiX } from "react-icons/fi";
+
+import AddSubscriberModal from "./add-subscriber-modal";
+import { quietButton } from "./buttons";
+import type { SubscriberFilter } from "./subscriber-filters";
+import SubscriberList from "./subscriber-list";
+
+/**
+ * The list of people.
+ *
+ * Search, status, paging and page size are all server-side, so the screen
+ * never holds more than one page. The counts on the tabs come back with the
+ * rows and cover the whole list, not the page.
+ */
+const SubscribersTab = () => {
+  const [status, setStatus] = useState<SubscriberFilter>("all");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
+  const [query, setQuery] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [removing, setRemoving] = useState<INewsletterSubscriber | null>(null);
+  const confirm = useDisclosure();
+
+  const backToFirstPage = useCallback(() => setPage(1), []);
+  const searchTerm = useDebouncedTerm(query, backToFirstPage);
+
+  const listQuery = useNewsletterSubscribers({
+    page,
+    limit,
+    status,
+    searchTerm,
+  });
+  const remove = useRemoveSubscriber();
+  const exportList = useExportSubscribers();
+
+  const meta = listQuery.meta;
+  const totalPages = Math.max(meta?.totalPages ?? 1, 1);
+  const total = meta?.total ?? 0;
+
+  const changeStatus = (next: SubscriberFilter) => {
+    setStatus(next);
+    setPage(1);
+  };
+
+  const askRemove = (subscriber: INewsletterSubscriber) => {
+    setRemoving(subscriber);
+    confirm.onOpen();
+  };
+
+  const closeConfirm = () => {
+    if (remove.isPending) return;
+    confirm.onClose();
+    setRemoving(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="relative flex min-w-0 flex-1 items-center sm:w-64 sm:flex-none">
+            <FiSearch
+              aria-hidden
+              className="pointer-events-none absolute left-2.5 size-4 text-default-600"
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search name or address"
+              aria-label="Search name or address"
+              className={`h-11 w-full rounded-[6px] border border-default-200 bg-background pl-8 pr-8 text-sm text-foreground transition-colors placeholder:text-default-600 hover:border-default-300 focus:border-default-400 sm:h-9 ${focusRing}`}
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+                className={`absolute right-0.5 inline-flex size-9 items-center justify-center rounded-[6px] text-default-600 hover:text-foreground ${focusRing}`}
+              >
+                <FiX aria-hidden className="size-4" />
+              </button>
+            ) : null}
+          </div>
+
+          <ListSelect
+            label="Per page"
+            hideLabel
+            value={limit}
+            onChange={(value) => {
+              setLimit(Number(value) || PAGE_SIZES[0]);
+              setPage(1);
+            }}
+            options={PAGE_SIZES.map((size) => ({
+              value: size,
+              label: `${size} per page`,
+            }))}
+          />
+
+          {listQuery.isFetching && !listQuery.isLoading && (
+            <Spinner size="sm" color="current" aria-hidden />
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => exportList.mutate()}
+            disabled={exportList.isPending || listQuery.counts.total === 0}
+            aria-busy={exportList.isPending}
+            className={quietButton}
+          >
+            <FiDownload aria-hidden className="size-4" />
+            {exportList.isPending ? "Preparing…" : "Export CSV"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[6px] bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-500 sm:min-h-9 ${focusRing}`}
+          >
+            <FiPlus aria-hidden className="size-4" />
+            Add subscriber
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-[10px] border border-default/60 bg-content-1">
+        <SubscriberList
+          rows={listQuery.rows}
+          total={total}
+          isLoading={listQuery.isLoading}
+          isFetching={listQuery.isFetching}
+          failed={listQuery.isError}
+          failedMessage={listQuery.error?.message}
+          onRetry={() => listQuery.refetch()}
+          status={status}
+          onStatusChange={changeStatus}
+          counts={listQuery.counts}
+          searchTerm={searchTerm}
+          onClearSearch={() => setQuery("")}
+          removingEmail={remove.isPending ? remove.variables : undefined}
+          onRemove={askRemove}
+        />
+
+        {!listQuery.isLoading &&
+          !listQuery.isError &&
+          listQuery.rows.length > 0 && (
+            <AdminPagination
+              page={meta?.page ?? page}
+              totalPages={totalPages}
+              total={total}
+              pageSize={meta?.limit ?? limit}
+              onPageChange={setPage}
+            />
+          )}
+      </div>
+
+      <p className="text-xs leading-relaxed text-default-600">
+        A bounced or reported address stays off the list for good, here and on
+        the site, because mailing it again damages the domain the newsletter is
+        sent from. The export carries the name, address, status and dates, and
+        nothing that would let someone act on a subscriber&apos;s behalf.
+      </p>
+
+      <AddSubscriberModal isOpen={addOpen} onClose={() => setAddOpen(false)} />
+
+      <ConfirmDialog
+        isOpen={confirm.isOpen}
+        onOpenChange={(open) => {
+          if (!open) closeConfirm();
+        }}
+        title={removing ? `Remove ${removing.email}?` : "Remove this address?"}
+        description="They stop getting the monthly roundup, and the next issue will not reach them. This is the same as them pressing unsubscribe."
+        confirmLabel="Remove from the list"
+        tone="danger"
+        isPending={remove.isPending}
+        onConfirm={() => {
+          if (!removing) return;
+          remove.mutate(removing.email, {
+            onSuccess: () => {
+              confirm.onClose();
+              setRemoving(null);
+            },
+          });
+        }}
+      />
+    </div>
+  );
+};
+
+export default SubscribersTab;

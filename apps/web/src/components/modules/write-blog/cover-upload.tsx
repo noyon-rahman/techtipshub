@@ -29,7 +29,13 @@ const MAX_BYTES = 5 * 1024 * 1024;
  * On the edit screen `existing` is the saved cover: choosing a file replaces
  * it, and "Remove" clears it so the blog is left without one.
  */
-const CoverUpload = ({ file, onChange, invalid, existing, onRemoveExisting }: IProps) => {
+const CoverUpload = ({
+  file,
+  onChange,
+  invalid,
+  existing,
+  onRemoveExisting,
+}: IProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +95,9 @@ const CoverUpload = ({ file, onChange, invalid, existing, onRemoveExisting }: IP
       {shownPreview ? (
         <div
           className={`group relative overflow-hidden rounded-xl border ${
-            dragging ? "border-primary ring-2 ring-primary/30" : "border-default-200"
+            dragging
+              ? "border-primary ring-2 ring-primary/30"
+              : "border-default-200"
           }`}
           {...dragHandlers}
         >
@@ -129,22 +137,17 @@ const CoverUpload = ({ file, onChange, invalid, existing, onRemoveExisting }: IP
           id="composer-cover"
           onClick={() => inputRef.current?.click()}
           {...dragHandlers}
-          className={`flex w-full items-center gap-2 rounded-xl border border-dashed px-4 py-3 text-sm transition-colors ${
+          title="Add a cover image, or drop one here"
+          className={`inline-flex min-h-11 items-center gap-1.5 rounded-md px-2 text-[0.8125rem] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300 sm:min-h-8 ${
             dragging
-              ? "border-primary bg-primary-50/40 text-primary-accessible"
+              ? "bg-primary-50/40 text-primary-accessible"
               : invalid
-                ? "border-danger text-danger"
-                : "border-default-300 text-default-600 hover:border-default-400 hover:text-foreground"
+                ? "text-danger"
+                : "text-default-600 hover:bg-default-100 hover:text-foreground"
           }`}
         >
           <LuImagePlus className="size-4 shrink-0" />
-          <span>
-            Add a cover image
-            <span className="hidden text-default-600 sm:inline">
-              {" "}
-              - or drop one here
-            </span>
-          </span>
+          Add a cover (required)
         </button>
       )}
 

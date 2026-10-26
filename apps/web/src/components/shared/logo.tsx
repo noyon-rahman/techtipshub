@@ -44,6 +44,12 @@ interface LogoProps extends MarkProps {
   tagline?: boolean;
   /** `light` for light surfaces, `dark` for dark ones. Defaults to `currentColor`. */
   tone?: "auto" | "light" | "dark";
+  /**
+   * Extra type utilities for the wordmark, appended after the size's own. Lets
+   * a caller step the name down on phones with `text-[0.9375rem] sm:text-base`
+   * instead of mounting a second lockup just to get the smaller size.
+   */
+  wordClass?: string;
 }
 
 /**
@@ -56,6 +62,7 @@ export const Logo = ({
   tagline = false,
   tone = "auto",
   className = "",
+  wordClass = "",
 }: LogoProps) => {
   const m = markMetrics[size];
   const toneClass =
@@ -73,7 +80,7 @@ export const Logo = ({
       <LogoMark size={size} className="shrink-0 text-primary-400" />
       {wordmark && (
         <span className="flex min-w-0 flex-col justify-center leading-none">
-          <span className={`font-[family-name:var(--type-editorial)] font-bold tracking-tight ${m.word}`}>
+          <span className={`font-[family-name:var(--type-editorial)] font-bold tracking-tight ${m.word} ${wordClass}`}>
             TechTips<span className="text-primary-accessible">Hub</span>
           </span>
           {tagline && (

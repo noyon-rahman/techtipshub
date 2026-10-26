@@ -131,16 +131,21 @@ export const useUpdateBlogByUserUsingId = () => {
     mutationFn: async ({ blogId, payload }) =>
       await updateBlogByUserUsingId(blogId, payload),
     onSuccess: (data) => {
-      if (!data?.success) {
-        toast.error(data?.message, {
+      if (data?.success) {
+        toast.success(data?.message || "Changes saved", {
           id: "update-blog-by-user",
         });
+        return;
       }
-      if (data.success) {
-        toast.success(data?.message, {
-          id: "update-blog-by-user",
-        });
-      }
+      toast.error(data?.message || "The changes were not saved.", {
+        id: "update-blog-by-user",
+      });
+    },
+    onError: (error) => {
+      toast.error(
+        error.message || "The changes were not saved. Check your connection.",
+        { id: "update-blog-by-user" },
+      );
     },
   });
 };
@@ -151,16 +156,21 @@ export const useUpdateBlogByAdmin = () => {
     mutationFn: async ({ blogId, payload }) =>
       await updateBlogByAdmin(blogId, payload),
     onSuccess: (data) => {
-      if (!data?.success) {
-        toast.error(data?.message, {
+      if (data?.success) {
+        toast.success(data?.message || "Changes saved", {
           id: "update-blog-by-admin",
         });
+        return;
       }
-      if (data.success) {
-        toast.success(data?.message, {
-          id: "update-blog-by-admin",
-        });
-      }
+      toast.error(data?.message || "The changes were not saved.", {
+        id: "update-blog-by-admin",
+      });
+    },
+    onError: (error) => {
+      toast.error(
+        error.message || "The changes were not saved. Check your connection.",
+        { id: "update-blog-by-admin" },
+      );
     },
   });
 };

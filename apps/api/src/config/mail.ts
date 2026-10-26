@@ -18,7 +18,15 @@ export const MAIL_SENDERS = {
   support: sender("support", "TechTipsHub Support"),
   security: sender("security", "TechTipsHub Security"),
   notifications: sender("notifications", "TechTipsHub"),
+  newsletter: sender("newsletter", "TechTipsHub"),
 } as const;
+
+/**
+ * The address the monthly roundup comes from. It differs from the
+ * transactional senders because a reader should be able to filter campaigns
+ * apart from account mail, and because a reply here goes to a person.
+ */
+export const NEWSLETTER_SENDER: TMailSenderKey = "newsletter";
 
 export type TMailSenderKey = keyof typeof MAIL_SENDERS;
 

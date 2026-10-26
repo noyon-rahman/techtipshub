@@ -1,4 +1,5 @@
 import MiniFooter from "@/components/shared/mini-footer";
+import NewsletterSignup from "@/components/modules/newsletter/newsletter-signup";
 import Categories from "./categories";
 import { siteCategories } from "@/lib/site-settings";
 import { AdSlot } from "@/components/adsense";
@@ -8,8 +9,8 @@ import { AdSlot } from "@/components/adsense";
  *
  * A server component: the category list is the same for every reader, so it is
  * fetched once (and cached by tag) and shipped as markup instead of being
- * requested again in the browser after hydration. The ad unit and the footer
- * inside it are the client parts.
+ * requested again in the browser after hydration. The ad unit, the footer
+ * inside it and the newsletter signup are the client parts.
  */
 const RightSideBar = async () => {
   const categories = await siteCategories();
@@ -19,6 +20,15 @@ const RightSideBar = async () => {
       <div className="tth-rail-inner flex flex-col gap-5 px-4 py-5">
         <div className="shrink-0">
           <Categories categories={categories} />
+        </div>
+
+        <div className="shrink-0">
+          <NewsletterSignup
+            layout="stack"
+            className="rounded-xl border border-default/50 p-5"
+            title="The monthly roundup"
+            description="One email a month with the articles worth your time."
+          />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4">

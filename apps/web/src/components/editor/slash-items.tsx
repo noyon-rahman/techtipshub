@@ -1,4 +1,5 @@
 import type { ChainedCommands, Editor } from "@tiptap/core";
+import { requestEditorDialog } from "./editor-dialog-events";
 import {
   LuCode,
   LuHeading1,
@@ -115,27 +116,15 @@ export const slashItems: SlashItem[] = [
     hint: "Embed a hosted image",
     keywords: ["image", "img", "picture", "photo"],
     icon: LuImage,
-    run: (editor) => {
-      const url = window.prompt("Image URL");
-      if (url) editor.chain().focus().setImage({ src: url }).run();
-    },
+    run: (editor) => requestEditorDialog(editor, "image"),
     isActive: (editor) => editor.isActive("image"),
   },
   {
     title: "Link",
-    hint: "Link the selected text",
+    hint: "Link the selection or add a URL",
     keywords: ["a", "link", "url", "href"],
     icon: LuLink,
-    run: (editor) => {
-      const previous = editor.getAttributes("link").href as string | undefined;
-      const url = window.prompt("Link URL", previous ?? "https://");
-      if (url === null) return;
-      if (url === "") {
-        editor.chain().focus().extendMarkRange("link").unsetLink().run();
-        return;
-      }
-      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-    },
+    run: (editor) => requestEditorDialog(editor, "link"),
     isActive: (editor) => editor.isActive("link"),
   },
 ];

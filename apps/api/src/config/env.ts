@@ -100,6 +100,22 @@ const envSchema = z.object({
   MAIL_REPLY_TO: optionalEmail("MAIL_REPLY_TO"),
   /** Where contact-form submissions are delivered. */
   CONTACT_INBOX: optionalEmail("CONTACT_INBOX"),
+  /**
+   * Signs the one-click unsubscribe link inside `List-Unsubscribe`, the header
+   * Gmail and Apple Mail read. Empty derives a key from the JWT secrets.
+   */
+  NEWSLETTER_UNSUBSCRIBE_SECRET: optionalString,
+  /**
+   * Resend webhook signing secret (`whsec_…`). Empty means the endpoint that
+   * turns bounces and complaints into suppressions refuses every call.
+   */
+  RESEND_WEBHOOK_SECRET: optionalString,
+  /**
+   * Bearer token Vercel Cron sends to `/api/v1/newsletter/cron`. Empty means
+   * the endpoint refuses every call, so a campaign only moves when an admin
+   * presses "Continue".
+   */
+  CRON_SECRET: optionalString,
 
   // hashing
   BCRYPT_SALT_ROUND: positiveInt("BCRYPT_SALT_ROUND"),

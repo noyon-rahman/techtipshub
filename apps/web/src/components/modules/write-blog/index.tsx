@@ -78,7 +78,7 @@ const isDirty = hasDraftContent;
 };
 
 /**
- * The composer, at `/me/blogs/new`.
+ * The composer, at `/blogs/new`.
  *
  * A cover strip, the formatting tools, the title and the writing surface in one
  * measured column, with the required publishing details beside it rather than
@@ -249,6 +249,13 @@ const WriteBlog = () => {
     editor?.commands.setContent("", { emitUpdate: false });
   };
 
+  // The details panel is rendered twice, once in the rail and once under the
+  // piece; only one copy is visible, so the field is found by layout, not id.
+  const findVisible = (selector: string) =>
+    Array.from(document.querySelectorAll<HTMLElement>(selector)).find(
+      (element) => element.getClientRects().length > 0,
+    );
+
   const focusField = (field: DraftField) => {
     if (field === "content") {
       editor?.chain().focus().run();
@@ -261,22 +268,21 @@ const WriteBlog = () => {
       return;
     }
     if (field === "cover") {
-      const cover = document.getElementById("composer-cover");
+      const cover = findVisible("#composer-cover");
       cover?.scrollIntoView({ behavior: "smooth", block: "center" });
       cover?.focus();
       return;
     }
     if (field === "category") {
-      const trigger = document.getElementById("composer-category");
+      const trigger = findVisible('[id$="-category"]');
       trigger?.scrollIntoView({ behavior: "smooth", block: "center" });
       trigger?.focus();
       trigger?.click();
       return;
     }
-    document
-      .getElementById("composer-tags")
-      ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    document.getElementById("composer-tags")?.focus();
+    const tags = findVisible('[id$="-tags"]');
+    tags?.scrollIntoView({ behavior: "smooth", block: "center" });
+    tags?.focus();
   };
 
   const publish = () => {
@@ -483,6 +489,17 @@ const WriteBlog = () => {
           }
         />
       }
+      footer={
+        <BottomActions
+          note="Publishing makes it live for everyone."
+          onPreview={() => setPreviewOpen(true)}
+          primary={
+            <Button color="primary" onPress={publish}>
+              Publish
+            </Button>
+          }
+        />
+      }
     >
       <WritingPane
         titleId="composer-title"
@@ -493,7 +510,7 @@ const WriteBlog = () => {
         onTitleChange={(value) => update("title", value)}
         titleError={errors.title}
         onTitleEnter={() => editor?.chain().focus("start").run()}
-        coverLabel="Cover image (optional)"
+        coverLabel={showCover && coverImage ? "Cover image" : undefined}
         cover={
           <CoverUpload
             file={showCover ? coverImage : null}
@@ -531,16 +548,6 @@ const WriteBlog = () => {
             </span>
             <span className="tabular-nums">{statusLine(values)}</span>
           </div>
-        }
-      />
-
-      <BottomActions
-        note="Publishing makes it live for everyone."
-        onPreview={() => setPreviewOpen(true)}
-        primary={
-          <Button color="primary" onPress={publish}>
-            Publish
-          </Button>
         }
       />
 

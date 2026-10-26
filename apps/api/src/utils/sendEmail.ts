@@ -41,6 +41,13 @@ export type TSendEmail = {
    * Flows that must not claim a delivery set this.
    */
   throwOnError?: boolean;
+  /**
+   * RFC 8058 one-click opt-out, sent as the `List-Unsubscribe` and
+   * `List-Unsubscribe-Post` pair. Gmail and Apple Mail then draw their own
+   * button next to the sender name, which is the opt-out readers trust most.
+   * Only campaigns carry it: account mail has no list to leave.
+   */
+  unsubscribeUrl?: string;
 };
 
 type TResendError = {
@@ -139,6 +146,7 @@ const sendEmail = async ({
   category,
   idempotencyKey,
   throwOnError = false,
+  unsubscribeUrl,
 }: TSendEmail): Promise<TResendResult | undefined> => {
   if (!isEmailConfigured()) {
     const error = new MailDeliveryError(
@@ -176,6 +184,14 @@ const sendEmail = async ({
       replyTo ?? { name: MAIL_SENDERS.support.name, address: MAIL_REPLY_TO },
     ),
     ...(category ? { tags: [{ name: "category", value: category }] } : {}),
+    ...(unsubscribeUrl
+      ? {
+          headers: {
+            "List-Unsubscribe": `<${unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }
+      : {}),
   };
 
   // One key for this call and every retry of it: if Resend accepted the first

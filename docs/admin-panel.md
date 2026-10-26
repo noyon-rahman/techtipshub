@@ -14,7 +14,15 @@ so the rail, the breadcrumb and the quick links cannot drift apart.
   The proxy is the door, the API is the lock.
 - Old addresses redirect: `/admin` lands on the dashboard, and the old
   `/settings/admin*` screens land on the page that replaced them
-  (`src/proxy.ts`, `LEGACY_REDIRECTS` / `LEGACY_EXACT`).
+  (`src/proxy.ts`, `LEGACY_REDIRECTS` / `LEGACY_EXACT`). The member-facing old
+  addresses follow the same table: `/me/blogs*` → `/profile/blogs*`, and
+  `/settings`, `/settings/manage-blogs` and `/me/blogs` → the member's own
+  `/profile/@<handle>`, which is where the profile is now edited
+  (`LEGACY_SETTINGS`). That table needs the session to know whose profile, so a
+  signed-out visitor goes through the login redirect first. The composer and
+  editor live beside the articles (`/blogs/new`, `/blogs/<slug>/edit`); the
+  older `/write-blog`, `/profile/blogs/new` and `/profile/blogs/<slug>/edit`
+  addresses redirect there (`LEGACY_EXACT` / `LEGACY_REDIRECTS`).
 - A signed-out visitor asking for `/admin/*` is sent to `/login?redirect=/admin/...`
   rather than the home page, so the destination survives sign-in.
 
@@ -31,6 +39,7 @@ so the rail, the breadcrumb and the quick links cannot drift apart.
 | Members       | `/admin/manage-users`      | Who is here, and what is their standing?                    |
 | Member detail | `/admin/manage-users/[id]` | What has this one person published and done?                |
 | Messages      | `/admin/messages`          | What did the contact form send us, and has it been handled? |
+| Newsletter    | `/admin/newsletter`        | Who gets the roundup, and what went out last month?         |
 | Trash         | `/admin/trash`             | What did we remove, and does it need to come back?          |
 | Activity log  | `/admin/activity-log`      | What have admins changed, and who did it?                   |
 
@@ -69,6 +78,8 @@ or fail outright.
 | Categories | `GET /admin/categories`, `POST /admin/categories`, `PATCH /admin/categories/:id`, `DELETE /admin/categories/:id`                                                                                                 |
 | Comments   | `GET /admin/comments`, `GET /admin/comments/latest`, `GET /admin/comments/counts`, `DELETE /admin/comments/:id`                                                                                                  |
 | Messages   | `GET /admin/messages`, `GET /admin/messages/:id`, `PATCH /admin/messages/:id/status`                                                                                                                             |
+| Newsletter | `GET/POST /admin/newsletter/subscribers`, `GET /admin/newsletter/subscribers/:id`, `POST /admin/newsletter/subscribers/unsubscribe`, `GET /admin/newsletter/subscribers/export`                                     |
+| Roundups   | `GET/POST /admin/newsletter/campaigns`, `GET/PUT/DELETE /admin/newsletter/campaigns/:id`, `GET …/suggestion`, `GET …/preview`, `GET …/progress`, `POST …/test`, `POST …/start`, `POST …/continue`                 |
 
 Shared routes the panel still uses, unchanged and not admin-only:
 
@@ -77,6 +88,8 @@ Shared routes the panel still uses, unchanged and not admin-only:
   `/users/profile/update-social-links`
 - `POST /contact` (the public form), `/auth/*`, `/views/*`, `/metrics/dashboard`
 - `DELETE /comments/:id` and `PUT /comments/:id` (the comment's own author)
+- `/newsletter/*`: the signup form, the unsubscribe link and the Resend webhook.
+  The roundup itself is documented in `docs/newsletter.md`.
 
 Where a service function serves both a member flow and an admin screen, the
 member one keeps the shared path and the admin screens call the explicit
@@ -84,11 +97,12 @@ variant: `DELETE /comments/:id` stays shared, the moderation screens call
 `DELETE /admin/comments/:id`, which records the admin in the activity log.
 
 Client services: `src/services/admin/*` (categories, comments, members,
-messages, trash, overview, activity), the admin mutations in
+messages, newsletter, trash, overview, activity), the admin mutations in
 `src/services/user/index.ts`, and the admin entries in
 `src/services/blog/index.ts`.
 
 Admin changes that matter (article removal and restore, member block, unblock,
 promotion, removal and restore, comment removal, category changes, message
-handling) are written to the admin log by `admin-log.service.ts`. Logging never
-throws: a failed log line must not fail the action it describes.
+handling, newsletter additions, issue edits, sends and subscriber removals) are
+written to the admin log by `admin-log.service.ts`. Logging never throws: a
+failed log line must not fail the action it describes.

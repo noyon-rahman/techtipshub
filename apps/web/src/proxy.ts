@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/session";
+import { getSession, type TSession } from "@/lib/session";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -34,12 +34,16 @@ const isAdminPath = (pathname: string) =>
 const isAdminApiPath = (pathname: string) => pathname.startsWith("/api/admin/");
 
 /**
- * Old addresses for the article editor.
+ * Old addresses for the article editor and the account area.
  *
- * The composer and the editor have both moved over time:
- * `/settings/update/<slug>` → `/settings/edit/<slug>` → `/me/blogs/<slug>/edit`,
- * and `/write-blog` → `/me/blogs/new`. Every one of them still redirects, so
- * bookmarks, shared links and search results keep working.
+ * The composer, the editor and the profile screens have all moved over time:
+ * `/settings/update/<slug>` → `/settings/edit/<slug>` → `/me/blogs/<slug>/edit`
+ * → `/profile/blogs/<slug>/edit` → `/blogs/<slug>/edit`, and `/write-blog`,
+ * `/me/blogs/new`, `/profile/blogs/new` → `/blogs/new`. Settings itself went
+ * away: the profile page is the place its fields are edited now, so `/me/blogs`,
+ * `/me` and every `/settings` address land on the member's own profile. Every
+ * one of them still redirects, so bookmarks, shared links and search results
+ * keep working.
  *
  * The two renamed public pages (`/about-us`, `/contact-us`) redirect from
  * `src/app/…/route.ts` instead, which sees the request before the router
@@ -48,11 +52,15 @@ const isAdminApiPath = (pathname: string) => pathname.startsWith("/api/admin/");
 const LEGACY_REDIRECTS: { prefix: string; to: (rest: string) => string }[] = [
   {
     prefix: "/settings/update/",
-    to: (slug) => `/me/blogs/${slug}/edit`,
+    to: (slug) => `/blogs/${slug}/edit`,
   },
   {
     prefix: "/settings/edit/",
-    to: (slug) => `/me/blogs/${slug}/edit`,
+    to: (slug) => `/blogs/${slug}/edit`,
+  },
+  {
+    prefix: "/profile/blogs/",
+    to: (rest) => `/blogs/${rest}`,
   },
   // Admin screens used to live under /settings. Each old address lands on the
   // screen that replaced it, so existing bookmarks and links keep working.
@@ -70,11 +78,31 @@ const LEGACY_REDIRECTS: { prefix: string; to: (rest: string) => string }[] = [
   },
 ];
 
-const LEGACY_EXACT: Record<string, string> = {
-  "/write-blog": "/me/blogs/new",
-  "/settings/admin": "/admin/dashboard",
-  "/admin": "/admin/dashboard",
+/**
+ * The member's own profile, from the session, or the article list when the
+ * account has no handle to address it by. Only an exact path is served here;
+ * the request is fully answered by `/profile/[username]`.
+ */
+const ownProfilePath = (session: TSession) => {
+  const username = session.signedIn ? session.user.username : undefined;
+  return username
+    ? `/profile/@${encodeURIComponent(username)}`
+    : "/profile/blogs";
 };
+
+const LEGACY_EXACT: Record<string, string> = {
+  "/write-blog": "/blogs/new",
+  "/me/blogs/new": "/blogs/new",
+};
+
+/** Settings addresses from every past shape; they resolve to the profile. */
+const LEGACY_SETTINGS = new Set([
+  "/me",
+  "/me/blogs",
+  "/settings",
+  "/settings/manage-blogs",
+]);
+
 
 /**
  * Hand back a session cookie the API renewed while `getSession` was asking.
@@ -123,6 +151,8 @@ export async function proxy(request: NextRequest) {
   );
   if (legacy) {
     const url = request.nextUrl.clone();
+    // The query string rides along, so an old editor link keeps its context.
+    // The exact-match redirects below start clean.
     url.pathname = legacy.to(pathname.slice(legacy.prefix.length));
     return NextResponse.redirect(url, 308);
   }
@@ -132,6 +162,23 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = legacyExact;
     return NextResponse.redirect(url, 308);
+  }
+
+  // 1a. Settings became part of the member's own profile page. The address
+  // depends on the session, and a signed-in member gets a 308 so the profile
+  // is what their address bar keeps. A signed-out visitor skips this dict and
+  // falls through to the login redirect at the bottom, coming back to the
+  // profile afterwards.
+  const normalised = pathname.replace(/\/$/, "");
+  if (LEGACY_SETTINGS.has(normalised)) {
+    const session = await getSession();
+    if (session.signedIn) {
+      const url = request.nextUrl.clone();
+      url.pathname = ownProfilePath(session);
+      const response = NextResponse.redirect(url, 308);
+      relayRenewedCookies(request, response);
+      return response;
+    }
   }
 
   // 1b. An article, to a crawler or link unfurl: point it at the preview

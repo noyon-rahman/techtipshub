@@ -1,13 +1,14 @@
-import { manageBlogsPath, writeBlogPath } from "@/lib/blog-routes";
 import { AdSlot } from "@/components/adsense";
-import ProfileHeader from "@/components/modules/profile/profile-header";
 import ProfileArticleList from "@/components/modules/profile/profile-article-list";
+import ProfileOwnPage from "@/components/modules/profile/profile-own";
+import ProfileHeader from "@/components/modules/profile/profile-header";
+import { manageBlogsPath, writeBlogPath } from "@/lib/blog-routes";
 import ButtonLink from "@/components/ui/button-link";
 import Container from "@/components/ui/container";
-import EditProfileDropdown from "@/components/ui/edit-profile-dropdown";
 import ProfileShareDropdown from "@/components/ui/profile-share-dropdown";
 import { getProfileInfo } from "@/services/auth";
 import { getBlogsByUserId } from "@/services/blog";
+import { normaliseRouteUsername } from "@/utils/username";
 import { IBlog, IUser } from "@/types";
 import { Metadata } from "next";
 import { BiSupport } from "react-icons/bi";
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username: routeUsername } = await params;
   const profileData = await getProfileInfo().catch(() => null);
   const { fullName } = (profileData?.data as IUser) ?? {};
-  const actualUsername = routeUsername.split("40")[1] || routeUsername;
+  const actualUsername = normaliseRouteUsername(routeUsername);
 
   if (!fullName) {
     return { title: "Your profile" };
@@ -40,6 +41,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+/**
+ * The signed-in member's own profile.
+ *
+ * It is the profile page and the place its details are edited: "Edit profile"
+ * turns the identity block into a form and opens the fields a reader never
+ * sees (phone, birth date) below it. One screen, so a member always edits the
+ * page they are looking at instead of a settings screen that mirrors it.
+ */
 const DynamicProfilePage = async () => {
   const profileData = await getProfileInfo().catch(() => null);
   const user = (profileData?.data as IUser) ?? undefined;
@@ -94,23 +103,15 @@ const DynamicProfilePage = async () => {
           <ProfileHeader
             user={user}
             blogCount={totalBlogs}
-            actions={
-              <>
-                <ProfileShareDropdown />
-                <EditProfileDropdown />
-              </>
-            }
+            actions={<ProfileShareDropdown />}
           />
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
-            <ButtonLink
-              href="/settings"
-              radius="lg"
-              variant="bordered"
-              className="justify-between"
-            >
-              Edit profile details
-            </ButtonLink>
+          {/* The editor owns the "Edit profile" button and the form it opens.
+              Keyed by the stored timestamp so a save remounts it with the
+              values the API now holds. */}
+          <ProfileOwnPage key={user.updatedAt ?? "profile"} user={user} />
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
             <ButtonLink
               href={manageBlogsPath}
               radius="lg"

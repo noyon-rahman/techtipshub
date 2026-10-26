@@ -1,5 +1,6 @@
 import Container from "@/components/ui/container";
 import { Logo } from "@/components/shared/logo";
+import NewsletterSignup from "@/components/modules/newsletter/newsletter-signup";
 import { legalConfig, legalPages } from "@/config/legal";
 import FollowingLink from "./following-link";
 import Link from "next/link";
@@ -146,6 +147,16 @@ const Footer = () => {
               Practical writing on web development, AI and the tools modern
               developers use every day.
             </p>
+
+            {/* The sitewide signup. It sits under the description rather than
+                in a column of its own: the invitation above already asks for
+                one action, and this is the second thing a reader can do. */}
+            <NewsletterSignup
+              layout="stack"
+              className="mt-6 border-t border-default/60 pt-5"
+              title="The monthly roundup"
+              description="One email a month with the articles worth your time."
+            />
           </div>
 
           <div className="py-0 md:py-1">

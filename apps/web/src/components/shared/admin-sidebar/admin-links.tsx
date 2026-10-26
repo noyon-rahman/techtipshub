@@ -12,6 +12,7 @@ import {
   PiChatsCircle,
   PiEnvelopeSimple,
   PiListMagnifyingGlass,
+  PiNewspaperClipping,
   PiUsers,
 } from "react-icons/pi";
 
@@ -97,6 +98,14 @@ export const adminLinks: ILink[] = [
     description: "Roles, status and moderation",
     icon: <PiUsers />,
     group: "People",
+  },
+  {
+    id: "newsletter",
+    label: "Newsletter",
+    href: "/admin/newsletter",
+    description: "The roundup, its issues and list",
+    icon: <PiNewspaperClipping />,
+    group: "Inbox",
   },
   {
     id: "messages",

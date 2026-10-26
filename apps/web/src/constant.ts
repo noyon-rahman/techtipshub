@@ -6,13 +6,10 @@ import { PROTECTED_AREAS, requiresSession } from "@/lib/blog-routes";
  * once with a prefix match instead of one line per page.
  */
 export const protectedRoutes = [
-  "^/profile",
   "^/admin",
   "^/login",
   "^/signup",
   "^/forget-password",
-  "^/settings",
-  "^/me",
   ...PROTECTED_AREAS.map((area) => `^${area}`),
 ];
 

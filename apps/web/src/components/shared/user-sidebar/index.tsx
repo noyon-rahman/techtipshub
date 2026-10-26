@@ -1,6 +1,6 @@
 "use client";
 
-import { manageBlogsPath, writeBlogPath } from "@/lib/blog-routes";
+import { writeBlogPath } from "@/lib/blog-routes";
 
 import { useUser } from "@/context/user.provider";
 import { Avatar } from "@heroui/react";
@@ -8,19 +8,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { FiEdit3, FiMenu, FiX } from "react-icons/fi";
-import { HiOutlineArrowLeft, HiOutlineArrowRight } from "react-icons/hi2";
-import { userLinks } from "./user-links";
+import { HiOutlineArrowLeft } from "react-icons/hi2";
+import { userLinks as buildUserLinks } from "./user-links";
 
 /**
- * Which settings page the path belongs to.
+ * Which profile page the path belongs to.
  *
- * The settings rail only covers account settings now: writing and the article
- * list live in the account area (`/me/blogs`), which is its own page without
- * this sidebar. Nothing here should highlight for those paths.
+ * The rail covers the member's profile page and the article list
+ * (`/profile/blogs`), which share one shell, so both highlight their own entry.
  */
-const resolvePage = (pathname: string | null) => {
+const resolvePage = (pathname: string | null, links: ReturnType<typeof buildUserLinks>) => {
   const section =
-    userLinks
+    links
       .filter(
         (link) =>
           pathname === link.href || pathname?.startsWith(`${link.href}/`),
@@ -31,7 +30,7 @@ const resolvePage = (pathname: string | null) => {
 };
 
 /**
- * Settings navigation. A sticky column on desktop, a disclosure panel on
+ * Account navigation. A sticky column on desktop, a disclosure panel on
  * phones — the same links, with the active item marked for both.
  */
 const UserSidebar = () => {
@@ -39,8 +38,8 @@ const UserSidebar = () => {
   const pathname = usePathname();
   const { user } = useUser();
 
-  // Navigating to another settings page should close the mobile panel. Tracking
-  // the path we opened on means this holds even for a link back to this exact
+  // Navigating to another page should close the mobile panel. Tracking the
+  // path we opened on means this holds even for a link back to this exact
   // page, while still needing no effect.
   const [openForPath, setOpenForPath] = useState<string | null>(null);
   if (openForPath !== null && openForPath !== pathname) {
@@ -54,12 +53,9 @@ const UserSidebar = () => {
     setOpenForPath(next ? pathname : null);
   };
 
-  const { section: current } = resolvePage(pathname);
-  // The article list opens from this rail but is not itself a settings page.
-  const page: { label: string; description?: string } | null =
-    pathname?.startsWith(manageBlogsPath) && !current
-      ? { label: "My articles" }
-      : current;
+  const userLinks = buildUserLinks(user?.username);
+  const { section: current } = resolvePage(pathname, userLinks);
+  const page: { label: string; description?: string } | null = current;
 
   return (
     <>
@@ -70,7 +66,7 @@ const UserSidebar = () => {
             type="button"
             onClick={toggle}
             aria-expanded={open}
-            aria-controls="settings-nav"
+            aria-controls="account-nav"
             className="inline-flex items-center gap-2 rounded-lg border border-default/60 px-2.5 py-1.5 text-sm font-medium transition-colors hover:bg-default-50"
           >
             {open ? (
@@ -78,22 +74,22 @@ const UserSidebar = () => {
             ) : (
               <FiMenu aria-hidden className="size-4" />
             )}
-            Settings
+            Account
           </button>
           <span className="truncate text-sm text-default-600">
-            {page?.label ?? "Profile"}
+            {page?.label ?? "My profile"}
           </span>
         </div>
       </div>
 
       <aside
-        id="settings-nav"
+        id="account-nav"
         className={`${
           open ? "block" : "hidden"
         } border-b border-default/60 bg-background lg:sticky lg:top-[var(--header-height)] lg:block lg:h-[calc(100dvh-var(--header-height))] lg:w-64 lg:shrink-0 lg:self-start lg:border-b-0 lg:border-r lg:border-default/60`}
       >
         <nav
-          aria-label="Account settings"
+          aria-label="Account"
           className="flex flex-col gap-6 py-5 lg:py-6 lg:pr-4"
         >
           {/* Identity */}
@@ -158,15 +154,6 @@ const UserSidebar = () => {
           )}
 
           <div className="mt-2 space-y-0.5 border-t border-default/60 pt-4">
-            {user?.username && (
-              <Link
-                href={`/profile/@${user.username}`}
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-default-700 transition-colors hover:bg-default-100 hover:text-foreground"
-              >
-                <HiOutlineArrowRight aria-hidden className="size-4" />
-                View public profile
-              </Link>
-            )}
             <Link
               href={writeBlogPath}
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-default-700 transition-colors hover:bg-default-100 hover:text-foreground"
