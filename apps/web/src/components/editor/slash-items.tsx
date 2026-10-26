@@ -123,7 +123,7 @@ export const slashItems: SlashItem[] = [
   },
   {
     title: "Link",
-    hint: "Link the selected text",
+    hint: "Link the selection or add a URL",
     keywords: ["a", "link", "url", "href"],
     icon: LuLink,
     run: (editor) => {
@@ -134,7 +134,15 @@ export const slashItems: SlashItem[] = [
         editor.chain().focus().extendMarkRange("link").unsetLink().run();
         return;
       }
-      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+      const chain = editor
+        .chain()
+        .focus()
+        .extendMarkRange("link")
+        .setLink({ href: url });
+      // With no selection there is no text to attach the link to, so the URL
+      // becomes the visible text rather than a mark the author cannot see.
+      if (editor.state.selection.empty) chain.insertContent(url).run();
+      else chain.run();
     },
     isActive: (editor) => editor.isActive("link"),
   },

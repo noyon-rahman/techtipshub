@@ -1,7 +1,8 @@
 "use client";
 
 import type { Editor } from "@tiptap/core";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   LuBold,
   LuCode,
@@ -57,65 +58,146 @@ const ToolbarButton = ({
   </button>
 );
 
-/** Applies the block menu action for the current block type. */
+/** Fixed width of the block menu, in pixels; used to keep it on screen. */
+const BLOCK_MENU_WIDTH = 224;
+/** Roughly how much room the full list needs below its trigger. */
+const BLOCK_MENU_HEIGHT = 340;
+
+type MenuPosition =
+  { left: number; top: number } | { left: number; bottom: number };
+
+/**
+ * Applies the block menu action for the current block type.
+ *
+ * The menu is portalled to the document and positioned against the viewport:
+ * the toolbar is a horizontal scroll container (`overflow-x: auto` on narrow
+ * screens), which clips an absolutely positioned child and made this menu
+ * invisible.
+ */
 const BlockStyleMenu = ({ editor }: { editor: Editor | null }) => {
   const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<MenuPosition | null>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const close = useCallback(() => {
+    setOpen(false);
+    setPosition(null);
+  }, []);
+
+  const toggle = () => {
+    if (open) {
+      close();
+      return;
+    }
+
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const left = Math.max(
+      8,
+      Math.min(rect.left, window.innerWidth - BLOCK_MENU_WIDTH - 8),
+    );
+    setPosition(
+      window.innerHeight - rect.bottom < BLOCK_MENU_HEIGHT
+        ? { left, bottom: window.innerHeight - rect.top + 4 }
+        : { left, top: rect.bottom + 4 },
+    );
+    setOpen(true);
+  };
 
   useEffect(() => {
     if (!open) return;
-    const close = () => setOpen(false);
-    document.addEventListener("pointerdown", close);
-    return () => document.removeEventListener("pointerdown", close);
-  }, [open]);
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        menuRef.current?.contains(target) ||
+        triggerRef.current?.contains(target)
+      ) {
+        return;
+      }
+      close();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    // A viewport-positioned menu cannot follow the page, so a scroll outside
+    // it dismisses it rather than leaving it detached from its trigger.
+    const onScroll = (event: Event) => {
+      if (menuRef.current?.contains(event.target as Node)) return;
+      close();
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open, close]);
 
   const active = slashItems.find((item) => item.isActive?.(editor!));
   const ActiveIcon = active?.icon ?? LuPilcrow;
 
   return (
-    <div className="relative">
-      <ToolbarButton
-        label="Block style"
-        onClick={(event) => {
-          event.stopPropagation();
-          setOpen((v) => !v);
-        }}
-      >
-        <ActiveIcon className="size-4" />
-        <LuEllipsis className="size-3" />
-      </ToolbarButton>
-      {open && (
-        <div
-          className="absolute left-0 top-9 z-20 w-56 overflow-hidden rounded-lg border border-default-200 bg-content1 p-1 shadow-xl"
-          onPointerDown={(event) => event.stopPropagation()}
+    <>
+      <div ref={triggerRef} className="relative">
+        <ToolbarButton
+          label="Block style"
+          onClick={(event) => {
+            event.stopPropagation();
+            toggle();
+          }}
         >
-          {slashItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = item.isActive?.(editor!) ?? false;
-            return (
-              <button
-                key={item.title}
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  // No "/query" text to remove here: apply the block directly.
-                  if (item.chain) item.chain(editor!.chain().focus()).run();
-                  else item.run?.(editor!);
-                  setOpen(false);
-                }}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
-                  isActive
-                    ? "bg-default-100 text-foreground"
-                    : "text-default-600 hover:bg-default-100"
-                }`}
-              >
-                <Icon className="size-4 shrink-0" />
-                {item.title}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+          <ActiveIcon className="size-4" />
+          <LuEllipsis className="size-3" />
+        </ToolbarButton>
+      </div>
+      {open &&
+        position &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            aria-label="Block style"
+            style={position}
+            className="fixed z-[60] max-h-[70vh] w-56 overflow-y-auto rounded-lg border border-default-200 bg-content1 p-1 shadow-xl"
+          >
+            {slashItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = item.isActive?.(editor!) ?? false;
+              return (
+                <button
+                  key={item.title}
+                  type="button"
+                  role="menuitem"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => {
+                    // No "/query" text to remove here: apply the block directly.
+                    if (item.chain) item.chain(editor!.chain().focus()).run();
+                    else item.run?.(editor!);
+                    close();
+                  }}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm ${
+                    isActive
+                      ? "bg-default-100 text-foreground"
+                      : "text-default-600 hover:bg-default-100"
+                  }`}
+                >
+                  <Icon className="size-4 shrink-0" />
+                  {item.title}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+    </>
   );
 };
 
@@ -182,7 +264,9 @@ const Toolbar = ({ editor, onOpenMenu, children }: IProps) => {
       <ToolbarButton
         label={editor.isActive("link") ? "Edit link" : "Add link"}
         active={editor.isActive("link")}
-        onClick={() => slashItems.find((item) => item.title === "Link")?.run?.(editor)}
+        onClick={() =>
+          slashItems.find((item) => item.title === "Link")?.run?.(editor)
+        }
       >
         <LuLink className="size-4" />
       </ToolbarButton>
