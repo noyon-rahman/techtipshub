@@ -61,7 +61,7 @@ const LoginPage = async ({
     <AuthShell
       eyebrow="Account"
       title="Welcome back"
-      description="Sign in to pick up where you left off — your feed, your drafts and the discussion."
+      description="Sign in to pick up where you left off - your feed, your drafts and the discussion."
       points={points}
       footer={
         <p>

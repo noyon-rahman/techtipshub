@@ -57,16 +57,14 @@ const validate = (schemas: TSchemaMap): MiddlewareHandler<TAppBindings> => {
  * middleware is not used: it calls `next()` itself, and these steps run in
  * sequence under one wrapper that calls it once at the end.
  */
-const buildStep =
-  (target: TTarget, schema: ZodType) =>
-  async (c: TContext) => {
-    const parsed = await schema.safeParseAsync(await readPart(target, c));
+const buildStep = (target: TTarget, schema: ZodType) => async (c: TContext) => {
+  const parsed = await schema.safeParseAsync(await readPart(target, c));
 
-    if (!parsed.success) throw parsed.error;
+  if (!parsed.success) throw parsed.error;
 
-    if (target === "cookie") c.set("validatedCookies", parsed.data);
-    else c.set("validatedBody", parsed.data);
-  };
+  if (target === "cookie") c.set("validatedCookies", parsed.data);
+  else c.set("validatedBody", parsed.data);
+};
 
 const readPart = async (target: TTarget, c: TContext) => {
   switch (target) {

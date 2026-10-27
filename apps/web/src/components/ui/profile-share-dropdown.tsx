@@ -1,6 +1,12 @@
 "use client";
 
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@heroui/react";
 import { useEffect, useState } from "react";
 import { BsTwitterX } from "react-icons/bs";
 import { FaFacebook, FaLinkedin } from "react-icons/fa";
@@ -21,7 +27,6 @@ const ProfileShareDropdown = ({}: IProps) => {
     const adjustedUrl = currentUrl.replace("/profile", "/users");
     setProfileLink(adjustedUrl);
   }, []);
-
 
   const handleCopyLink = async () => {
     try {
@@ -55,7 +60,10 @@ const ProfileShareDropdown = ({}: IProps) => {
           <IoShareOutline className="text-lg" />
         </Button>
       </DropdownTrigger>
-      <DropdownMenu aria-label="Share Profile Actions" classNames={{ base: "border border-default-100" }}>
+      <DropdownMenu
+        aria-label="Share Profile Actions"
+        classNames={{ base: "border border-default-100" }}
+      >
         <DropdownItem
           key="profile-permalink"
           startContent={<PiLink />}
@@ -69,8 +77,8 @@ const ProfileShareDropdown = ({}: IProps) => {
           onClick={() =>
             handleShareClick(
               `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-                profileLink
-              )}`
+                profileLink,
+              )}`,
             )
           }
         >
@@ -81,7 +89,7 @@ const ProfileShareDropdown = ({}: IProps) => {
           startContent={<BsTwitterX />}
           onClick={() =>
             handleShareClick(
-              `https://twitter.com/share?url=${encodeURIComponent(profileLink)}`
+              `https://twitter.com/share?url=${encodeURIComponent(profileLink)}`,
             )
           }
         >
@@ -93,8 +101,8 @@ const ProfileShareDropdown = ({}: IProps) => {
           onClick={() =>
             handleShareClick(
               `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                profileLink
-              )}`
+                profileLink,
+              )}`,
             )
           }
         >

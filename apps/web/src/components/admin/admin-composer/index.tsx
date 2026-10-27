@@ -166,7 +166,13 @@ const AdminComposer = () => {
       return;
     }
 
-    const fields: DraftField[] = ["title", "cover", "content", "category", "tags"];
+    const fields: DraftField[] = [
+      "title",
+      "cover",
+      "content",
+      "category",
+      "tags",
+    ];
     const firstField = fields.find((field) => found[field]);
     if (firstField) {
       focusField(firstField);
@@ -174,33 +180,36 @@ const AdminComposer = () => {
       return;
     }
 
-    createBlog(buildBlogPayload(values, coverImage, { userId: authorId, publish }), {
-      onSuccess: (data) => {
-        // A refusal arrives as data with `success: false`; the work stays on
-        // screen so it can be corrected rather than retyped.
-        if (!data?.success) {
-          toast.error(data?.message || "The article was not saved.", {
+    createBlog(
+      buildBlogPayload(values, coverImage, { userId: authorId, publish }),
+      {
+        onSuccess: (data) => {
+          // A refusal arrives as data with `success: false`; the work stays on
+          // screen so it can be corrected rather than retyped.
+          if (!data?.success) {
+            toast.error(data?.message || "The article was not saved.", {
+              id: "admin-compose-failed",
+            });
+            return;
+          }
+
+          setSaved(true);
+          toast.success(
+            publish
+              ? "Article published. Readers can open it now."
+              : "Draft saved. It is in the author's account.",
+            { id: "admin-compose-saved" },
+          );
+          router.push(adminManageBlogsPath);
+          router.refresh();
+        },
+        onError: (error) => {
+          toast.error(describeFailure(error, "The article was not saved."), {
             id: "admin-compose-failed",
           });
-          return;
-        }
-
-        setSaved(true);
-        toast.success(
-          publish
-            ? "Article published. Readers can open it now."
-            : "Draft saved. It is in the author's account.",
-          { id: "admin-compose-saved" },
-        );
-        router.push(adminManageBlogsPath);
-        router.refresh();
+        },
       },
-      onError: (error) => {
-        toast.error(describeFailure(error, "The article was not saved."), {
-          id: "admin-compose-failed",
-        });
-      },
-    });
+    );
   };
 
   const discardAll = () => {
@@ -235,7 +244,9 @@ const AdminComposer = () => {
   // name on the trigger until another one is chosen.
   const [picked, setPicked] = useState<IUser | null>(null);
   const chosenAuthor =
-    members.rows.find((member) => member._id === authorId) ?? picked ?? undefined;
+    members.rows.find((member) => member._id === authorId) ??
+    picked ??
+    undefined;
 
   const errorCount = Object.values(errors).filter(Boolean).length;
 
@@ -501,7 +512,9 @@ const AuthorPicker = ({
         disabled={isDisabled}
         onClick={() => (open ? close() : setOpen(true))}
         className={`flex h-11 w-full items-center gap-2 rounded-[6px] border bg-background px-2.5 text-left text-sm transition-colors disabled:opacity-60 sm:h-9 ${
-          error ? "border-danger" : "border-default-200 hover:border-default-300"
+          error
+            ? "border-danger"
+            : "border-default-200 hover:border-default-300"
         } ${focusRing}`}
       >
         <span
@@ -537,7 +550,11 @@ const AuthorPicker = ({
             className={`h-9 w-full rounded-[6px] border border-default-200 bg-background px-2.5 text-sm text-foreground placeholder:text-default-600 ${focusRing}`}
           />
 
-          <ul role="listbox" aria-label="Members" className="mt-1.5 max-h-64 overflow-y-auto">
+          <ul
+            role="listbox"
+            aria-label="Members"
+            className="mt-1.5 max-h-64 overflow-y-auto"
+          >
             {members.isLoading ? (
               <li className="px-2.5 py-2 text-xs text-default-600">
                 Loading members.
@@ -591,7 +608,10 @@ const AuthorPicker = ({
         </div>
       )}
 
-      <p id={hintId} className="mt-1.5 text-xs leading-relaxed text-default-600">
+      <p
+        id={hintId}
+        className="mt-1.5 text-xs leading-relaxed text-default-600"
+      >
         {detail}
       </p>
     </div>

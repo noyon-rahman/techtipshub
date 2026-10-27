@@ -14,7 +14,9 @@ import User from "../modules/user/user.model";
  * behind this reads. Faults are thrown as `AppError`, so the single error
  * handler decides the status and the body.
  */
-const auth = (...requiredRoles: TUserRole[]): MiddlewareHandler<TAppBindings> => {
+const auth = (
+  ...requiredRoles: TUserRole[]
+): MiddlewareHandler<TAppBindings> => {
   return async (c, next) => {
     const token = c.req.header("authorization")?.split(" ")[1];
     if (!token) {

@@ -42,7 +42,9 @@ export const verifyResendSignature = (
   if (age > TOLERANCE_SECONDS) return false;
 
   // `whsec_` is the form Resend shows; the key itself is the part after it.
-  const key = secret.startsWith("whsec_") ? secret.slice("whsec_".length) : secret;
+  const key = secret.startsWith("whsec_")
+    ? secret.slice("whsec_".length)
+    : secret;
   const expected = createHmac("sha256", Buffer.from(key, "base64"))
     .update(`${headers.id}.${headers.timestamp}.${raw}`)
     .digest("base64");
@@ -92,7 +94,9 @@ const handleResendEvent = async (event: TResendEvent) => {
 
   if (!reason) return { handled: false, type };
 
-  const addresses = addressesOf(event).map((address) => address.trim()).filter(Boolean);
+  const addresses = addressesOf(event)
+    .map((address) => address.trim())
+    .filter(Boolean);
   if (addresses.length === 0) return { handled: false, type };
 
   const results = [];
@@ -100,7 +104,11 @@ const handleResendEvent = async (event: TResendEvent) => {
     results.push(await subscriberService.suppress(address, reason));
   }
 
-  return { handled: true, type, changed: results.some((result) => result.changed) };
+  return {
+    handled: true,
+    type,
+    changed: results.some((result) => result.changed),
+  };
 };
 
 export const requireWebhookSecret = () => {

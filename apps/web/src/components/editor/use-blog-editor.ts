@@ -15,7 +15,7 @@ interface IProps {
  * What the editor reports for its current content.
  *
  * This is exactly the value passed to `onChange`, so callers comparing a form
- * value against the editor must compare against this — `editor.getHTML()` is
+ * value against the editor must compare against this - `editor.getHTML()` is
  * the un-serialised form and differs for lists and quotes.
  */
 export const getBlogHTML = (editor: Editor) =>

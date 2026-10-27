@@ -80,7 +80,10 @@ const formatDay = (value?: string) =>
 type Tab = "all" | "unused";
 
 /** The form dialog is open for a new category or for the one being renamed. */
-type FormState = { mode: "closed" } | { mode: "create" } | { mode: "edit"; category: IAdminCategory };
+type FormState =
+  | { mode: "closed" }
+  | { mode: "create" }
+  | { mode: "edit"; category: IAdminCategory };
 
 /**
  * Categories: the topics the feed filters by. The tab row separates the ones
@@ -292,7 +295,9 @@ const CategoriesManager = ({
         <DataToolbar
           filters={filters}
           activeFilter={tab}
-          onFilterChange={(key) => changeTab(key === "unused" ? "unused" : "all")}
+          onFilterChange={(key) =>
+            changeTab(key === "unused" ? "unused" : "all")
+          }
           query={query}
           onQueryChange={setQuery}
           searchPlaceholder="Name or description"

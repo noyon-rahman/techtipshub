@@ -50,7 +50,8 @@ Conventions: [`Rules.md`](./Rules.md).
 
 ### Not built
 
-- Automated tests of any kind. No test runner, no test script, no spec files.
+- Unit and browser tests. `pnpm test` is a repository gate (typecheck, format,
+  invariants, lint, build), not a spec suite.
 - Email verification gate (intentional, see `PRD.md`).
 - Self-serve account deletion (members ask through the contact form).
 - Scheduled or resumable-without-a-press newsletter sends (blocked by the plan).
@@ -59,22 +60,26 @@ Conventions: [`Rules.md`](./Rules.md).
 
 Things known to be wrong or unfinished, in the order they matter.
 
-1. **Legal entity placeholders.** `config/legal.ts` ships
-   `[YOUR COMPANY NAME]` and `[YOUR REGISTERED ADDRESS]`. AdSense and data
-   protection law expect a named entity, so this must be filled before the
-   policies are relied on.
-2. **`turbo.json` lists dead SMTP/Nodemailer keys** (`SMTP_*`,
-   `NODEMAILER_EMAIL_FROM`) from before Resend. Harmless, misleading.
-3. **`siteConfig.links` still points at NextUI pages** (github, twitter, docs,
-   discord, sponsor). Either point them at real destinations or remove them.
-4. **No test suite.** Highest-value first targets: the newsletter batch claim,
-   the unsubscribe token, the `auth` middleware, and the allowlisted browser
-   proxy.
-5. **No web Prettier config.** Only `apps/api` has `.prettierrc.json`, so
-   `pnpm format` behaves differently per app.
+1. **CI does not run `pnpm test`.** The gate exists and passes locally; the
+   host still builds without it. Wiring it into the deploy pipeline is the next
+   step that makes it worth having.
+2. **The newsletter claim and lease have no unit test.** The invariants cover
+   the shapes around it, but a concurrent-send test needs a database.
+3. **`apps/web` lint carries about 33 warnings**, mostly unused imports. They
+   do not fail the gate.
 
 ## Traps and hard-won notes
 
+- **`pnpm test` is the gate.** It runs typecheck, the format and invariant
+  checks, lint and both builds, and stops at the first failure. `pnpm test lint`
+  runs one step. The invariants live in `scripts/test/checks/` and read the tree,
+  so they catch a placeholder or an unlisted env key that types cannot.
+- **The legal pages name a person, not a company.** `config/legal.ts` says
+  `Novon Rahman, publishing as TechTipsHub` and gives the contact address as the
+  address of record. Do not add a registered company or a street address that
+  does not exist.
+- **One Prettier config, at the root.** `prettier.config.mjs` governs both apps.
+  An app-level config is a second opinion, and the format check fails on one.
 - **Changing the JWT secrets, or `NEWSLETTER_UNSUBSCRIBE_SECRET` when it is
   unset (the key derives from the JWT secrets), invalidates every unsubscribe
   link already in a mailbox.** Set the dedicated secret before the first real
@@ -107,6 +112,10 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-10-27: Phase 7 (hardening) done. Legal pages name the operator;
+  `siteConfig.links` and the dead SMTP keys removed; `pnpm test` added as the
+  typecheck/format/invariants/lint/build gate; one root Prettier config, applied
+  across the repo.
 - 2026-10-27: PRD, Architecture, Rules, Phases and Memory added; `DESIGN.md`
   already existed and stays the design authority.
 - 2026-10 (commit `32a000c`): drafts and admin controls for articles.

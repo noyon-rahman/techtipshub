@@ -1,7 +1,10 @@
 "use client";
 
 import { focusRing } from "@/components/modules/admin/kit/tau";
-import type { INewsletterCounts, TSubscriberStatus } from "@/services/admin/newsletter";
+import type {
+  INewsletterCounts,
+  TSubscriberStatus,
+} from "@/services/admin/newsletter";
 import { useRef, type KeyboardEvent } from "react";
 
 import { SUBSCRIBER_LABEL } from "./labels";

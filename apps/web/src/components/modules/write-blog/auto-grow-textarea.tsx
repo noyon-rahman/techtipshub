@@ -2,11 +2,10 @@
 
 import { forwardRef, useCallback, useEffect, useRef } from "react";
 
-interface IProps
-  extends Omit<
-    React.TextareaHTMLAttributes<HTMLTextAreaElement>,
-    "rows" | "onChange"
-  > {
+interface IProps extends Omit<
+  React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+  "rows" | "onChange"
+> {
   value: string;
   onChange: (value: string) => void;
   maxLength?: number;

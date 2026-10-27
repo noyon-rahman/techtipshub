@@ -58,11 +58,7 @@ export const matchesQuery = (value: string, query: string) => {
 };
 
 const charScore = (candidate: string, query: string, index: number) =>
-  candidate[index] === query[index]
-    ? index === 0
-      ? 3
-      : 1
-    : 0;
+  candidate[index] === query[index] ? (index === 0 ? 3 : 1) : 0;
 
 /**
  * Score a label against a query and return the matched character ranges.
@@ -94,7 +90,11 @@ export const fuzzyScore = (label: string, query: string): Scored => {
   let score = 0;
   const ranges: Array<[number, number]> = [];
 
-  for (let index = 0; index < target.length && cursor < needle.length; index++) {
+  for (
+    let index = 0;
+    index < target.length && cursor < needle.length;
+    index++
+  ) {
     score += charScore(target, needle, cursor);
     if (target[index] !== needle[cursor]) continue;
 
@@ -108,7 +108,9 @@ export const fuzzyScore = (label: string, query: string): Scored => {
     cursor++;
   }
 
-  return cursor === needle.length ? { score, ranges } : { score: 0, ranges: [] };
+  return cursor === needle.length
+    ? { score, ranges }
+    : { score: 0, ranges: [] };
 };
 
 /** Split a label into plain and `<mark>`-able segments for rendering. */
@@ -121,10 +123,12 @@ export const splitByRanges = (
   const parts: Array<{ text: string; match: boolean }> = [];
   let cursor = 0;
   for (const [start, end] of ranges) {
-    if (start > cursor) parts.push({ text: label.slice(cursor, start), match: false });
+    if (start > cursor)
+      parts.push({ text: label.slice(cursor, start), match: false });
     parts.push({ text: label.slice(start, end), match: true });
     cursor = end;
   }
-  if (cursor < label.length) parts.push({ text: label.slice(cursor), match: false });
+  if (cursor < label.length)
+    parts.push({ text: label.slice(cursor), match: false });
   return parts;
 };

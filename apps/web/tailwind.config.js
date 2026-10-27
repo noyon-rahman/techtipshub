@@ -98,17 +98,53 @@ const paper = {
 // Status hues borrow the amber ramp only for the steps they do not override;
 // their 600 and 900 are kept explicit so a status colour never drifts amber.
 /** @type {ColorScale} */
-const successLight = { ...amber, DEFAULT: "#2F7D4F", foreground: "#FFFFFF", 600: "#3F9A64", 900: "#1C5B37" };
+const successLight = {
+  ...amber,
+  DEFAULT: "#2F7D4F",
+  foreground: "#FFFFFF",
+  600: "#3F9A64",
+  900: "#1C5B37",
+};
 /** @type {ColorScale} */
-const warningLight = { ...amber, DEFAULT: "#9A5F08", foreground: "#FFFFFF", 600: "#B8730C", 900: "#7A4A05" };
+const warningLight = {
+  ...amber,
+  DEFAULT: "#9A5F08",
+  foreground: "#FFFFFF",
+  600: "#B8730C",
+  900: "#7A4A05",
+};
 /** @type {ColorScale} */
-const dangerLight = { ...amber, DEFAULT: "#B3261E", foreground: "#FFFFFF", 600: "#D14A40", 900: "#8A1C16" };
+const dangerLight = {
+  ...amber,
+  DEFAULT: "#B3261E",
+  foreground: "#FFFFFF",
+  600: "#D14A40",
+  900: "#8A1C16",
+};
 /** @type {ColorScale} */
-const dangerDark = { ...amberDark, DEFAULT: "#E4635A", foreground: "#1E0F0E", 600: "#E4635A", 900: "#7A2B26" };
+const dangerDark = {
+  ...amberDark,
+  DEFAULT: "#E4635A",
+  foreground: "#1E0F0E",
+  600: "#E4635A",
+  900: "#7A2B26",
+};
 /** @type {ColorScale} */
-const successDark = { ...amberDark, DEFAULT: "#4FA97A", foreground: "#0D1F15", 600: "#4FA97A", 900: "#1D4A33" };
+const successDark = {
+  ...amberDark,
+  DEFAULT: "#4FA97A",
+  foreground: "#0D1F15",
+  600: "#4FA97A",
+  900: "#1D4A33",
+};
 /** @type {ColorScale} */
-const warningDark = { ...amberDark, DEFAULT: "#F2A93B", foreground: "#1E1B17", 600: "#F2A93B", 900: "#6E4708" };
+const warningDark = {
+  ...amberDark,
+  DEFAULT: "#F2A93B",
+  foreground: "#1E1B17",
+  600: "#F2A93B",
+  900: "#6E4708",
+};
 
 const themes = {
   light: {

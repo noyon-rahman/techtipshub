@@ -3,8 +3,15 @@
 import UserProvider from "@/context/user.provider";
 import ToasterMount from "@/components/ui/toaster";
 import { HeroUIProvider } from "@heroui/react";
-import { QueryClient, QueryClientProvider, QueryCache } from "@tanstack/react-query";
-import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from "next-themes";
+import {
+  QueryClient,
+  QueryClientProvider,
+  QueryCache,
+} from "@tanstack/react-query";
+import {
+  ThemeProvider as NextThemesProvider,
+  type ThemeProviderProps,
+} from "next-themes";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -58,7 +65,10 @@ export const isAwaitingWrite = (queryKey: readonly unknown[]) => {
  * should refetch it. Its key is unique per write (see the hooks), so dropping
  * the observer frees the entry and the key is never asked for twice.
  */
-const settledWrite = (queryClient: QueryClient, queryKey: readonly unknown[]) => {
+const settledWrite = (
+  queryClient: QueryClient,
+  queryKey: readonly unknown[],
+) => {
   queryClient.removeQueries({ queryKey, exact: true });
 };
 
@@ -67,7 +77,10 @@ const settledWrite = (queryClient: QueryClient, queryKey: readonly unknown[]) =>
  * refused). The entry keeps what it had before the write, so the controls fall
  * back to it; nothing refetches, because the server never changed.
  */
-const failedWrite = (queryClient: QueryClient, queryKey: readonly unknown[]) => {
+const failedWrite = (
+  queryClient: QueryClient,
+  queryKey: readonly unknown[],
+) => {
   const query = queryClient.getQueryCache().find({ queryKey, exact: true });
   if (query) query.setState({ status: "error" });
 };

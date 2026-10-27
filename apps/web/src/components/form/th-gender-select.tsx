@@ -6,11 +6,10 @@ import { Controller, useFormContext } from "react-hook-form";
 
 const GENDER_OPTIONS: TUserGender[] = ["Male", "Female", "Other"];
 
-interface IProps
-  extends Omit<
-    SelectProps,
-    "selectedKeys" | "onSelectionChange" | "children" | "label"
-  > {
+interface IProps extends Omit<
+  SelectProps,
+  "selectedKeys" | "onSelectionChange" | "children" | "label"
+> {
   name: string;
   label?: string;
   id?: string;

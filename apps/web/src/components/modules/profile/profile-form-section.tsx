@@ -12,7 +12,7 @@ interface IProps {
 }
 
 /**
- * One topic of the profile form — identity, details, links — in its own card.
+ * One topic of the profile form - identity, details, links - in its own card.
  *
  * The dense column reads as a list of jobs, so each gets a card with a heading
  * that says what it is for rather than another horizontal rule between fields.

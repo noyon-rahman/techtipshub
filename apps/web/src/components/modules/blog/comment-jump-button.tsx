@@ -27,7 +27,10 @@ const CommentJumpButton = ({ count }: { count: number }) => {
     (section ?? field)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
     // Let the smooth scroll settle, then focus the textarea when one exists.
-    timer.current = setTimeout(() => field?.focus({ preventScroll: true }), 400);
+    timer.current = setTimeout(
+      () => field?.focus({ preventScroll: true }),
+      400,
+    );
   };
 
   return (

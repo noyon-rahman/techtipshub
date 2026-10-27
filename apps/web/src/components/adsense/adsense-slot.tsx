@@ -136,7 +136,8 @@ function waitForQueue(): Promise<AdsQueue> {
         // drains.
         const w = window as Window & { adsbygoogle?: AdsQueue };
         const seeded = [] as unknown as AdsQueue;
-        (seeded as { push: (item: Record<string, never>) => number }).push = () => 0;
+        (seeded as { push: (item: Record<string, never>) => number }).push =
+          () => 0;
         w.adsbygoogle = seeded;
         resolve(seeded);
         return;
@@ -194,7 +195,10 @@ export default function AdSlot({
       if (status === "unfilled" && !isMultiplexUnit) {
         // AdSense collapses a rejected or empty unit to zero height. Settle
         // once it has measured so a late "filled" is not missed.
-        if (ins.getAttribute(SETTLED_ATTR) === "true" || ins.offsetHeight === 0) {
+        if (
+          ins.getAttribute(SETTLED_ATTR) === "true" ||
+          ins.offsetHeight === 0
+        ) {
           setFill("unfilled");
           return true;
         }
@@ -296,8 +300,14 @@ export default function AdSlot({
             {...(isMultiplex
               ? { "data-ad-format": "autorelaxed" }
               : isDisplay
-                ? { "data-ad-format": "auto", "data-full-width-responsive": "true" }
-                : { "data-ad-layout": "in-article", "data-ad-format": "fluid" })}
+                ? {
+                    "data-ad-format": "auto",
+                    "data-full-width-responsive": "true",
+                  }
+                : {
+                    "data-ad-layout": "in-article",
+                    "data-ad-format": "fluid",
+                  })}
           />
         </div>
       )}

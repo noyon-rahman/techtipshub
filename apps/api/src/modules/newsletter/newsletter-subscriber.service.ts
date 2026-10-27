@@ -132,7 +132,10 @@ const unsubscribe = async (
 
   const subscriber = await NewsletterSubscriber.findOne({ emailKey: key });
   if (!subscriber) {
-    throw new AppError(httpStatus.NOT_FOUND, "That address is not on the list.");
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "That address is not on the list.",
+    );
   }
 
   if (subscriber.status === "bounced" || subscriber.status === "complained") {

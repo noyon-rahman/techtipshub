@@ -1,11 +1,20 @@
 import { Button } from "@heroui/button";
-import { Modal, ModalBody, ModalContent, ModalHeader, useDisclosure } from "@heroui/modal";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  useDisclosure,
+} from "@heroui/modal";
 import THForm from "../form/th-from";
 import THTextarea from "../form/th-textarea";
 import { FieldValues, SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useDeleteBlogByAdminUsingId, useUpdateBlogByUserUsingId } from "@/hooks/blog.hook";
+import {
+  useDeleteBlogByAdminUsingId,
+  useUpdateBlogByUserUsingId,
+} from "@/hooks/blog.hook";
 import { FiTrash2 } from "react-icons/fi";
 
 interface IProps {
@@ -32,7 +41,7 @@ const AdminDeleteBlogModal = ({ id, refetchBlogs }: IProps) => {
         onSuccess() {
           refetchBlogs();
         },
-      }
+      },
     );
     onOpenChange();
   };

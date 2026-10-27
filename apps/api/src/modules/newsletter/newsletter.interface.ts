@@ -1,10 +1,7 @@
 import type { Types } from "mongoose";
 
 export type TNewsletterSubscriberStatus =
-  | "active"
-  | "unsubscribed"
-  | "bounced"
-  | "complained";
+  "active" | "unsubscribed" | "bounced" | "complained";
 
 export const NEWSLETTER_SUBSCRIBER_STATUSES: TNewsletterSubscriberStatus[] = [
   "active",

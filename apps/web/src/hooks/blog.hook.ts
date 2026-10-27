@@ -14,12 +14,7 @@ import {
 import { messageOf } from "@/lib/api-error";
 import type { IVoteResult, TVoteType } from "@techtipshub/shared";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-  useCallback,
-  useEffect,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 export const useCreateBlog = () => {
@@ -197,7 +192,7 @@ const endBurst = (blogId: string) => {
  * A request that fails puts back what the burst started from and ends it: the
  * reader's own state is no longer known, so guessing again would only add
  * requests to a write that is not working.
- */const sendVote = async (
+ */ const sendVote = async (
   blogId: string,
   voteType: TVoteType,
   before: IVoteCounts,
@@ -291,7 +286,8 @@ const pressVote = (blogId: string, voteType: TVoteType) => {
   if (!current) return;
 
   // A vote is a toggle: pressing the one you hold takes it back.
-  const target: TVoteType | null = current.myVote === voteType ? null : voteType;
+  const target: TVoteType | null =
+    current.myVote === voteType ? null : voteType;
   const burst = voteBursts.get(blogId);
 
   if (!burst) {

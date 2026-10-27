@@ -44,7 +44,9 @@ const EditSingleBlog = async ({ params }: IProps) => {
         </Link>
 
         <div className="rounded-xl border border-default/60 bg-default-50/60 px-5 py-6 dark:bg-default-100/5">
-          <h1 className="text-xl font-bold tracking-tight">Article not found</h1>
+          <h1 className="text-xl font-bold tracking-tight">
+            Article not found
+          </h1>
           <p className="mt-2 max-w-prose text-sm leading-relaxed text-default-600">
             This article does not exist, or it was removed. Pick one from your
             articles to edit instead.

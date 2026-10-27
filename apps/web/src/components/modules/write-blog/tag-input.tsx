@@ -12,7 +12,7 @@ interface IProps {
   invalid?: boolean;
   id?: string;
   /**
-   * Reports the raw text that was typed but not kept — because the list is
+   * Reports the raw text that was typed but not kept - because the list is
    * full. The field decides what to say; the editor only knows the limit.
    */
   onTagsRejected?: (raw: string, rejected: string[]) => void;

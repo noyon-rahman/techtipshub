@@ -63,7 +63,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // still shows the house mark rather than no image at all.
   const ogImage = coverImage
     ? [{ url: coverImage, alt: title }]
-    : [{ url: "/brand/og-image.png", width: 1200, height: 630, alt: siteConfig.name }];
+    : [
+        {
+          url: "/brand/og-image.png",
+          width: 1200,
+          height: 630,
+          alt: siteConfig.name,
+        },
+      ];
   const published = createdAt ? new Date(createdAt) : undefined;
   const modified = updatedAt ? new Date(updatedAt) : published;
 
@@ -81,7 +88,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: description,
     alternates: { canonical },
     keywords: [...(tags ?? []), siteConfig.name, "blog post", "tutorial"],
-    authors: author?.fullName ? [{ name: author.fullName, url: `/users/${author.username}` }] : undefined,
+    authors: author?.fullName
+      ? [{ name: author.fullName, url: `/users/${author.username}` }]
+      : undefined,
     openGraph: {
       title: title,
       description: description,
@@ -115,12 +124,15 @@ export async function generateStaticParams() {
 
 const readingMinutes = (html?: string) => {
   if (!html) return null;
-  const words = html.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
+  const words = html
+    .replace(/<[^>]+>/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
   return Math.max(1, Math.round(words / 220));
 };
 
 const DynamicBlogPage = async ({ params }: Props) => {
-  // `updatedAt` is what the build stored in `params` — the version this page
+  // `updatedAt` is what the build stored in `params` - the version this page
   // was rendered with. A route that was not prerendered stores none.
   const { slug: routeSlug, updatedAt: builtAsOf } = (await params) as {
     slug: string;
@@ -191,8 +203,7 @@ const DynamicBlogPage = async ({ params }: Props) => {
   // fixed 88px lands in empty space on a short preview, so nothing fades. A
   // percentage always meets the last lines, and a shorter preview fades over
   // a shorter distance instead of washing out a whole paragraph.
-  const previewMask =
-    "linear-gradient(to bottom, #000 75%, transparent 100%)";
+  const previewMask = "linear-gradient(to bottom, #000 75%, transparent 100%)";
 
   const previewColumn = (
     <>

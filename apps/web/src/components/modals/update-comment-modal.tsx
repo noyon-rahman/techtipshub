@@ -22,13 +22,12 @@ interface IProps {
   content: string;
 }
 
-const CommentUpdateModal = ({commentId, content}: IProps) => {
+const CommentUpdateModal = ({ commentId, content }: IProps) => {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const { mutate: updateComment, isPending } = useUpdateCommentByUser();
 
   const handleNewImagesChange = (event: ChangeEvent<HTMLInputElement>) => {
-    console.log("called...")
     const files = event.target.files;
     if (files) {
       const selectedFiles = Array.from(files);
@@ -40,7 +39,7 @@ const CommentUpdateModal = ({commentId, content}: IProps) => {
         return;
       }
       setSelectedImages((prevImages) =>
-        [...prevImages, ...selectedFiles].slice(0, 4)
+        [...prevImages, ...selectedFiles].slice(0, 4),
       );
     }
   };
@@ -54,7 +53,7 @@ const CommentUpdateModal = ({commentId, content}: IProps) => {
     });
 
     updateComment({ commentId, payload: formData });
-    setSelectedImages([]); 
+    setSelectedImages([]);
     onOpenChange();
   };
   return (

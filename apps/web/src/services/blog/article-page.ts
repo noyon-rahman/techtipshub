@@ -89,7 +89,11 @@ const loadVersion = (slug: string, version: string) =>
     const blog = await fetchArticle(slug);
     if (!blog) return undefined;
 
-    return { blog, updatedAt: version, comments: await fetchComments(blog._id) };
+    return {
+      blog,
+      updatedAt: version,
+      comments: await fetchComments(blog._id),
+    };
   });
 
 /**
@@ -152,12 +156,11 @@ const readArticle = async (
   const version = blog.updatedAt ?? builtAsOf ?? "initial";
   rememberRenderedAt(decoded, version);
 
-  const page =
-    (await loadVersion(decoded, version)) ?? {
-      blog,
-      updatedAt: version,
-      comments: await fetchComments(blog._id),
-    };
+  const page = (await loadVersion(decoded, version)) ?? {
+    blog,
+    updatedAt: version,
+    comments: await fetchComments(blog._id),
+  };
 
   return {
     ...page,

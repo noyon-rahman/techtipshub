@@ -37,7 +37,7 @@ export const submitContactForm = async (payload: TContactPayload) => {
 
     return {
       success: true,
-      message: "Thanks — your message is on its way. We will reply by email.",
+      message: "Thanks - your message is on its way. We will reply by email.",
     };
   } catch {
     return {

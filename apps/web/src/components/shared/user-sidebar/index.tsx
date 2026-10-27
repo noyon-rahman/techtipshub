@@ -17,7 +17,10 @@ import { userLinks as buildUserLinks } from "./user-links";
  * The rail covers the member's profile page and the article list
  * (`/profile/blogs`), which share one shell, so both highlight their own entry.
  */
-const resolvePage = (pathname: string | null, links: ReturnType<typeof buildUserLinks>) => {
+const resolvePage = (
+  pathname: string | null,
+  links: ReturnType<typeof buildUserLinks>,
+) => {
   const section =
     links
       .filter(
@@ -31,7 +34,7 @@ const resolvePage = (pathname: string | null, links: ReturnType<typeof buildUser
 
 /**
  * Account navigation. A sticky column on desktop, a disclosure panel on
- * phones — the same links, with the active item marked for both.
+ * phones - the same links, with the active item marked for both.
  */
 const UserSidebar = () => {
   const [open, setOpen] = useState(false);
@@ -114,9 +117,7 @@ const UserSidebar = () => {
           </div>
 
           <div>
-            <p className="px-3 pb-1.5 tth-label-sm text-default-600">
-              Account
-            </p>
+            <p className="px-3 pb-1.5 tth-label-sm text-default-600">Account</p>
             <ul className="space-y-0.5">
               {userLinks.map((link) => {
                 const active = link.href === current?.href;
@@ -144,9 +145,7 @@ const UserSidebar = () => {
 
           {page?.description && (
             <div className="rounded-lg bg-default-50 px-3 py-2.5 dark:bg-default-100/10">
-              <p className="tth-label-sm text-default-600">
-                On this page
-              </p>
+              <p className="tth-label-sm text-default-600">On this page</p>
               <p className="mt-1 text-xs leading-relaxed text-default-600">
                 {page.description}
               </p>

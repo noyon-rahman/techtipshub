@@ -196,7 +196,7 @@ export const getLoggedInUserBlogs = async (
 
     // A visitor with no usable session gets a failed answer with no `data`.
     // Callers treat `data` as a list, so normalise it here rather than
-    // spreading `undefined` and crashing the page — and keep the reason, so the
+    // spreading `undefined` and crashing the page - and keep the reason, so the
     // page can say "sign in again" instead of "you have no articles".
     if (!res.ok || !Array.isArray(data?.data)) {
       return { ...data, success: false, data: [] as unknown[] };

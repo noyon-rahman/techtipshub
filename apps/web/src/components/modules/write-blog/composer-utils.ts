@@ -35,10 +35,10 @@ export const hasDraftContent = (values: BlogFormData) => {
   const body = values.content.replace(/<[^>]+>/g, "").trim();
   return Boolean(
     values.title.trim() ||
-      values.description?.trim() ||
-      body ||
-      values.category ||
-      values.tags.length,
+    values.description?.trim() ||
+    body ||
+    values.category ||
+    values.tags.length,
   );
 };
 
@@ -84,10 +84,7 @@ export const isBlankContent = (html: string) => {
  * (`coverImage` is a required field on the model), so this is the first place a
  * writer can be told, rather than the server bouncing a finished drafts.
  */
-export const validateDraft = (
-  values: BlogFormData,
-  hasCover: boolean,
-) => {
+export const validateDraft = (values: BlogFormData, hasCover: boolean) => {
   const errors: Partial<Record<DraftField, string>> = {};
 
   if (!values.title.trim()) errors.title = "Give the blog a title.";

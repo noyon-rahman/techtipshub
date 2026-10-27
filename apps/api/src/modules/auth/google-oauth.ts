@@ -71,7 +71,10 @@ export const buildGoogleAuthorizeUrl = (state: string) => {
  * One JSON request to Google, with the body's own `error` description folded
  * into the failure so the log says why instead of just which status.
  */
-const requestGoogle = async (url: string, init: Parameters<typeof fetch>[1]) => {
+const requestGoogle = async (
+  url: string,
+  init: Parameters<typeof fetch>[1],
+) => {
   const response = await fetch(url, {
     ...init,
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -92,7 +95,8 @@ const requestGoogle = async (url: string, init: Parameters<typeof fetch>[1]) => 
         : undefined;
 
     throw new Error(
-      [code, description].filter(Boolean).join(": ") || `HTTP ${response.status}`,
+      [code, description].filter(Boolean).join(": ") ||
+        `HTTP ${response.status}`,
     );
   }
 
@@ -169,8 +173,7 @@ export const fetchGoogleProfile = async (code: string) => {
     sub,
     email,
     name:
-      (typeof profile.name === "string" && profile.name) ||
-      email.split("@")[0],
+      (typeof profile.name === "string" && profile.name) || email.split("@")[0],
     picture: typeof profile.picture === "string" ? profile.picture : undefined,
   } satisfies IGoogleProfile;
 };

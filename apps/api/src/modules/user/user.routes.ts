@@ -11,7 +11,11 @@ const userRouter = new Hono<TAppBindings>();
 userRouter.patch(
   "/update-profile",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
-  withUploads({ field: "image", target: "profilePicture", resourceType: "auto" }),
+  withUploads({
+    field: "image",
+    target: "profilePicture",
+    resourceType: "auto",
+  }),
   validate({ json: userValidationSchema.updateProfile }),
   userController.updateProfile,
 );
@@ -37,9 +41,17 @@ userRouter.get(
 
 userRouter.put("/:id/follow", auth(USER_ROLE.USER), userController.followUser);
 
-userRouter.delete("/:id/unfollow", auth(USER_ROLE.USER), userController.unfollowUser);
+userRouter.delete(
+  "/:id/unfollow",
+  auth(USER_ROLE.USER),
+  userController.unfollowUser,
+);
 
-userRouter.get("/:id/follow-status", auth(USER_ROLE.USER), userController.getFollowStatus);
+userRouter.get(
+  "/:id/follow-status",
+  auth(USER_ROLE.USER),
+  userController.getFollowStatus,
+);
 
 userRouter.get("/:id/followers", userController.getFollowersByUserId);
 

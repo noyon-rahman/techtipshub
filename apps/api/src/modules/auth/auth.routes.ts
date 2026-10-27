@@ -12,7 +12,11 @@ const authRoutes = new Hono<TAppBindings>();
 authRoutes.post(
   "/register",
   authAttemptLimit,
-  withUploads({ field: "image", target: "profilePicture", resourceType: "auto" }),
+  withUploads({
+    field: "image",
+    target: "profilePicture",
+    resourceType: "auto",
+  }),
   validate({ json: authValidationSchema.register }),
   authController.register,
 );
@@ -61,7 +65,11 @@ authRoutes.post("/refresh-token", authController.generateNewAccessToken);
 
 authRoutes.post("/logout", authController.logOut);
 
-authRoutes.get("/me", auth(USER_ROLE.USER, USER_ROLE.ADMIN), authController.getMe);
+authRoutes.get(
+  "/me",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  authController.getMe,
+);
 
 authRoutes.put(
   "/change-password",

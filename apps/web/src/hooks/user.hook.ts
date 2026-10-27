@@ -16,11 +16,7 @@ import type { TLegacyBody } from "@/lib/api-contract";
 import { TSocialLink } from "@/types";
 import type { IAdminMembersParams } from "@/types/admin.type";
 import type { IFollowResult } from "@techtipshub/shared";
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-} from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 /**
@@ -48,7 +44,8 @@ const followListeners = new Map<string, Set<() => void>>();
 // sending a second identical request.
 const followReads = new Map<string, Promise<IFollowState | undefined>>();
 
-export const readFollowEntry = (memberId: string) => followEntries.get(memberId);
+export const readFollowEntry = (memberId: string) =>
+  followEntries.get(memberId);
 
 export const setFollowEntry = (memberId: string, state: IFollowState) => {
   followEntries.set(memberId, state);
@@ -115,10 +112,9 @@ const useFollowWrite = (
     onError: (error, { memberId, before }) => {
       setFollowEntry(memberId, before);
 
-      toast.error(
-        messageOf(error) || "That change was not saved. Try again.",
-        { id: "follow-user" },
-      );
+      toast.error(messageOf(error) || "That change was not saved. Try again.", {
+        id: "follow-user",
+      });
     },
   });
 };

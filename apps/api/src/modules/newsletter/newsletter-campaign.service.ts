@@ -2,10 +2,7 @@ import httpStatus from "http-status";
 import mongoose from "mongoose";
 import config, { isEmailConfigured } from "../../config";
 import { MAIL_REPLY_TO } from "../../config/mail";
-import {
-  newsletterCampaignMessage,
-  type TCampaignContent,
-} from "../../emails";
+import { newsletterCampaignMessage, type TCampaignContent } from "../../emails";
 import AppError from "../../errors/AppError";
 import sendEmail from "../../utils/sendEmail";
 import { adminLogService } from "../admin/admin-log.service";
@@ -80,7 +77,10 @@ const resolveArticles = async (ids: string[]) => {
 
   const invalid = unique.filter((id) => !mongoose.Types.ObjectId.isValid(id));
   if (invalid.length > 0) {
-    throw new AppError(httpStatus.BAD_REQUEST, "One of the articles is not valid.");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "One of the articles is not valid.",
+    );
   }
 
   const blogs = await Blog.find({ _id: { $in: unique } })
@@ -119,7 +119,13 @@ const toContent = (campaign: {
   preview: string;
   heading: string;
   intro: string;
-  articles: { title: string; href: string; excerpt: string; coverImage: string; category: string }[];
+  articles: {
+    title: string;
+    href: string;
+    excerpt: string;
+    coverImage: string;
+    category: string;
+  }[];
 }): TCampaignContent => ({
   subject: campaign.subject,
   preview: campaign.preview,
@@ -170,11 +176,10 @@ const suggestion = async () => {
       title: blog.title,
       slug: blog.slug,
       coverImage: blog.coverImage,
-      category: (blog.category as unknown as { name?: string } | null)?.name ?? "",
+      category:
+        (blog.category as unknown as { name?: string } | null)?.name ?? "",
       createdAt: blog.createdAt,
-      href: blog.slug
-        ? `/blogs/${blog.slug}`
-        : `/blogs/${String(blog._id)}`,
+      href: blog.slug ? `/blogs/${blog.slug}` : `/blogs/${String(blog._id)}`,
     })),
   };
 };
@@ -336,7 +341,9 @@ const testSend = async (id: string, adminEmail: string) => {
 };
 
 const recipientCountFor = async () => {
-  const active = await NewsletterSubscriber.countDocuments({ status: "active" });
+  const active = await NewsletterSubscriber.countDocuments({
+    status: "active",
+  });
   if (active === 0) {
     throw new AppError(
       httpStatus.CONFLICT,
@@ -433,7 +440,8 @@ const claimSlot = async (campaignId?: string) => {
   if (!campaign) return undefined;
 
   const slot = campaign.recipients.find(
-    (recipient) => recipient.status === "pending" && recipient.attempts < MAX_ATTEMPTS,
+    (recipient) =>
+      recipient.status === "pending" && recipient.attempts < MAX_ATTEMPTS,
   );
   if (!slot) return undefined;
 

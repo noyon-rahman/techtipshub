@@ -61,7 +61,8 @@ const FollowersFollowingLayout = async ({ params, children }: IProps) => {
               {createdAt && (
                 <p className="flex items-center gap-2 text-sm text-default-600">
                   <PiCalendarDotsLight className="size-4" aria-hidden />
-                  Member since {new Date(createdAt).toLocaleDateString("en-GB", {
+                  Member since{" "}
+                  {new Date(createdAt).toLocaleDateString("en-GB", {
                     month: "short",
                     year: "numeric",
                   })}

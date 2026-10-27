@@ -31,9 +31,7 @@ const staticPages: Array<{
 ];
 
 /** The category pages, one per published category, if the API answers. */
-const categoryEntries = async (): Promise<
-  MetadataRoute.Sitemap
-> => {
+const categoryEntries = async (): Promise<MetadataRoute.Sitemap> => {
   try {
     const categories = await siteCategories();
     return categories
@@ -67,8 +65,7 @@ export const revalidate = 3600;
  * The same rows `generateStaticParams` uses, so the pages listed here are
  * exactly the pages that were prerendered.
  */
-const articleEntries = async (): Promise<
-  MetadataRoute.Sitemap> => {
+const articleEntries = async (): Promise<MetadataRoute.Sitemap> => {
   const { rows } = await allBlogsForBuild();
 
   return rows.map((row) => ({

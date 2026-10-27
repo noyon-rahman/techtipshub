@@ -6,8 +6,8 @@ import mongoose from "mongoose";
  *
  * A Google callback is a browser redirect: the API sets the cookies on that
  * response, and they belong to the API's domain. The site is on another
- * domain, so it never sees them. Rather than putting tokens in a URL — where
- * they would sit in history, logs and Referer headers — the API puts a short
+ * domain, so it never sees them. Rather than putting tokens in a URL - where
+ * they would sit in history, logs and Referer headers - the API puts a short
  * random code there and the site trades it, server to server, for the cookies.
  *
  * Stored hashed: a leaked database row is not a usable session. Single use: the
@@ -37,7 +37,8 @@ const Handoff = mongoose.model<IHandoff>(
 /** Long enough that guessing is hopeless, short enough to live in a URL. */
 export const HANDOFF_TTL_SECONDS = 60;
 
-const digest = (code: string) => createHash("sha256").update(code).digest("hex");
+const digest = (code: string) =>
+  createHash("sha256").update(code).digest("hex");
 
 /** Store a session under a fresh code and return the code to put in the URL. */
 export const createHandoff = async (session: {
@@ -65,11 +66,16 @@ export const createHandoff = async (session: {
 export const claimHandoff = async (code: string) => {
   if (!code) return null;
 
-  const found = await Handoff.findOneAndDelete({ codeHash: digest(code) }).lean();
+  const found = await Handoff.findOneAndDelete({
+    codeHash: digest(code),
+  }).lean();
 
   if (!found) return null;
 
-  if (Date.now() - new Date(found.createdAt).getTime() > HANDOFF_TTL_SECONDS * 1000) {
+  if (
+    Date.now() - new Date(found.createdAt).getTime() >
+    HANDOFF_TTL_SECONDS * 1000
+  ) {
     return null;
   }
 

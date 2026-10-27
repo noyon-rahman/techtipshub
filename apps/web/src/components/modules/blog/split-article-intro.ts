@@ -21,7 +21,8 @@ export const splitAfterIntro = (
 ): [string, string] | null => {
   if (!html) return null;
 
-  const tags = /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)(?:[^>"']|"[^"]*"|'[^']*')*?(\/?)>/g;
+  const tags =
+    /<(\/?)([a-zA-Z][a-zA-Z0-9-]*)(?:[^>"']|"[^"]*"|'[^']*')*?(\/?)>/g;
   const voidTags = new Set([
     "area",
     "base",

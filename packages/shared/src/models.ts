@@ -7,7 +7,13 @@
  * receive.
  */
 
-import type { TContentType, TSocialLink, TUserGender, TUserRole, TUserStatus } from "./enums";
+import type {
+  TContentType,
+  TSocialLink,
+  TUserGender,
+  TUserRole,
+  TUserStatus,
+} from "./enums";
 
 export interface ICategory {
   _id: string;

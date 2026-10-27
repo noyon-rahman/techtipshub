@@ -528,7 +528,7 @@ const restoreUser = async (id: string, adminEmail?: string) => {
 
 const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
   const session = await mongoose.startSession();
-  let totalFollowers = 0;
+  let totalFollowers;
 
   try {
     session.startTransaction();
@@ -600,7 +600,7 @@ const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
 // Unfollow a user with transaction
 const unfollowUser = async (userData: JwtPayload, userIdToUnfollow: string) => {
   const session = await mongoose.startSession();
-  let totalFollowers = 0;
+  let totalFollowers;
 
   try {
     session.startTransaction();

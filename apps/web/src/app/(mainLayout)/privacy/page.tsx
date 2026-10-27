@@ -24,17 +24,17 @@ const sections: ILegalSection[] = [
     content: (
       <>
         <p>
-          <strong>{legalConfig.operator}</strong> (&ldquo;we&rdquo;,
-          &ldquo;us&rdquo; or &ldquo;our&rdquo;) publishes articles about web
-          development, artificial intelligence and the tools developers use. We
-          operate the website at{" "}
+          <strong>{legalConfig.operator}</strong> is published by{" "}
+          {legalConfig.legalEntity} (&ldquo;we&rdquo; or &ldquo;us&rdquo;). The
+          site carries articles about web development, artificial intelligence
+          and the tools developers use, at{" "}
           <a href={legalConfig.siteUrl}>{legalConfig.siteUrl}</a>.
         </p>
         <p>
           This policy explains what personal information we collect when you
           visit the site, create an account, publish an article, comment or
-          vote; why we collect it; who we share it with;
-          and the choices available to you.
+          vote; why we collect it; who we share it with; and the choices
+          available to you.
         </p>
         <p>
           For the purposes of data protection law, we are the controller of the
@@ -47,8 +47,8 @@ const sections: ILegalSection[] = [
         <p>
           By using the site you acknowledge this policy. If you do not agree
           with it, please do not create an account or use the features that
-          require one. Our{" "}
-          <Link href="/cookie">Cookie Policy</Link> forms part of this policy.
+          require one. Our <Link href="/cookie">Cookie Policy</Link> forms part
+          of this policy.
         </p>
       </>
     ),
@@ -65,19 +65,19 @@ const sections: ILegalSection[] = [
           Google, Facebook or GitHub, we store:
         </p>
         <ul>
-          <li>
-            your full name, username, email address and profile picture;
-          </li>
+          <li>your full name, username, email address and profile picture;</li>
           <li>
             optional profile details you choose to add, such as a bio,
-            designation, location, phone number, date of birth, gender and
-            links to social profiles;
+            designation, location, phone number, date of birth, gender and links
+            to social profiles;
           </li>
           <li>
             a one-way hash of your password. We never store your password in
             plain text and we cannot recover it for you;
           </li>
-          <li>your role and account status (for example, active or blocked).</li>
+          <li>
+            your role and account status (for example, active or blocked).
+          </li>
         </ul>
         <h3>Content and activity</h3>
         <p>
@@ -97,9 +97,8 @@ const sections: ILegalSection[] = [
         <h3>Messages to us</h3>
         <p>
           If you use the contact form we collect your first name, last name,
-          email address, subject and message. The form sends that information
-          to our inbox so we can reply; we do not use it to build a marketing
-          list.
+          email address, subject and message. The form sends that information to
+          our inbox so we can reply; we do not use it to build a marketing list.
         </p>
         <h3>Charges made in error</h3>
         <p>
@@ -134,8 +133,8 @@ const sections: ILegalSection[] = [
             country). We do not request precise location from your device;
           </li>
           <li>
-            error and security logs, including requests that are rate-limited
-            or rejected.
+            error and security logs, including requests that are rate-limited or
+            rejected.
           </li>
         </ul>
         <p>
@@ -151,20 +150,22 @@ const sections: ILegalSection[] = [
     title: "Information from other sources",
     content: (
       <>
-        <p>We receive limited information from the services that power the site:</p>
+        <p>
+          We receive limited information from the services that power the site:
+        </p>
         <ul>
           <li>
             <strong>Social sign-in.</strong> If you sign in with Google,
             Facebook or GitHub, the provider shares your name, email address,
             profile picture and a provider-specific account identifier. We do
-            not receive your password for those services or access to your
-            posts there.
+            not receive your password for those services or access to your posts
+            there.
           </li>
           <li>
-            <strong>Payments.</strong> TechTipsHub does not process payments.
-            If you contact us about a charge you believe was made in error, we
-            keep the details you send us (such as a transaction identifier) so
-            we can investigate it.
+            <strong>Payments.</strong> TechTipsHub does not process payments. If
+            you contact us about a charge you believe was made in error, we keep
+            the details you send us (such as a transaction identifier) so we can
+            investigate it.
           </li>
           <li>
             <strong>Advertising and analytics.</strong> Google, as our
@@ -199,9 +200,7 @@ const sections: ILegalSection[] = [
             send the monthly newsletter you asked for, and stop sending it when
             you ask us to;
           </li>
-          <li>
-            investigate and resolve reports of charges made in error;
-          </li>
+          <li>investigate and resolve reports of charges made in error;</li>
           <li>
             moderate content, investigate reports, enforce our{" "}
             <Link href="/terms">Terms and Conditions</Link> and{" "}
@@ -216,9 +215,7 @@ const sections: ILegalSection[] = [
             display advertising, including interest-based advertising served by
             Google, and measure its performance;
           </li>
-          <li>
-            answer your messages and comply with legal obligations.
-          </li>
+          <li>answer your messages and comply with legal obligations.</li>
         </ul>
         <h3>Legal bases</h3>
         <p>
@@ -264,7 +261,9 @@ const sections: ILegalSection[] = [
               </tr>
               <tr>
                 <td>Interest-based advertising</td>
-                <td>Your consent where required, otherwise as described below</td>
+                <td>
+                  Your consent where required, otherwise as described below
+                </td>
               </tr>
             </tbody>
           </table>
@@ -282,14 +281,14 @@ const sections: ILegalSection[] = [
     content: (
       <>
         <p>
-          We use cookies to keep you signed in and to measure and fund the
-          site. Cookies are small text files stored by your browser. We also
-          use browser storage for your light or dark theme preference.
+          We use cookies to keep you signed in and to measure and fund the site.
+          Cookies are small text files stored by your browser. We also use
+          browser storage for your light or dark theme preference.
         </p>
         <p>
-          Cookies fall into three groups: strictly necessary cookies for
-          sign-in and security, analytics cookies that tell us how pages are
-          used, and advertising cookies set by Google. The{" "}
+          Cookies fall into three groups: strictly necessary cookies for sign-in
+          and security, analytics cookies that tell us how pages are used, and
+          advertising cookies set by Google. The{" "}
           <Link href="/cookie">Cookie Policy</Link> lists the cookies involved,
           their purposes and how to control them.
         </p>
@@ -369,8 +368,8 @@ const sections: ILegalSection[] = [
     content: (
       <>
         <p>
-          We share personal information only with service providers that help
-          us run the site, and only as far as needed for their task:
+          We share personal information only with service providers that help us
+          run the site, and only as far as needed for their task:
         </p>
         <LegalTable label="Third-party service providers">
           <table>
@@ -395,9 +394,7 @@ const sections: ILegalSection[] = [
               </tr>
               <tr>
                 <td>Google</td>
-                <td>
-                  Analytics, Tag Manager, advertising and social sign-in
-                </td>
+                <td>Analytics, Tag Manager, advertising and social sign-in</td>
               </tr>
               <tr>
                 <td>Meta and GitHub</td>
@@ -484,14 +481,14 @@ const sections: ILegalSection[] = [
         <ul>
           <li>
             <strong>Account and profile data</strong> while your account is
-            open. If you delete your account, we delete or anonymise the
-            profile within 30 days.
+            open. If you delete your account, we delete or anonymise the profile
+            within 30 days.
           </li>
           <li>
             <strong>Articles and comments</strong> while they are published.
             After account deletion they are removed or attributed to a deleted
-            user, unless retention is needed to resolve a dispute or comply
-            with the law.
+            user, unless retention is needed to resolve a dispute or comply with
+            the law.
           </li>
           <li>
             <strong>Billing correspondence</strong> for as long as tax,
@@ -532,8 +529,8 @@ const sections: ILegalSection[] = [
           database and admin tools is restricted to authorised people.
         </p>
         <p>
-          No service is completely secure. Please use a unique password, keep
-          it private and tell us promptly if you believe your account has been
+          No service is completely secure. Please use a unique password, keep it
+          private and tell us promptly if you believe your account has been
           compromised. If a breach is likely to affect your rights, we will
           notify you and the relevant authority as required by law.
         </p>
@@ -545,9 +542,7 @@ const sections: ILegalSection[] = [
     title: "Your rights",
     content: (
       <>
-        <p>
-          Depending on where you live, you may have the right to:
-        </p>
+        <p>Depending on where you live, you may have the right to:</p>
         <ul>
           <li>ask for a copy of the personal information we hold about you;</li>
           <li>correct information that is inaccurate or incomplete;</li>
@@ -562,9 +557,7 @@ const sections: ILegalSection[] = [
             personalised advertising cookies or for the newsletter, without
             affecting processing that happened before withdrawal;
           </li>
-          <li>
-            lodge a complaint with your local data protection authority.
-          </li>
+          <li>lodge a complaint with your local data protection authority.</li>
         </ul>
         <p>
           To exercise a right, email{" "}
@@ -633,8 +626,7 @@ const sections: ILegalSection[] = [
             {legalConfig.contactEmail}
           </a>
           . We prefer email because it gives us a written record, but you can
-          also use the{" "}
-          <Link href="/contact">contact form</Link>.
+          also use the <Link href="/contact">contact form</Link>.
         </p>
         <p>
           If you are not satisfied with our response, you may complain to your

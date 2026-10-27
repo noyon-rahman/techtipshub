@@ -104,7 +104,10 @@ const generateNewAccessToken = async (c: Context<TAppBindings>) => {
   const refreshToken = readRefreshToken(c);
 
   if (!refreshToken) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Session expired. Sign in again.");
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Session expired. Sign in again.",
+    );
   }
 
   const { accessToken, user } =
@@ -125,14 +128,19 @@ const generateNewAccessToken = async (c: Context<TAppBindings>) => {
  */
 const readSession = async (c: Context<TAppBindings>) => {
   const accessToken = c.req.header("authorization")?.split(" ")[1];
-  const session = await authService.readSession(accessToken, readRefreshToken(c));
+  const session = await authService.readSession(
+    accessToken,
+    readRefreshToken(c),
+  );
 
   if (session.signedIn && "renewed" in session && session.renewed) {
     setSessionCookies(c, session.renewed);
   }
 
   return sendResponse(c, httpStatus.OK, {
-    data: session.signedIn ? { signedIn: true, user: session.user } : { signedIn: false },
+    data: session.signedIn
+      ? { signedIn: true, user: session.user }
+      : { signedIn: false },
   });
 };
 
@@ -230,7 +238,9 @@ const googleCallback = async (c: Context<TAppBindings>) => {
   }
 
   try {
-    const outcome = await authService.googleLogin(await fetchGoogleProfile(code));
+    const outcome = await authService.googleLogin(
+      await fetchGoogleProfile(code),
+    );
 
     // The relay route lives under the site's own `/api`, not at a page path.
     const url = new URL(`${siteUrl()}/api/auth/google/callback`);
@@ -238,7 +248,7 @@ const googleCallback = async (c: Context<TAppBindings>) => {
 
     // The cookies are set on this response too, which serves an API on this
     // domain. The site is somewhere else, so it is also handed a one-time code
-    // to fetch this session for itself — the URL carries a code, never a token.
+    // to fetch this session for itself - the URL carries a code, never a token.
     setSessionCookies(c, outcome);
     url.searchParams.set("handoff", await createHandoff(outcome));
 
@@ -297,7 +307,6 @@ const failedGoogleSignIn = (
 
   return c.redirect(url.toString(), httpStatus.FOUND);
 };
-
 
 export const authController = {
   register,

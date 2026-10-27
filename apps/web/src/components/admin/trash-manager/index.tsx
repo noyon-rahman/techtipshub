@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  formatDate,
-  initialsOf,
-  plural,
-} from "@/components/admin/format";
+import { formatDate, initialsOf, plural } from "@/components/admin/format";
 import {
   ListSelect,
   PAGE_SIZE_OPTIONS,

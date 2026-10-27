@@ -1,6 +1,6 @@
-"use server"
+"use server";
 
-import axiosInstance from "@/lib/AxiosInstance"
+import axiosInstance from "@/lib/AxiosInstance";
 
 export const getDashboardMetrics = async () => {
   try {
@@ -10,4 +10,4 @@ export const getDashboardMetrics = async () => {
   } catch (error: any) {
     return error?.response?.data;
   }
-}
+};

@@ -128,7 +128,8 @@ const NavarDropdown: React.FC = () => {
       placement="bottom-end"
       offset={10}
       classNames={{
-        content: "w-[17.5rem] rounded-xl border border-default-200 p-0 shadow-lg",
+        content:
+          "w-[17.5rem] rounded-xl border border-default-200 p-0 shadow-lg",
       }}
     >
       <DropdownTrigger>

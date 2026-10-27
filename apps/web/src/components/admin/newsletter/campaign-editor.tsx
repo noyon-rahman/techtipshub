@@ -55,7 +55,12 @@ interface IProps {
  * the first issue (everything, ever) and every later one ("what readers
  * missed") the same piece of work.
  */
-const CampaignEditor = ({ draft, onSaved, onCancel, onRequestSend }: IProps) => {
+const CampaignEditor = ({
+  draft,
+  onSaved,
+  onCancel,
+  onRequestSend,
+}: IProps) => {
   const isDraft = Boolean(draft);
 
   const [subject, setSubject] = useState(draft?.subject ?? "");
@@ -102,9 +107,7 @@ const CampaignEditor = ({ draft, onSaved, onCancel, onRequestSend }: IProps) => 
         ? current
         : data.articles.slice(0, MAX_ARTICLES).map((article) => article._id),
     );
-    setSubject((current) =>
-      current || `${data.heading} on TechTipsHub`,
-    );
+    setSubject((current) => current || `${data.heading} on TechTipsHub`);
   }, [suggestion.data]);
 
   const create = useCreateCampaign();
@@ -147,12 +150,15 @@ const CampaignEditor = ({ draft, onSaved, onCancel, onRequestSend }: IProps) => 
   };
 
   const validate = () => {
-    if (subject.trim().length < 3) return "A subject is the one line readers see in their inbox.";
+    if (subject.trim().length < 3)
+      return "A subject is the one line readers see in their inbox.";
     if (subject.trim().length > MAX_SUBJECT) return "The subject is too long.";
-    if (heading.trim().length < 3) return "Give the issue a heading the email can open with.";
+    if (heading.trim().length < 3)
+      return "Give the issue a heading the email can open with.";
     if (heading.trim().length > MAX_HEADING) return "The heading is too long.";
     if (intro.trim().length > MAX_INTRO) return "The intro is too long.";
-    if (preview.trim().length > MAX_PREVIEW) return "The preview line is too long for an inbox.";
+    if (preview.trim().length > MAX_PREVIEW)
+      return "The preview line is too long for an inbox.";
     if (picked.length === 0) return "An issue needs at least one article.";
     return null;
   };
@@ -216,10 +222,13 @@ const CampaignEditor = ({ draft, onSaved, onCancel, onRequestSend }: IProps) => 
       return;
     }
 
-    previewMutation.mutate(draft._id, { onSuccess: () => setPreviewOpen(true) });
+    previewMutation.mutate(draft._id, {
+      onSuccess: () => setPreviewOpen(true),
+    });
   };
 
-  const html = (previewMutation.data as { data?: { html?: string } })?.data?.html;
+  const html = (previewMutation.data as { data?: { html?: string } })?.data
+    ?.html;
   const text = (previewMutation.data as { data?: { text?: string } })?.data
     ?.text;
 
@@ -308,7 +317,11 @@ const CampaignEditor = ({ draft, onSaved, onCancel, onRequestSend }: IProps) => 
         </div>
 
         {!isDraft && suggestion.isLoading ? (
-          <ul className="divide-y divide-default/60" aria-busy="true" aria-hidden>
+          <ul
+            className="divide-y divide-default/60"
+            aria-busy="true"
+            aria-hidden
+          >
             {Array.from({ length: 5 }).map((_, index) => (
               <li key={index} className="px-3.5 py-3">
                 <Skeleton className="h-4 w-3/4 rounded" />
@@ -400,7 +413,11 @@ const CampaignEditor = ({ draft, onSaved, onCancel, onRequestSend }: IProps) => 
           aria-busy={isSaving}
           className={primaryButton}
         >
-          {isSaving ? "Saving…" : isDraft ? "Save the draft" : "Save as a draft"}
+          {isSaving
+            ? "Saving…"
+            : isDraft
+              ? "Save the draft"
+              : "Save as a draft"}
         </button>
         <button
           type="button"

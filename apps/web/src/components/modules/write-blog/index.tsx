@@ -3,7 +3,11 @@
 import { useComposerEditor } from "@/components/editor/rich-text-editor";
 import { useUser } from "@/context/user.provider";
 import { useCreateBlog } from "@/hooks/blog.hook";
-import { editBlogPath, manageBlogsPath, writeBlogPath } from "@/lib/blog-routes";
+import {
+  editBlogPath,
+  manageBlogsPath,
+  writeBlogPath,
+} from "@/lib/blog-routes";
 import { getAllCategories } from "@/services/category";
 import { ICategory } from "@/types";
 import { Button, Spinner } from "@heroui/react";
@@ -69,13 +73,14 @@ const readPendingDraft = () => {
 /** True when this draft has something worth keeping. */
 const isDirty = hasDraftContent;
 
-/** "412 words, about 2 min read", so the writer knows the size of the piece. */const statusLine = (values: BlogFormData) => {
-  const words = wordCount(values.content);
-  if (!words) return "0 words";
-  // 200 words a minute is a normal reading pace for technical prose.
-  const minutes = Math.max(1, Math.round(words / 200));
-  return `${words.toLocaleString()} ${words === 1 ? "word" : "words"}, about ${minutes} min read`;
-};
+/** "412 words, about 2 min read", so the writer knows the size of the piece. */ const statusLine =
+  (values: BlogFormData) => {
+    const words = wordCount(values.content);
+    if (!words) return "0 words";
+    // 200 words a minute is a normal reading pace for technical prose.
+    const minutes = Math.max(1, Math.round(words / 200));
+    return `${words.toLocaleString()} ${words === 1 ? "word" : "words"}, about ${minutes} min read`;
+  };
 
 /**
  * The composer, at `/blogs/new`.
@@ -96,8 +101,11 @@ const WriteBlog = () => {
 
   const [values, setValues] = useState<BlogFormData>(EMPTY_DRAFT);
   // The cover is kept with the draft, so a reload does not lose it.
-  const { file: coverImage, setFile: setCoverImage, sync: syncCover } =
-    useStoredUpload(DRAFT_COVER_KEY);
+  const {
+    file: coverImage,
+    setFile: setCoverImage,
+    sync: syncCover,
+  } = useStoredUpload(DRAFT_COVER_KEY);
   const coverUrl = useObjectUrl(coverImage);
 
   const [categories, setCategories] = useState<ICategory[]>([]);
@@ -328,10 +336,10 @@ const WriteBlog = () => {
       },
       onError: (error) => {
         publishedRef.current = false;
-        toast.error(
-          describeFailure(error, "Publishing did not finish."),
-          { id: "publish-failed", description: "Your draft is still here." },
-        );
+        toast.error(describeFailure(error, "Publishing did not finish."), {
+          id: "publish-failed",
+          description: "Your draft is still here.",
+        });
       },
     });
   };
@@ -558,7 +566,8 @@ const WriteBlog = () => {
           title: values.title,
           content: values.content,
           tags: values.tags,
-          category: categories.find((item) => item._id === values.category)?.name,
+          category: categories.find((item) => item._id === values.category)
+            ?.name,
           coverUrl: showCover ? coverUrl : null,
           authorName: user?.name,
         }}

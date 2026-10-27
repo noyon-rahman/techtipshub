@@ -12,7 +12,11 @@ const blogRouter = new Hono<TAppBindings>();
 // "following-users" as an article slug.
 blogRouter.get("/", blogController.getAll);
 
-blogRouter.get("/following-users", auth(USER_ROLE.USER), blogController.getFollowingUsersBlogs);
+blogRouter.get(
+  "/following-users",
+  auth(USER_ROLE.USER),
+  blogController.getFollowingUsersBlogs,
+);
 
 blogRouter.get(
   "/my-blogs",
@@ -33,7 +37,11 @@ blogRouter.post(
 // get single blog by blog slug (open to everyone; the whole article is returned)
 blogRouter.get("/:slug", optionalAuth, blogController.getSingleBlog);
 
-blogRouter.delete("/:id", auth(USER_ROLE.USER), blogController.deleteBlogByUserUsingId);
+blogRouter.delete(
+  "/:id",
+  auth(USER_ROLE.USER),
+  blogController.deleteBlogByUserUsingId,
+);
 
 blogRouter.put(
   "/:id",
@@ -43,9 +51,17 @@ blogRouter.put(
   blogController.updateBlogByUserUsingId,
 );
 
-blogRouter.put("/:id/vote", auth(USER_ROLE.USER, USER_ROLE.ADMIN), blogController.voteOnBlog);
+blogRouter.put(
+  "/:id/vote",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  blogController.voteOnBlog,
+);
 
-blogRouter.get("/:id/vote-status", auth(USER_ROLE.USER), blogController.getVoteStatus);
+blogRouter.get(
+  "/:id/vote-status",
+  auth(USER_ROLE.USER),
+  blogController.getVoteStatus,
+);
 
 blogRouter.post(
   "/:id/comments",

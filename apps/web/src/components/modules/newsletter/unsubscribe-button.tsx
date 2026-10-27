@@ -9,8 +9,7 @@ type TState =
   | { kind: "failed"; message: string }
   | { kind: "done"; message: string };
 
-const FAILED =
-  "We could not remove this address. Please try again shortly.";
+const FAILED = "We could not remove this address. Please try again shortly.";
 
 interface IProps {
   /** The address the link was signed for, checked by the server. */

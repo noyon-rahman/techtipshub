@@ -31,8 +31,7 @@ const sections: ILegalSection[] = [
         <p>
           They are part of our <Link href="/terms">Terms and Conditions</Link>.
           Breaking them can lead to content removal or account suspension, as
-          described under{" "}
-          <a href="#enforcement">Moderation and enforcement</a>.
+          described under <a href="#enforcement">Moderation and enforcement</a>.
         </p>
       </>
     ),
@@ -66,9 +65,9 @@ const sections: ILegalSection[] = [
       <>
         <ul>
           <li>
-            Publish work you wrote or have permission to publish. Quoting
-            others is fine with attribution and a link; copying an article in
-            full is not.
+            Publish work you wrote or have permission to publish. Quoting others
+            is fine with attribution and a link; copying an article in full is
+            not.
           </li>
           <li>
             Test the code you publish, or say plainly that you have not. Include
@@ -212,11 +211,11 @@ const sections: ILegalSection[] = [
         </ul>
         <p>
           We review complete notices promptly and remove or disable access to
-          material that appears to infringe. We notify the author, who may send a
-          counter-notice with the same level of detail explaining why the use is
-          lawful. We may restore material if a valid counter-notice is received
-          and the complainant does not take the dispute further. Knowingly
-          submitting a false notice can create legal liability.
+          material that appears to infringe. We notify the author, who may send
+          a counter-notice with the same level of detail explaining why the use
+          is lawful. We may restore material if a valid counter-notice is
+          received and the complainant does not take the dispute further.
+          Knowingly submitting a false notice can create legal liability.
         </p>
       </>
     ),
@@ -231,8 +230,8 @@ const sections: ILegalSection[] = [
           <a href={`mailto:${legalConfig.contactEmail}`}>
             {legalConfig.contactEmail}
           </a>{" "}
-          or through the <Link href="/contact">contact form</Link>. Include
-          the URL, what rule you believe is broken, and any context that helps us
+          or through the <Link href="/contact">contact form</Link>. Include the
+          URL, what rule you believe is broken, and any context that helps us
           assess it. Reports are confidential; we do not tell the reported user
           who raised them.
         </p>
@@ -266,15 +265,15 @@ const sections: ILegalSection[] = [
             for a period.
           </li>
           <li>
-            <strong>Suspend or close the account</strong> for serious or repeated
-            breaches.
+            <strong>Suspend or close the account</strong> for serious or
+            repeated breaches.
           </li>
         </ol>
         <p>
-          Serious cases &mdash; threats, child sexual abuse material, coordinated
-          fraud, or attacks on the service &mdash; may lead to immediate
-          suspension while we investigate. Where the law requires it, we report
-          content to the relevant authorities.
+          Serious cases &mdash; threats, child sexual abuse material,
+          coordinated fraud, or attacks on the service &mdash; may lead to
+          immediate suspension while we investigate. Where the law requires it,
+          we report content to the relevant authorities.
         </p>
         <p>
           If you believe a decision was wrong, email us within 14 days. A person
@@ -292,8 +291,8 @@ const sections: ILegalSection[] = [
         <p>
           We update these guidelines as the community grows or new abuse
           patterns appear. The date at the top shows the current version, and
-          material changes are announced on the site. Continuing to publish after
-          a change means you accept the updated rules.
+          material changes are announced on the site. Continuing to publish
+          after a change means you accept the updated rules.
         </p>
       </>
     ),

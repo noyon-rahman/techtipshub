@@ -71,9 +71,7 @@ export default function FormDialog({
     if (!isOpen) return;
 
     const dialog = dialogRef.current;
-    dialog
-      ?.querySelector<HTMLElement>("input, textarea, select")
-      ?.focus();
+    dialog?.querySelector<HTMLElement>("input, textarea, select")?.focus();
   }, [isOpen]);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {

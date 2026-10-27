@@ -45,13 +45,11 @@ const ToasterMount = () => {
       }
       toastOptions={{
         classNames: {
-          toast:
-            "tth-panel !gap-3 !px-4 !py-3.5 !font-sans !shadow-lg",
+          toast: "tth-panel !gap-3 !px-4 !py-3.5 !font-sans !shadow-lg",
           icon: "!m-0 !size-4 shrink-0 self-start mt-0.5",
           content: "!gap-1",
           title: "!text-sm !font-medium !leading-snug !text-foreground",
-          description:
-            "!text-[0.8125rem] !leading-relaxed !text-default-600",
+          description: "!text-[0.8125rem] !leading-relaxed !text-default-600",
           success: "[&_[data-icon]]:!text-success",
           error: "[&_[data-icon]]:!text-danger",
           warning: "[&_[data-icon]]:!text-warning",

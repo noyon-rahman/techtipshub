@@ -16,7 +16,10 @@
  * off successes, whose copy the screens own.
  */
 
-export type { IErrorSource, IErrorSource as TErrorSource } from "@techtipshub/shared";
+export type {
+  IErrorSource,
+  IErrorSource as TErrorSource,
+} from "@techtipshub/shared";
 import type { IErrorSource } from "@techtipshub/shared";
 
 export interface TLegacyBody<TData = unknown> {
@@ -43,7 +46,7 @@ type TApiBody = {
  * Translate one API body into the shape the screens read.
  *
  * `TData` is the type of the API's own `data` for that route, and is only a
- * claim about the body — nothing here inspects it. A caller that declares it
+ * claim about the body - nothing here inspects it. A caller that declares it
  * gets typed fields back instead of `unknown`.
  *
  * `ok` is the HTTP status decision, not a guess from the body. `fallback` is

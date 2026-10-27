@@ -37,10 +37,32 @@ import { useTheme } from "next-themes";
 const DEBOUNCE_MS = 220;
 
 const pageTargets = (): CommandTarget[] => [
-  { id: "page:feed", kind: "page", label: "Latest articles", detail: "The feed", href: "/" },
-  { id: "page:following", kind: "page", label: "People you follow", detail: "Following feed", href: "/following" },
-  { id: "page:features", kind: "page", label: "What TechTipsHub offers", href: "/features" },
-  { id: "page:about", kind: "page", label: "About TechTipsHub", href: "/about" },
+  {
+    id: "page:feed",
+    kind: "page",
+    label: "Latest articles",
+    detail: "The feed",
+    href: "/",
+  },
+  {
+    id: "page:following",
+    kind: "page",
+    label: "People you follow",
+    detail: "Following feed",
+    href: "/following",
+  },
+  {
+    id: "page:features",
+    kind: "page",
+    label: "What TechTipsHub offers",
+    href: "/features",
+  },
+  {
+    id: "page:about",
+    kind: "page",
+    label: "About TechTipsHub",
+    href: "/about",
+  },
   { id: "page:contact", kind: "page", label: "Contact", href: "/contact" },
 ];
 
@@ -77,9 +99,8 @@ const CommandPalette = ({ open, onClose }: IProps) => {
   const [categories, setCategories] = useState<
     Awaited<ReturnType<typeof listCategories>>["categories"]
   >([]);
-  const [profile, setProfile] = useState<
-    Awaited<ReturnType<typeof lookupProfile>>["user"]
-  >(null);
+  const [profile, setProfile] =
+    useState<Awaited<ReturnType<typeof lookupProfile>>["user"]>(null);
   const [profileFailed, setProfileFailed] = useState(false);
   const [categoriesFailed, setCategoriesFailed] = useState(false);
 
@@ -206,14 +227,19 @@ const CommandPalette = ({ open, onClose }: IProps) => {
   const scoreItems = useCallback(
     (items: CommandTarget[], words: string) =>
       items
-        .map((item) => ({ item, ...fuzzyScore(`${item.label} ${item.detail ?? ""}`, words) }))
-        .filter(({ score, item }) =>
-          // A row can carry words that are not shown ("dark mode"), so a
-          // plain match on those still counts.
-          score > 0 || (!!item.keywords && matchesQuery(item.keywords, words)),
+        .map((item) => ({
+          item,
+          ...fuzzyScore(`${item.label} ${item.detail ?? ""}`, words),
+        }))
+        .filter(
+          ({ score, item }) =>
+            // A row can carry words that are not shown ("dark mode"), so a
+            // plain match on those still counts.
+            score > 0 ||
+            (!!item.keywords && matchesQuery(item.keywords, words)),
         )
         .sort((a, b) => b.score - a.score)
-        .map(({ item, ranges }) => ({ ...item, ranges })), 
+        .map(({ item, ranges }) => ({ ...item, ranges })),
     [],
   );
 
@@ -258,7 +284,9 @@ const CommandPalette = ({ open, onClose }: IProps) => {
       }));
 
       return [
-        ...(newest.length ? [{ id: "newest", label: "Recently published", items: newest }] : []),
+        ...(newest.length
+          ? [{ id: "newest", label: "Recently published", items: newest }]
+          : []),
         {
           id: "categories",
           label: "Browse a category",
@@ -341,11 +369,30 @@ const CommandPalette = ({ open, onClose }: IProps) => {
         })),
     });
 
-    result.push({ id: "actions", label: "Actions", items: scoreItems(actions, trimmed) });
-    result.push({ id: "pages", label: "Go to", items: scoreItems(pageTargets(), trimmed) });
+    result.push({
+      id: "actions",
+      label: "Actions",
+      items: scoreItems(actions, trimmed),
+    });
+    result.push({
+      id: "pages",
+      label: "Go to",
+      items: scoreItems(pageTargets(), trimmed),
+    });
 
     return result.filter((group) => group.items.length > 0);
-  }, [articles, categories, close, currentProfile, handle, scoreItems, setTheme, theme, trimmed, user]);
+  }, [
+    articles,
+    categories,
+    close,
+    currentProfile,
+    handle,
+    scoreItems,
+    setTheme,
+    theme,
+    trimmed,
+    user,
+  ]);
 
   const { items, active, activeIndex, move, moveToEdge, setActiveId } =
     useRovingSelection(groups);
@@ -372,11 +419,15 @@ const CommandPalette = ({ open, onClose }: IProps) => {
     !!trimmed &&
     !searching &&
     !failed &&
-    !items.some((item) => item.kind === "article" && item.id !== "articles:all");
+    !items.some(
+      (item) => item.kind === "article" && item.id !== "articles:all",
+    );
 
   // Keep the active row inside the scroll area the list owns.
   useEffect(() => {
-    const row = listRef.current?.querySelector<HTMLElement>('[data-active="true"]');
+    const row = listRef.current?.querySelector<HTMLElement>(
+      '[data-active="true"]',
+    );
     row?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, items.length]);
 
@@ -491,15 +542,13 @@ const CommandPalette = ({ open, onClose }: IProps) => {
                   <button
                     type="button"
                     onClick={() =>
-                      go(
-                        handle
-                          ? searchPath(handle)
-                          : searchPath(trimmed),
-                      )
+                      go(handle ? searchPath(handle) : searchPath(trimmed))
                     }
                     className="mt-4 text-sm font-medium text-primary-accessible underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70"
                   >
-                    {handle ? "Search articles for this name" : "Search the feed instead"}
+                    {handle
+                      ? "Search articles for this name"
+                      : "Search the feed instead"}
                   </button>
                 )}
               </div>
@@ -508,8 +557,7 @@ const CommandPalette = ({ open, onClose }: IProps) => {
             {articlesEmpty && (
               <p className="px-2.5 py-2 text-xs text-default-600">
                 {groups.some(
-                  (group) =>
-                    group.id !== "articles" && group.id !== "profiles",
+                  (group) => group.id !== "articles" && group.id !== "profiles",
                 )
                   ? "No article matched. The categories and pages below still do."
                   : "No article matched. “All results” searches the whole feed, not just titles."}

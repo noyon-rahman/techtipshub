@@ -30,7 +30,8 @@ const UnsubscribePage = async ({
       ? await readUnsubscribeAction({ email, token })
       : {
           valid: false as const,
-          message: "This link is incomplete. Use the unsubscribe link at the foot of any edition.",
+          message:
+            "This link is incomplete. Use the unsubscribe link at the foot of any edition.",
         };
 
   return (

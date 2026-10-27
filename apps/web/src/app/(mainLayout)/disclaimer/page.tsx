@@ -146,8 +146,8 @@ const sections: ILegalSection[] = [
           Registered users can publish articles and comments. Those views belong
           to their authors and are not reviewed by us for correctness before
           publication. We moderate for compliance with our{" "}
-          <Link href="/community-guidelines">Community Guidelines</Link>, not for
-          technical accuracy.
+          <Link href="/community-guidelines">Community Guidelines</Link>, not
+          for technical accuracy.
         </p>
         <p>
           If a community post contains an error, treat it with the same

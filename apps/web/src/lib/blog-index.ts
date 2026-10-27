@@ -47,10 +47,13 @@ const load = async (): Promise<IndexedBlogs> => {
 
     do {
       try {
-        const res = await fetch(`${base}/blogs?limit=${PAGE_SIZE}&page=${page}`, {
-          cache: "force-cache",
-          next: { tags: ["allBlogs"], revalidate: 3600 },
-        });
+        const res = await fetch(
+          `${base}/blogs?limit=${PAGE_SIZE}&page=${page}`,
+          {
+            cache: "force-cache",
+            next: { tags: ["allBlogs"], revalidate: 3600 },
+          },
+        );
 
         if (!res.ok) break;
 
@@ -115,7 +118,7 @@ export const blogForBuild = async (slug: string) => {
  *
  * The build index is filled from the article list, which carries the body and
  * `updatedAt`. The `updatedAt` a page is handed is the one the list saw at the
- * last build, so a match means nothing has changed since — the indexed row has
+ * last build, so a match means nothing has changed since - the indexed row has
  * the same title, body and timestamps the per-request fetch would return, and
  * the page can be rendered as an ordinary static page. A mismatch, or a slug
  * the build never saw, means the article changed and the page fetches it.

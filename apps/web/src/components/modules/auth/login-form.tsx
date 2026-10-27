@@ -16,15 +16,20 @@ import { Suspense, useEffect, useState } from "react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import { PiEyeLight, PiEyeSlashLight } from "react-icons/pi";
 
-const label =
-  "mb-1 block tth-label-sm text-default-600";
+const label = "mb-1 block tth-label-sm text-default-600";
 
 const LoginForm = () => {
   const searchParams = useSearchParams();
   const [isPassword, setIsPassword] = useState(true);
 
   const { setIsLoading: setUserLoading } = useUser();
-  const { mutate: handleLogin, isPending, data, isError, error } = useUserLogin();
+  const {
+    mutate: handleLogin,
+    isPending,
+    data,
+    isError,
+    error,
+  } = useUserLogin();
 
   const onSubmit: SubmitHandler<FieldValues> = (values) => {
     handleLogin(values as TLogin);
@@ -41,7 +46,7 @@ const LoginForm = () => {
       //
       // A full load, not `router.push`. The article they were sent back to was
       // rendered before they had a session, and a client-side navigation reuses
-      // that document and asks the server who is reading only once hydrated —
+      // that document and asks the server who is reading only once hydrated -
       // seconds of the members prompt over an article they are now allowed to
       // read. Requesting it after the session exists means the header, the
       // article and its body are all correct on the first paint.
@@ -53,13 +58,19 @@ const LoginForm = () => {
   // leaving the form looking like nothing happened. A Google sign-in that did
   // not finish arrives as `?google=<reason>`, which this page turns into copy.
   const errorMessage =
-    googleFailureMessage(searchParams.get("google"), searchParams.get("error")) ||
+    googleFailureMessage(
+      searchParams.get("google"),
+      searchParams.get("error"),
+    ) ||
     (data && !data.success && data.message) ||
     (isError ? error?.message : undefined);
 
   return (
     <Suspense>
-      <THForm onSubmit={onSubmit} resolver={zodResolver(signInValidationSchema)}>
+      <THForm
+        onSubmit={onSubmit}
+        resolver={zodResolver(signInValidationSchema)}
+      >
         <div className="space-y-4">
           <div>
             <label htmlFor="email" className={label}>

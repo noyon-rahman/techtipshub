@@ -118,8 +118,7 @@ export const EditorShell = ({
         </div>
         <div
           className={`hidden lg:block lg:sticky ${
-            railStickyClass ??
-            "lg:top-[calc(var(--header-height)+3.5rem)]"
+            railStickyClass ?? "lg:top-[calc(var(--header-height)+3.5rem)]"
           }`}
         >
           {sidebar}
@@ -175,7 +174,10 @@ const PageBar = ({
         {leaveLabel}
       </Link>
 
-      <span aria-hidden className="hidden h-4 w-px shrink-0 bg-default-200 sm:block" />
+      <span
+        aria-hidden
+        className="hidden h-4 w-px shrink-0 bg-default-200 sm:block"
+      />
 
       <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2.5 gap-y-1 sm:gap-y-0.5">
         <span className="w-full shrink-0 truncate text-[0.8125rem] font-medium text-foreground sm:w-auto">
@@ -336,11 +338,9 @@ export const EditorBody = ({
 }) => <EditorSurface editor={editor} hasError={invalid} />;
 
 /** The formatting tools, as they sit at the top of the writing column. */
-export const ComposerToolbar = ({
-  editor,
-}: {
-  editor: BlogEditor;
-}) => <EditorToolbar editor={editor} />;
+export const ComposerToolbar = ({ editor }: { editor: BlogEditor }) => (
+  <EditorToolbar editor={editor} />
+);
 
 interface IPublishingDetailsProps {
   idPrefix: string;
@@ -666,7 +666,10 @@ export const SavingOverlay = ({ label }: { label: string }) => (
  * The article's reading time, at the pace the published page uses.
  */
 const readingMinutes = (html: string) => {
-  const words = html.replace(/<[^>]+>/g, " ").split(/\s+/).filter(Boolean).length;
+  const words = html
+    .replace(/<[^>]+>/g, " ")
+    .split(/\s+/)
+    .filter(Boolean).length;
   return words ? Math.max(1, Math.round(words / 220)) : null;
 };
 
@@ -830,9 +833,8 @@ export const categoryName = (
   const value = blog.category;
   if (!value) return undefined;
   if (typeof value === "string") {
-    return categories.find(
-      (item) => item._id === value || item.name === value,
-    )?.name;
+    return categories.find((item) => item._id === value || item.name === value)
+      ?.name;
   }
   return value.name || categories.find((item) => item._id === value._id)?.name;
 };

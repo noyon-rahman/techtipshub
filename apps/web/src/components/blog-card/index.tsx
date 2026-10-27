@@ -60,19 +60,19 @@ const BlogCard = ({
             )}
           </div>
 
-        {coverImage && (
-          <div className="shrink-0 overflow-hidden rounded-lg bg-default-100 sm:w-40 lg:w-44">
-            <div className="relative aspect-[16/10]">
-              <Image
-                className="object-cover"
-                src={coverImage}
-                alt=""
-                fill
-                sizes="(min-width: 1024px) 176px, (min-width: 640px) 160px, 100vw"
-              />
+          {coverImage && (
+            <div className="shrink-0 overflow-hidden rounded-lg bg-default-100 sm:w-40 lg:w-44">
+              <div className="relative aspect-[16/10]">
+                <Image
+                  className="object-cover"
+                  src={coverImage}
+                  alt=""
+                  fill
+                  sizes="(min-width: 1024px) 176px, (min-width: 640px) 160px, 100vw"
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
       </Link>
 

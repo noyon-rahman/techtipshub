@@ -24,9 +24,9 @@ const sections: ILegalSection[] = [
     content: (
       <>
         <p>
-          Cookies are small text files that a website asks your browser to store.
-          They let the site remember things between page loads &mdash; most
-          importantly, that you are signed in. Similar technologies include
+          Cookies are small text files that a website asks your browser to
+          store. They let the site remember things between page loads &mdash;
+          most importantly, that you are signed in. Similar technologies include
           local storage, which this site uses for your theme choice.
         </p>
         <p>
@@ -194,9 +194,7 @@ const sections: ILegalSection[] = [
                   <code>__gads</code>, <code>__gpi</code>
                 </td>
                 <td>Google</td>
-                <td>
-                  Ad measurement, frequency capping and fraud prevention.
-                </td>
+                <td>Ad measurement, frequency capping and fraud prevention.</td>
                 <td>Up to 13 months</td>
               </tr>
               <tr>
@@ -352,8 +350,8 @@ const sections: ILegalSection[] = [
         </p>
         <p>
           Most browsers also send a &ldquo;Do Not Track&rdquo; signal. There is
-          still no common standard for how sites should respond, so we do not act
-          on it; use the controls above instead.
+          still no common standard for how sites should respond, so we do not
+          act on it; use the controls above instead.
         </p>
       </>
     ),

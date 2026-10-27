@@ -29,7 +29,7 @@ export interface SlashItem {
    * Adds the block to an existing chain.
    *
    * It receives the chain that has already deleted the "/query" text, so the
-   * deletion and the block change commit as one transaction — see
+   * deletion and the block change commit as one transaction - see
    * `clearSlashText` for why that matters.
    */
   chain?: (chain: ChainedCommands) => ChainedCommands;

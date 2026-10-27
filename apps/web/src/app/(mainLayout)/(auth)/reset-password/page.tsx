@@ -24,7 +24,7 @@ const points = [
   {
     title: "Stuck?",
     description:
-      "If the link has expired, request a fresh one — it takes a few seconds.",
+      "If the link has expired, request a fresh one - it takes a few seconds.",
   },
 ];
 

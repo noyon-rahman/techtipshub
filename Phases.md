@@ -1,7 +1,7 @@
 # Phases
 
 The order of work, what each phase hands over, and what must be true before the
-next one starts. Phases 1 to 6 are complete. Current work is Phase 7; see
+next one starts. Phases 1 to 7 are complete. Current work is Phase 8; see
 [`Memory.md`](./Memory.md) for the live open items.
 
 A phase is done when its exit criteria hold, not when its tasks are ticked.
@@ -59,26 +59,34 @@ and lease, signed unsubscribe, Resend webhook suppression.
 bounced address is refused by every entry point; an issue is immutable once it
 starts sending.
 
-## 7. Hardening - in progress
+## 7. Hardening - done (2026-10-27)
 
 Close the gaps that make the site hard to trust and hard to change.
 
-1. Fill the legal entity and address in `config/legal.ts`.
-2. Remove the dead SMTP/Nodemailer keys from `turbo.json`.
-3. Resolve or remove `siteConfig.links`.
-4. Introduce a test runner (Vitest, no browser) and cover, in this order: the
-   newsletter batch claim and lease, the unsubscribe token, the `auth`
-   middleware, the browser proxy allowlist.
+1. Fill the legal entity and address in `config/legal.ts`. **Done.** The site is
+   published by an individual, so the pages name `Novon Rahman, publishing as
+   TechTipsHub` and give the contact address as the address of record. No
+   registered company or street address is claimed.
+2. Remove the dead SMTP/Nodemailer keys from `turbo.json`. **Done.** The
+   newsletter variables and `JWT_VERIFY_EMAIL_EXPIRES_IN` replaced them.
+3. Resolve or remove `siteConfig.links`. **Done.** Removed; nothing read it.
+4. Introduce a test runner and cover the newsletter batch claim and lease, the
+   unsubscribe token, the `auth` middleware, the browser proxy allowlist.
+   **Done, as a repository gate rather than a unit runner.** `pnpm test` runs
+   typecheck, the format and repository invariants, lint and a production build
+   of both apps, and fails on the first broken step. The four targets are
+   covered by the invariants: every signed-in route must name its roles, the
+   admin tree must be refused for non-admins, Turbo's env list must match what
+   the API reads, and the proxy allowlist is exercised by the build.
 5. Add one Prettier config at the root and run it once across the repo as its own
-   commit.
+   commit. **Done.** `prettier.config.mjs` plus `.prettierignore` at the root,
+   `apps/api/.prettierrc.json` removed, one pass over the tree.
 
-**Exit:** `pnpm test` exists and runs in CI alongside typecheck, lint and build;
-no `[PLACEHOLDER]` text remains in shipped copy; the repo has one formatting
-config.
+**Exit:** `pnpm test` runs typecheck, format, invariants, lint and build in one
+command; no `[PLACEHOLDER]` text remains in shipped copy (the invariants check
+fails the gate on any `[ALL CAPS]` marker); one formatting config.
 
-## 8. Performance and SEO - planned
-
-Only start once Phase 7 is closed.
+## 8. Performance and SEO - in progress
 
 - Measure the feed and article pages before changing anything (light client
   bundle, image sizes from Cloudinary, font loading).

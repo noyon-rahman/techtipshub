@@ -15,13 +15,14 @@ import { splitAfterIntro } from "@/components/modules/blog/split-article-intro";
 /** Words shown when the body has no paragraph to cut after. */
 const FALLBACK_PREVIEW_WORDS = 120;
 
-const VOID_ELEMENTS = /^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/;
+const VOID_ELEMENTS =
+  /^(area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/;
 
 /**
  * The first `words` words of a body, as HTML, with every tag it opened closed.
  *
  * The cut is pushed back to the end of the last whole word, so the result is
- * never half a tag or half an attribute — word tokens are matched outside
+ * never half a tag or half an attribute - word tokens are matched outside
  * tags. The opening elements still in effect at the cut are closed in reverse
  * order, so the snippet stays valid even when the article opens with a list, a
  * quote or a table.
@@ -37,7 +38,9 @@ const firstWords = (html: string, words: number): string => {
     const token = match[0];
 
     if (token.startsWith("<")) {
-      const name = /^<\/?([a-zA-Z][a-zA-Z0-9-]*)/.exec(token)?.[1]?.toLowerCase();
+      const name = /^<\/?([a-zA-Z][a-zA-Z0-9-]*)/
+        .exec(token)?.[1]
+        ?.toLowerCase();
       if (!name) continue;
 
       if (token[1] === "/") {
@@ -71,7 +74,7 @@ const firstWords = (html: string, words: number): string => {
  *
  * One paragraph was not enough to read: the boundary arrived before the reader
  * had anything to lose, and the page read as broken rather than locked. Three
- * is roughly a screen of prose — enough to be invested, short enough that the
+ * is roughly a screen of prose - enough to be invested, short enough that the
  * ask is not buried.
  */
 const PREVIEW_PARAGRAPHS = 3;

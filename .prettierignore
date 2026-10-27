@@ -1,0 +1,9 @@
+node_modules
+.next
+.turbo
+dist
+build
+pnpm-lock.yaml
+apps/web/public/brand
+*.md
+apps/api/email-templates

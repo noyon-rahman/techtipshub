@@ -40,7 +40,7 @@ const openDb = () => {
   return dbPromise;
 };
 
-const settled = <T,>(request: IDBRequest<T>) =>
+const settled = <T>(request: IDBRequest<T>) =>
   new Promise<T | null>((resolve) => {
     request.onsuccess = () => resolve(request.result ?? null);
     request.onerror = () => resolve(null);
@@ -104,7 +104,7 @@ const readUpload = async (key: string): Promise<File | null> => {
  * `storageKey` is what the cover belongs to (the composer's draft), so two
  * tabs on different drafts cannot steal each other's image. The editor passes
  * its blog key and `remember: false`, because a cover picked while editing is
- * only real once the blog is saved — the caller then calls `remember()`.
+ * only real once the blog is saved - the caller then calls `remember()`.
  */
 export const useStoredUpload = (
   storageKey: string | null,
@@ -137,9 +137,7 @@ export const useStoredUpload = (
 
   /** Writes the current state to storage (null clears it). */
   const sync = (next: File | null) =>
-    storageKey && remember
-      ? writeUpload(storageKey, next)
-      : Promise.resolve();
+    storageKey && remember ? writeUpload(storageKey, next) : Promise.resolve();
 
   return { file, setFile, sync };
 };

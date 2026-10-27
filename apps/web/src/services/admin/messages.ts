@@ -25,7 +25,7 @@ const readCounts = (value: unknown): TContactCounts | undefined => {
 /**
  * `GET /admin/messages` (Admin).
  *
- * Answers `{ success, data: { result, meta, counts } }` — rows, paging and the
+ * Answers `{ success, data: { result, meta, counts } }` - rows, paging and the
  * per-status counts all nest under `data`. Throws on failure.
  */
 export const getContactMessages = async (params: TContactMessageQuery = {}) => {

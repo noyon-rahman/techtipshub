@@ -36,9 +36,7 @@ const update = z
       })
       .optional(),
     content: z.string({ error: "Content must be a string" }).optional(),
-    coverImage: z
-      .string({ error: "Cover Image must be a string" })
-      .optional(),
+    coverImage: z.string({ error: "Cover Image must be a string" }).optional(),
     category: z
       .string({ error: "Category Id must be a string" })
       .refine((val) => mongoose.Types.ObjectId.isValid(val), {
@@ -77,9 +75,7 @@ const updateByAdmin = z
       })
       .optional(),
     content: z.string({ error: "Content must be a string" }).optional(),
-    coverImage: z
-      .string({ error: "Cover Image must be a string" })
-      .optional(),
+    coverImage: z.string({ error: "Cover Image must be a string" }).optional(),
     category: z
       .string({ error: "Category Id must be a string" })
       .refine((val) => mongoose.Types.ObjectId.isValid(val), {

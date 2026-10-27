@@ -21,14 +21,18 @@ const options = [
   { key: "Other", label: "Other" },
 ];
 
-const label =
-  "mb-1 block tth-label-sm text-default-600";
+const label = "mb-1 block tth-label-sm text-default-600";
 
 const SignUpForm = () => {
   const [isPassword, setIsPassword] = useState(true);
   const router = useRouter();
-  const { mutate: registerUser, isPending, data, isError, error } =
-    useUserRegister();
+  const {
+    mutate: registerUser,
+    isPending,
+    data,
+    isError,
+    error,
+  } = useUserRegister();
 
   const onSubmit: SubmitHandler<FieldValues> = (values) => {
     const formData = new FormData();

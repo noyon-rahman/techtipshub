@@ -7,8 +7,8 @@ import { Skeleton } from "@heroui/skeleton";
  *
  * `[slug]/loading.tsx` beside it describes the published article; it would be
  * the wrong shape here and flash over the editor on every article opened. This
- * one traces the editor's own first screen — a label, a display-width title
- * line and the body block — inside the same frame the composer uses.
+ * one traces the editor's own first screen - a label, a display-width title
+ * line and the body block - inside the same frame the composer uses.
  */
 const EditBlogLoading = () => (
   <section className="pt-4" aria-busy="true" aria-live="polite">

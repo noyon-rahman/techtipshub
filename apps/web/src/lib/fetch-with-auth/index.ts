@@ -24,7 +24,7 @@ const readCookie = async (name: string): Promise<string | undefined> => {
 /**
  * Renewal itself happens in `src/proxy.ts`, before the request reaches a page,
  * because Next only lets cookies be written from a proxy, a route handler or a
- * server action — not from a page render. By the time a page reads these, an
+ * server action - not from a page render. By the time a page reads these, an
  * expired access token has already been refreshed.
  */
 export const getAccessToken = (): Promise<string | undefined> =>

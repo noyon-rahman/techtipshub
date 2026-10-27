@@ -7,7 +7,7 @@ import { cloudinaryUpload } from "./cloudinary.config";
  *
  * Multer used to do this. Its storage engine passed no public id, so Cloudinary
  * chose one itself: the base name as it arrived. That is kept here because the
- * stored URLs depend on it — a file called `cover.png` lives at
+ * stored URLs depend on it - a file called `cover.png` lives at
  * `…/upload/<version>/cover.png`, and articles reference exactly that.
  */
 
@@ -39,7 +39,9 @@ export const uploadToCloudinary = async (
   options: { fieldname: string; resourceType?: "auto" | "image" },
 ): Promise<TUploadedFile> => {
   const buffer = Buffer.from(await file.arrayBuffer());
-  const base = path.parse(file.name ?? "").name || `upload_${randomBytes(8).toString("hex")}`;
+  const base =
+    path.parse(file.name ?? "").name ||
+    `upload_${randomBytes(8).toString("hex")}`;
 
   const uploaded = await cloudinaryUpload.uploader.upload(
     `data:${file.type};base64,${buffer.toString("base64")}`,

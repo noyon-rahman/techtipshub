@@ -11,7 +11,7 @@ import User from "../modules/user/user.model";
  * Use this on routes that must stay open to guests but behave differently for
  * signed-in users (e.g. a single article records a view for a member but not
  * for a guest, and a member's own article is excluded from their view count).
- * Never use it where a user is required — use the `auth()` middleware for that.
+ * Never use it where a user is required - use the `auth()` middleware for that.
  */
 const optionalAuth: MiddlewareHandler<TAppBindings> = async (c, next) => {
   const token = c.req.header("authorization")?.split(" ")[1];

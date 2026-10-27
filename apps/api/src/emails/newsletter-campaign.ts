@@ -89,9 +89,7 @@ export const newsletterCampaignMessage = async ({
   name,
   unsubscribeUrl,
 }: TCampaignEmailArgs): Promise<TEmailMessage> => {
-  const greeting = name
-    ? `Hi ${escapeHtml(name)},`
-    : "Hi there,";
+  const greeting = name ? `Hi ${escapeHtml(name)},` : "Hi there,";
 
   const paragraphs = introParagraphs(content.intro)
     .map((paragraph) => escapeHtml(paragraph))

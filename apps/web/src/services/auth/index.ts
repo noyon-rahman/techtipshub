@@ -3,7 +3,11 @@
 import envConfig from "@/config/env.config";
 import { legacyResponse } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
-import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, getAccessToken } from "@/lib/fetch-with-auth";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+  getAccessToken,
+} from "@/lib/fetch-with-auth";
 import { getSession, ISessionUser } from "@/lib/session";
 import { TLoggedInUser, TLogin } from "@/types";
 import { cookies } from "next/headers";
@@ -48,7 +52,11 @@ const sessionCookiesOf = (headers: unknown) => {
   // Axios exposes the raw response headers on `headers` for `set-cookie`.
   const raw = (headers as Record<string, unknown> | undefined)?.["set-cookie"];
 
-  return Array.isArray(raw) ? (raw as string[]) : typeof raw === "string" ? [raw] : [];
+  return Array.isArray(raw)
+    ? (raw as string[])
+    : typeof raw === "string"
+      ? [raw]
+      : [];
 };
 
 /** The signed-in reader, as the API reports them, in the shape pages already use. */

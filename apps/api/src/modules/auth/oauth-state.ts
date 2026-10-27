@@ -23,11 +23,9 @@ const secret = () =>
 const START = "google";
 
 export const createOAuthState = (redirect?: string) =>
-  jwt.sign(
-    { redirect: redirect ?? "/", started: START },
-    secret(),
-    { expiresIn: STATE_TTL as SignOptions["expiresIn"] },
-  );
+  jwt.sign({ redirect: redirect ?? "/", started: START }, secret(), {
+    expiresIn: STATE_TTL as SignOptions["expiresIn"],
+  });
 
 export const verifyOAuthState = (state: string): { redirect: string } => {
   const decoded = jwt.verify(state, secret()) as {

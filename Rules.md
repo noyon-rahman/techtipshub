@@ -166,7 +166,9 @@ applies; the specialised ones load with it.
 
 Before calling work finished, all of these hold:
 
-1. `pnpm typecheck`, `pnpm lint` and `pnpm build` pass at the root.
+1. `pnpm test` passes at the root. It runs typecheck, the format and invariant
+   checks, lint and both builds, and stops at the first failure; `pnpm build`
+   alone is not enough.
 2. Every interactive element was clicked and its result recorded, element by
    element (`Rules.md`, Delivery Gate R-35). A claim without the recorded list is
    not a pass.

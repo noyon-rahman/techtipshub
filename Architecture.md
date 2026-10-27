@@ -212,5 +212,12 @@ that is text or a hairline. Reasons for each choice are in `DESIGN.md`.
   article still has comments and votes, and an admin needs to undo a removal.
 - **The newsletter stores copies of the articles it names,** not references, so
   editing an article cannot rewrite an issue that already went out.
-- **No test suite yet.** Verification is typecheck, lint, build and a recorded
-  click-through. Adding tests is a phase of its own (`Phases.md`).
+- **One test gate, not a spec suite.** `pnpm test` runs typecheck, the format
+  and repository invariant checks (`scripts/test/checks/`), lint and a
+  production build of both apps. The invariants read the tree, so they catch a
+  placeholder that would ship, a route that forgot its roles and an env key
+  Turbo does not know about; a unit runner that only covered pure helpers would
+  pass while those broke. The gate is not yet wired into CI.
+- **One Prettier config, at the root** (`prettier.config.mjs`,
+  `.prettierignore`). Both apps format the same way; an app-level config is a
+  second opinion and the format check rejects one.

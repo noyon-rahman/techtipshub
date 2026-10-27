@@ -3,7 +3,8 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "My articles",
-  description: "Everything you have published on TechTipsHub, ready to edit or remove.",
+  description:
+    "Everything you have published on TechTipsHub, ready to edit or remove.",
   robots: { index: false, follow: false },
   alternates: { canonical: "/profile/blogs" },
 };

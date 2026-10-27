@@ -1,6 +1,14 @@
 "use client";
 
-import { Button, ButtonProps, Modal, ModalBody, ModalContent, ModalHeader, useDisclosure } from "@heroui/react";
+import {
+  Button,
+  ButtonProps,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  useDisclosure,
+} from "@heroui/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
@@ -14,12 +22,13 @@ interface IProps extends ButtonProps {
   buttonContent: ReactNode;
 }
 
-const AuthenticationModal = ({ redirect, buttonContent, ...props }: IProps) => {  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+const AuthenticationModal = ({ redirect, buttonContent, ...props }: IProps) => {
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const pathname = usePathname();
   const backTo = redirect ?? pathname.replace(/^\//, "");
   return (
     <>
-      <Button onPress={onOpen} {...props} >
+      <Button onPress={onOpen} {...props}>
         {buttonContent}
       </Button>
       <Modal size="md" isOpen={isOpen} onOpenChange={onOpenChange}>

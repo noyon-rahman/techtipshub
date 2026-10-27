@@ -52,8 +52,8 @@ const sections: ILegalSection[] = [
             details, and we do not store any.
           </li>
           <li>
-            If you are asked to pay to unlock content on a site using our name or
-            branding, it is not us. Do not pay, and please{" "}
+            If you are asked to pay to unlock content on a site using our name
+            or branding, it is not us. Do not pay, and please{" "}
             <Link href="/contact">tell us about it</Link>.
           </li>
         </ul>
@@ -81,9 +81,9 @@ const sections: ILegalSection[] = [
           </li>
         </ul>
         <p>
-          Because we no longer sell anything, any balance that still shows a paid
-          membership is inactive; access to every feature depends only on being
-          signed in, not on having paid.
+          Because we no longer sell anything, any balance that still shows a
+          paid membership is inactive; access to every feature depends only on
+          being signed in, not on having paid.
         </p>
       </>
     ),
@@ -109,14 +109,14 @@ const sections: ILegalSection[] = [
         </ul>
         <p>
           We acknowledge reports within 3 business days and aim to decide within
-          10 business days. If the charge came from us, the refund is returned to
-          the original payment method and your bank or wallet provider may take a
-          further 5 to 10 business days to post it. We cannot refund to a
+          10 business days. If the charge came from us, the refund is returned
+          to the original payment method and your bank or wallet provider may
+          take a further 5 to 10 business days to post it. We cannot refund to a
           different card or account.
         </p>
         <p>
-          We may ask for information needed to verify a payment or prevent fraud.
-          Refusing reasonable verification may delay the investigation.
+          We may ask for information needed to verify a payment or prevent
+          fraud. Refusing reasonable verification may delay the investigation.
         </p>
       </>
     ),
@@ -127,15 +127,15 @@ const sections: ILegalSection[] = [
     content: (
       <>
         <p>
-          Please contact us before asking your bank or card provider to reverse a
-          charge, so we can look into it directly. If a chargeback is opened while
-          we are investigating, we will pause our process until the bank
+          Please contact us before asking your bank or card provider to reverse
+          a charge, so we can look into it directly. If a chargeback is opened
+          while we are investigating, we will pause our process until the bank
           responds.
         </p>
         <p>
-          If you were told a payment would unlock something on this site, write to
-          us with the receipt identifier and the email address on the account and
-          we will investigate where the charge came from.
+          If you were told a payment would unlock something on this site, write
+          to us with the receipt identifier and the email address on the account
+          and we will investigate where the charge came from.
         </p>
       </>
     ),

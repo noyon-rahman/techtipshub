@@ -27,9 +27,7 @@ const NotFoundPage = () => {
     <main>
       <Container>
         <div className="grid min-h-[calc(100dvh-var(--header-height)-1px)] content-center gap-10 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16">
-          <p className="tth-label font-mono tabular-nums lg:pt-2">
-            404
-          </p>
+          <p className="tth-label font-mono tabular-nums lg:pt-2">404</p>
 
           <div>
             <h1 className="text-pretty font-[family-name:var(--type-editorial)] text-4xl font-semibold leading-[1.05] tracking-[-0.015em] md:text-5xl">
@@ -58,9 +56,7 @@ const NotFoundPage = () => {
               aria-label="Useful pages"
               className="mt-12 border-t border-default/60 pt-6"
             >
-              <p className="tth-label">
-                Try one of these
-              </p>
+              <p className="tth-label">Try one of these</p>
               <ul className="mt-4 grid gap-x-8 gap-y-1 sm:grid-cols-2">
                 {suggestions.map((item) => (
                   <li key={item.href}>
@@ -69,7 +65,9 @@ const NotFoundPage = () => {
                       className="flex items-baseline justify-between gap-3 border-b border-default/40 py-2.5 text-sm transition-colors hover:text-primary-accessible"
                     >
                       <span className="font-medium">{item.label}</span>
-                      <span className="text-xs text-default-600">{item.hint}</span>
+                      <span className="text-xs text-default-600">
+                        {item.hint}
+                      </span>
                     </Link>
                   </li>
                 ))}

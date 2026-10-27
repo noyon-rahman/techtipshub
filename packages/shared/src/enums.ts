@@ -22,12 +22,7 @@ export type TUserStatus = (typeof USER_STATUSES)[keyof typeof USER_STATUSES];
 export type TUserGender = "Male" | "Female" | "Other";
 
 export type TSocialPlatform =
-  | "Facebook"
-  | "Instagram"
-  | "Linkedin"
-  | "Twitter"
-  | "Github"
-  | "Youtube";
+  "Facebook" | "Instagram" | "Linkedin" | "Twitter" | "Github" | "Youtube";
 
 export type TSocialLink = {
   platform: TSocialPlatform;

@@ -13,7 +13,7 @@ import { decodeSlug } from "@/lib/slug";
  * calls this from the browser instead.
  *
  * The slug arrives percent-encoded and may contain non-ASCII characters, so it
- * is decoded once before the API address is built — encoding it as-is produces
+ * is decoded once before the API address is built - encoding it as-is produces
  * a double-encoded path (`%25E0...`) that the API answers with 404.
  */
 export const POST = async (

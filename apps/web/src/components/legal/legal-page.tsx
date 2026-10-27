@@ -24,7 +24,7 @@ const tocLinkClasses =
 
 /**
  * Shared shell for every legal document: hero, sticky contents rail, prose
- * body and cross-links to the other policies. Server-rendered on purpose —
+ * body and cross-links to the other policies. Server-rendered on purpose -
  * these pages carry no interactivity and should stay cheap and crawlable.
  *
  * The page uses the site's page container, so the hero, the contents rail and
@@ -94,9 +94,7 @@ const LegalPage = ({ title, summary, sections, currentHref }: IProps) => {
             </details>
 
             <nav aria-label="On this page" className="hidden lg:block">
-              <h2 className="tth-label">
-                On this page
-              </h2>
+              <h2 className="tth-label">On this page</h2>
               <ol className="mt-3 space-y-0.5">
                 {sections.map((section) => (
                   <li key={section.id}>
@@ -108,9 +106,7 @@ const LegalPage = ({ title, summary, sections, currentHref }: IProps) => {
               </ol>
 
               <div className="mt-8 border-t border-default/60 pt-5">
-                <h2 className="tth-label">
-                  All policies
-                </h2>
+                <h2 className="tth-label">All policies</h2>
                 <ul className="mt-3 space-y-2 text-sm text-default-600">
                   {legalPages.map((page) => (
                     <li key={page.href}>
@@ -136,9 +132,7 @@ const LegalPage = ({ title, summary, sections, currentHref }: IProps) => {
 
           {/* Document */}
           <div className="min-w-0">
-            <article
-              className="prose prose-neutral max-w-none dark:prose-invert prose-headings:font-semibold prose-headings:tracking-tight prose-h2:mt-12 prose-h2:mb-3 prose-h2:border-t prose-h2:border-default/60 prose-h2:pt-8 prose-h2:text-xl prose-h2:first:mt-0 prose-h2:first:border-t-0 prose-h2:first:pt-0 prose-h3:mt-6 prose-h3:text-base prose-p:leading-relaxed prose-p:text-default-600 prose-li:leading-relaxed prose-li:text-default-600 prose-strong:text-foreground prose-a:font-medium prose-a:text-primary-accessible prose-a:underline-offset-4 prose-th:pb-2 prose-th:text-left prose-td:py-2.5 prose-td:align-top prose-table:text-sm prose-code:rounded prose-code:bg-default-100 prose-code:px-1 prose-code:py-0.5 prose-code:font-medium prose-code:text-[0.85em] prose-code:text-foreground prose-code:before:content-none prose-code:after:content-none [&_tbody_tr]:border-default/60 [&_tbody_tr:last-child]:border-0"
-            >
+            <article className="prose prose-neutral max-w-none dark:prose-invert prose-headings:font-semibold prose-headings:tracking-tight prose-h2:mt-12 prose-h2:mb-3 prose-h2:border-t prose-h2:border-default/60 prose-h2:pt-8 prose-h2:text-xl prose-h2:first:mt-0 prose-h2:first:border-t-0 prose-h2:first:pt-0 prose-h3:mt-6 prose-h3:text-base prose-p:leading-relaxed prose-p:text-default-600 prose-li:leading-relaxed prose-li:text-default-600 prose-strong:text-foreground prose-a:font-medium prose-a:text-primary-accessible prose-a:underline-offset-4 prose-th:pb-2 prose-th:text-left prose-td:py-2.5 prose-td:align-top prose-table:text-sm prose-code:rounded prose-code:bg-default-100 prose-code:px-1 prose-code:py-0.5 prose-code:font-medium prose-code:text-[0.85em] prose-code:text-foreground prose-code:before:content-none prose-code:after:content-none [&_tbody_tr]:border-default/60 [&_tbody_tr:last-child]:border-0">
               {sections.map((section) => (
                 <section
                   key={section.id}
@@ -170,21 +164,28 @@ const LegalPage = ({ title, summary, sections, currentHref }: IProps) => {
               </p>
               <dl className="mt-4 space-y-1 border-t border-default/60 pt-4 text-sm text-default-600">
                 <div className="flex flex-wrap gap-x-1.5">
-                  <dt className="font-medium">Legal entity:</dt>
+                  <dt className="font-medium">
+                    {legalConfig.legalEntityLabel}:
+                  </dt>
                   <dd>{legalConfig.legalEntity}</dd>
                 </div>
                 <div className="flex flex-wrap gap-x-1.5">
-                  <dt className="font-medium">Registered address:</dt>
-                  <dd>{legalConfig.legalAddress}</dd>
+                  <dt className="font-medium">
+                    {legalConfig.legalAddressLabel}:
+                  </dt>
+                  <a
+                    href={`mailto:${legalConfig.legalAddress}`}
+                    className="font-medium text-primary-accessible underline-offset-4 hover:underline"
+                  >
+                    {legalConfig.legalAddress}
+                  </a>
                 </div>
               </dl>
             </div>
 
             {/* Other policies */}
             <nav aria-label="Other policies" className="mt-10">
-              <h2 className="tth-label">
-                Other policies
-              </h2>
+              <h2 className="tth-label">Other policies</h2>
               <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                 {otherPages.map((page) => (
                   <li key={page.href}>

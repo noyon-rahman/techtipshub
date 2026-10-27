@@ -28,7 +28,9 @@ const VoteCount = ({ label, value }: { label: string; value: number }) => (
   <span className="min-w-2 text-xs font-medium tabular-nums">
     {value > 0 && <span aria-hidden>{value.toLocaleString()}</span>}
     <span className="sr-only">
-      {value === 1 ? `${value} ${label.replace(/s$/, "")}` : `${value} ${label}`}
+      {value === 1
+        ? `${value} ${label.replace(/s$/, "")}`
+        : `${value} ${label}`}
     </span>
   </span>
 );
@@ -140,10 +142,7 @@ export const ArticleTags = ({ tags }: { tags?: string[] }) => {
  * ruled block, not a card, so it does not compete with that panel.
  */
 export const ArticleNewsletter = () => (
-  <section
-    aria-label="Newsletter"
-    className="mt-10 print:hidden"
-  >
+  <section aria-label="Newsletter" className="mt-10 print:hidden">
     <NewsletterSignup
       title="Get the next one in your inbox"
       description="One email a month with the articles worth your time. No daily mail."
@@ -191,12 +190,7 @@ export const ArticleAuthor = ({
 
       <div className="mt-2 flex items-center gap-3">
         {/* Visual only: the name below and "View profile" are the real links. */}
-        <Link
-          href={profileHref}
-          tabIndex={-1}
-          aria-hidden
-          className="shrink-0"
-        >
+        <Link href={profileHref} tabIndex={-1} aria-hidden className="shrink-0">
           <UserAvatar
             className="size-10"
             radius="full"
@@ -243,20 +237,20 @@ export const ArticleAuthor = ({
               {followers === 1 ? "follower" : "followers"}
             </span>
           )}
-          {typeof followers === "number" &&
-            followers > 0 &&
-            memberSince && (
-              <span aria-hidden className="text-default-300">
-                ·
-              </span>
-            )}
+          {typeof followers === "number" && followers > 0 && memberSince && (
+            <span aria-hidden className="text-default-300">
+              ·
+            </span>
+          )}
           {memberSince && <span>Joined {memberSince}</span>}
         </p>
 
         {/* The controls keep their own logic; this only stops them stretching
             to the row width and gives them a compact 36px box. */}
         <div className="ml-auto flex flex-wrap items-center gap-2 [&_a]:!h-9 [&_button]:!h-9 [&_a]:w-auto [&_button]:w-auto [&_.w-full]:w-auto">
-          {!isOwnArticle && author._id && <FollowUnFollowButton id={author._id} />}
+          {!isOwnArticle && author._id && (
+            <FollowUnFollowButton id={author._id} />
+          )}
           <ButtonLink
             href={profileHref}
             variant="bordered"

@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "license": "ISC",
-  "files": ["*.json"],
+  "files": [
+    "*.json"
+  ],
   "exports": {
     "./base": "./base.json",
     "./node": "./node.json",

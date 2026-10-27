@@ -95,12 +95,14 @@ const UpdateBlogModal = ({ blog, refetchBlogs }: IProps) => {
       formData.append("image", coverImage);
     }
 
-
-    updateBlog({blogId: blog._id, payload: formData}, {
-      onSuccess: () => {
-        refetchBlogs();
+    updateBlog(
+      { blogId: blog._id, payload: formData },
+      {
+        onSuccess: () => {
+          refetchBlogs();
+        },
       },
-    })
+    );
     onOpenChange();
   };
 

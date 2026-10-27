@@ -60,7 +60,7 @@ export const useForgetPassword = () => {
           "Password reset link sent to your email address successfully!",
           {
             id: "password-reset",
-          }
+          },
         );
       }
     },

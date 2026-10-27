@@ -206,7 +206,8 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
   });
 
   const { mutate: deleteBlog, isPending: isDeleting } = useDeleteAdminBlog();
-  const { mutate: publishBlog, isPending: isPublishing } = usePublishAdminBlog();
+  const { mutate: publishBlog, isPending: isPublishing } =
+    usePublishAdminBlog();
 
   // One call for the whole list: the category endpoint is not paged.
   const categories = useAdminCategories().rows;
@@ -247,7 +248,9 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
     <EmptyState
       variant="inline"
       icon={<MdOutlineArticle className="size-5" />}
-      title={isDrafts ? "Drafts could not be loaded" : "Articles could not be loaded"}
+      title={
+        isDrafts ? "Drafts could not be loaded" : "Articles could not be loaded"
+      }
       description={
         error?.message ||
         "The articles request failed. Check that the API is running, then try again."
@@ -266,7 +269,9 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
     <EmptyState
       variant="inline"
       icon={<FiSearch className="size-5" />}
-      title={isDrafts ? "No drafts match this view" : "No articles match this view"}
+      title={
+        isDrafts ? "No drafts match this view" : "No articles match this view"
+      }
       description={`Nothing in ${noun}s matches ${
         searchTerm ? `"${searchTerm}"` : "this category"
       }. Clear the filters to see every ${noun} in this view.`}
@@ -481,7 +486,10 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
                       }'s byline, and readers can open it straight away.`}
                       confirmLabel="Publish"
                       onConfirm={() =>
-                        publishBlog({ id: blog._id, onPublished: stepBackIfEmpty })
+                        publishBlog({
+                          id: blog._id,
+                          onPublished: stepBackIfEmpty,
+                        })
                       }
                     />
                   ) : null}

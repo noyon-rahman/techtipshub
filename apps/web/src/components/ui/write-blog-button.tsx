@@ -7,12 +7,7 @@ interface IProps {}
 
 const WriteBlogButton: React.FC<IProps> = () => {
   const { user } = useUser();
-  return (
-    <>
-      {user && <WriteBlogModal />}
-    </>
-  );
+  return <>{user && <WriteBlogModal />}</>;
 };
 
 export default WriteBlogButton;
-;

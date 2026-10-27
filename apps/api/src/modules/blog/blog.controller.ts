@@ -6,7 +6,10 @@ import sendResponse from "../../utils/sendResponse";
 import { blogService } from "./blog.service";
 
 const create = async (c: Context<TAppBindings>) => {
-  const result = await blogService.create(c.get("user"), c.get("validatedBody"));
+  const result = await blogService.create(
+    c.get("user"),
+    c.get("validatedBody"),
+  );
 
   return sendResponse(c, httpStatus.CREATED, { data: result });
 };

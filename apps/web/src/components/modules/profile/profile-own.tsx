@@ -10,7 +10,7 @@ import ProfileEditForm from "./profile-edit-form";
  *
  * The page renders this keyed by the profile's `updatedAt`, so a save (which
  * asks for a fresh server render) remounts every form field with the values the
- * API now holds — no second copy of the profile to keep in step.
+ * API now holds - no second copy of the profile to keep in step.
  *
  * The staged photo lives here because the form can be closed without saving,
  * and an abandoned file must never ride along with a later save.

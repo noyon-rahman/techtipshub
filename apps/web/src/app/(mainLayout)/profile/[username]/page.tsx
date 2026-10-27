@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     title: `${fullName}'s Profile`,
-    description: `Explore ${fullName}'s profile on TechTipsHub — their articles, activity and links.`,
+    description: `Explore ${fullName}'s profile on TechTipsHub - their articles, activity and links.`,
     openGraph: {
       title: `${fullName}'s Profile`,
       description: `Check out ${fullName}'s profile on TechTipsHub.`,

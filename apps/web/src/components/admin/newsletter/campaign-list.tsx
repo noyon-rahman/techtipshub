@@ -5,7 +5,10 @@ import EmptyState from "@/components/modules/admin/kit/empty-state";
 import AdminPagination from "@/components/modules/admin/kit/pagination";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import { useNewsletterCampaigns } from "@/hooks/admin-newsletter";
-import type { ICampaignSummary, TCampaignStatus } from "@/services/admin/newsletter";
+import type {
+  ICampaignSummary,
+  TCampaignStatus,
+} from "@/services/admin/newsletter";
 import { Skeleton } from "@heroui/react";
 import { FiPlus } from "react-icons/fi";
 import { RiNewspaperLine } from "react-icons/ri";

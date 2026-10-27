@@ -20,7 +20,7 @@ export interface TAdminCommentQuery extends IAdminCommentsParams {
 /**
  * `GET /admin/comments` (Admin).
  *
- * Answers `{ success, data: TAdminComment[], meta }` — the rows are the bare
+ * Answers `{ success, data: TAdminComment[], meta }` - the rows are the bare
  * `data` array and `meta` sits beside it, unlike the messages list, which nests
  * both under `data`. Throws on failure so the table can show an error state.
  */

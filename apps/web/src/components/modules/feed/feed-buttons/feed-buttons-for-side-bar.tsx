@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { useUser } from "@/context/user.provider";
 import { Button } from "@heroui/react";

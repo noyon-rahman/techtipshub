@@ -245,7 +245,8 @@ const getAdminList = async (query: Record<string, unknown>) => {
   // Rows written before drafts existed carry no status and are published, so
   // "published" means "not a draft" rather than `status: "published"`.
   if (status) {
-    filter.status = status.toLowerCase() === "draft" ? "draft" : { $ne: "draft" };
+    filter.status =
+      status.toLowerCase() === "draft" ? "draft" : { $ne: "draft" };
   }
   const category =
     typeof query.category === "string" ? query.category.trim() : "";

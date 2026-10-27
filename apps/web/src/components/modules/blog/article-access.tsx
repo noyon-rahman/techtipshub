@@ -16,8 +16,8 @@ export type ArticleAccessState = "member" | "guest";
  * request that is actually reading it.
  *
  * Until that answer lands neither half is shown. The prompt is the conservative
- * default for a document nobody has asked about — CSS shows it when scripting
- * never runs — but it is the wrong thing to show a member, and it was being
+ * default for a document nobody has asked about - CSS shows it when scripting
+ * never runs - but it is the wrong thing to show a member, and it was being
  * shown to every member on every cold load for the length of the round trip.
  *
  * The check itself is two cookie reads: one for the session, one for whether
@@ -32,7 +32,9 @@ const ArticleAccess = () => {
   const [state, setState] = useState<ArticleAccessState>("guest");
 
   useEffect(() => {
-    const container = document.querySelector<HTMLElement>("[data-article-access]");
+    const container = document.querySelector<HTMLElement>(
+      "[data-article-access]",
+    );
     if (!container) return;
 
     // Before the answer arrives neither column is shown. The prompt is the safe
@@ -82,7 +84,9 @@ export const useCanReadArticle = () => {
 
   useEffect(() => {
     const onReady = (event: Event) => {
-      setCanRead((event as CustomEvent<ArticleAccessState>).detail === "member");
+      setCanRead(
+        (event as CustomEvent<ArticleAccessState>).detail === "member",
+      );
     };
 
     window.addEventListener(READY_EVENT, onReady);

@@ -19,7 +19,8 @@ export type TGoogleFailure =
   | "unavailable";
 
 const MESSAGES: Record<TGoogleFailure, string> = {
-  cancelled: "Google sign-in was cancelled. You can try again whenever you are ready.",
+  cancelled:
+    "Google sign-in was cancelled. You can try again whenever you are ready.",
   no_code:
     "Google did not send a sign-in code back. Start the sign-in again from this page.",
   state:
@@ -32,7 +33,8 @@ const MESSAGES: Record<TGoogleFailure, string> = {
     "Google signed you in but did not return your profile. Try again in a moment.",
   account_deleted:
     "The account linked to that Google sign-in has been deleted.",
-  account_blocked: "That account has been blocked. Get in touch if you think that is wrong.",
+  account_blocked:
+    "That account has been blocked. Get in touch if you think that is wrong.",
   account_conflict:
     "That Google account is already linked to a different TechTipsHub account. Sign in with the Google account you used before, or reset your password on this address.",
   unavailable: "Google sign-in did not complete. Try again in a moment.",
@@ -68,8 +70,6 @@ export const googleFailureMessage = (
  * signup both read as "go to the feed".
  */
 export const googleRedirectPath = (value: string | null) =>
-  value && value.startsWith("/") && !value.startsWith("//")
-    ? value
-    : "/";
+  value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
 
 export { MESSAGES as googleFailureMessages };

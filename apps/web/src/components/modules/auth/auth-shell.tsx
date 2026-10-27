@@ -19,7 +19,7 @@ interface IProps {
 /**
  * Shared shell for login, sign up and password reset.
  *
- * Form on the left, a quiet value panel on the right — full width on the page
+ * Form on the left, a quiet value panel on the right - full width on the page
  * rather than a floating card, so it reads as part of the site.
  *
  * The split is deliberately measured rather than even: the form column is
@@ -50,12 +50,8 @@ const AuthShell = ({
               Back to the feed
             </Link>
 
-            <p className="tth-label text-primary-accessible">
-              {eyebrow}
-            </p>
-            <h1
-              className="mt-3 text-pretty font-[family-name:var(--type-editorial)] text-3xl font-semibold leading-[1.1] tracking-[-0.01em] md:text-[2.5rem]"
-            >
+            <p className="tth-label text-primary-accessible">{eyebrow}</p>
+            <h1 className="mt-3 text-pretty font-[family-name:var(--type-editorial)] text-3xl font-semibold leading-[1.1] tracking-[-0.01em] md:text-[2.5rem]">
               {title}
             </h1>
             <p className="mt-3 leading-relaxed text-default-600">
@@ -73,9 +69,7 @@ const AuthShell = ({
           {points.length > 0 && (
             <aside className="lg:border-l lg:border-default/60 lg:pl-14 xl:pl-20">
               <div className="lg:sticky lg:top-[calc(var(--header-height)+4rem)]">
-                <h2 className="tth-label">
-                  What you get
-                </h2>
+                <h2 className="tth-label">What you get</h2>
                 <ul className="mt-5 space-y-5">
                   {points.map((point) => (
                     <li key={point.title} className="flex gap-3">

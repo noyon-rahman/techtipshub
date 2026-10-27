@@ -12,7 +12,13 @@ import {
 } from "@/hooks/user.hook";
 import { messageOf } from "@/lib/api-error";
 import { Button } from "@heroui/react";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { GoPlus } from "react-icons/go";
 import { HiMinus } from "react-icons/hi2";
 import { toast } from "sonner";
@@ -138,7 +144,10 @@ const FollowUnFollowButton: React.FC<IProps> = ({ id }) => {
                 isFollowing: data.data.isFollowing,
                 totalFollowers: data.data.totalFollowers,
               }
-            : { isFollowing: target, totalFollowers: live.before.totalFollowers };
+            : {
+                isFollowing: target,
+                totalFollowers: live.before.totalFollowers,
+              };
 
           // A press during the request knows better than this answer does.
           if (live.desired === answer.isFollowing) {
@@ -167,7 +176,10 @@ const FollowUnFollowButton: React.FC<IProps> = ({ id }) => {
         },
         onError: (error) => {
           const live = burst.current;
-          setFollowEntry(id, live?.before ?? { isFollowing, totalFollowers: 0 });
+          setFollowEntry(
+            id,
+            live?.before ?? { isFollowing, totalFollowers: 0 },
+          );
           toast.error(
             messageOf(error) || "That change was not saved. Try again.",
             { id: "follow-user" },
@@ -207,7 +219,8 @@ const FollowUnFollowButton: React.FC<IProps> = ({ id }) => {
       isFollowing: following,
       totalFollowers: Math.max(
         0,
-        before.totalFollowers + (following === wasFollowing ? 0 : following ? 1 : -1),
+        before.totalFollowers +
+          (following === wasFollowing ? 0 : following ? 1 : -1),
       ),
     });
 

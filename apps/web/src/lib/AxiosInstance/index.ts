@@ -72,12 +72,7 @@ axiosInstance.interceptors.request.use(
 // still rejected, which is how callers already handle a failed request.
 axiosInstance.interceptors.response.use(
   function (response) {
-    response.data = legacyBody(
-      response.data,
-      true,
-      undefined,
-      response.status,
-    );
+    response.data = legacyBody(response.data, true, undefined, response.status);
     return response;
   },
   function (error) {

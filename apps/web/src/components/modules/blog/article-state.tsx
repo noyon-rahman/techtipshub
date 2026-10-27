@@ -14,7 +14,11 @@ const states = {
     label: "Article not found",
     title: "We could not find that article",
     line: "It may have been removed, or the link may be wrong.",
-    primary: { href: "/", text: "Back to the feed", icon: <FiArrowLeft aria-hidden /> },
+    primary: {
+      href: "/",
+      text: "Back to the feed",
+      icon: <FiArrowLeft aria-hidden />,
+    },
     secondary: { href: "/?sort=popular", text: "Read what is popular" },
   },
   auth: {

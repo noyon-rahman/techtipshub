@@ -124,10 +124,7 @@ const NewsletterSignup = ({
                 className={fieldClass}
               />
               {nameError && (
-                <p
-                  id={`${id}-name-error`}
-                  className="mt-1 text-xs text-danger"
-                >
+                <p id={`${id}-name-error`} className="mt-1 text-xs text-danger">
                   {nameError}
                 </p>
               )}

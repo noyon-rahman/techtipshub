@@ -1,7 +1,13 @@
 // components/BlogShareDropdown.js
 "use client";
 
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@heroui/react";
 import { PiLink, PiShareNetwork } from "react-icons/pi";
 import { BsTwitterX } from "react-icons/bs";
 import { FaFacebook, FaLinkedin } from "react-icons/fa";
@@ -49,7 +55,10 @@ const BlogShareDropdown = () => {
           <PiShareNetwork />
         </Button>
       </DropdownTrigger>
-      <DropdownMenu aria-label="Share Actions" classNames={{ base: "border border-default-100" }}>
+      <DropdownMenu
+        aria-label="Share Actions"
+        classNames={{ base: "border border-default-100" }}
+      >
         <DropdownItem
           key="permalink"
           startContent={<PiLink />}
@@ -63,8 +72,8 @@ const BlogShareDropdown = () => {
           onClick={() =>
             handleShareClick(
               `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-                permalink
-              )}`
+                permalink,
+              )}`,
             )
           }
         >
@@ -75,7 +84,7 @@ const BlogShareDropdown = () => {
           startContent={<BsTwitterX />}
           onClick={() =>
             handleShareClick(
-              `https://twitter.com/share?url=${encodeURIComponent(permalink)}`
+              `https://twitter.com/share?url=${encodeURIComponent(permalink)}`,
             )
           }
         >
@@ -87,8 +96,8 @@ const BlogShareDropdown = () => {
           onClick={() =>
             handleShareClick(
               `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                permalink
-              )}`
+                permalink,
+              )}`,
             )
           }
         >

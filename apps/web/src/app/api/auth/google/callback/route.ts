@@ -8,7 +8,7 @@ import { claimGoogleSession } from "@/lib/session-relay";
  *
  * The API has already set the session cookies, but on *its* domain: a browser
  * only accepts a cookie for the site that sent it, so they do nothing here.
- * This route is therefore the one place the site receives a session — it takes
+ * This route is therefore the one place the site receives a session - it takes
  * the single-use handoff code the API put in the URL and trades it for the
  * cookies, server to server, exactly as it does after a password sign-in.
  *

@@ -13,7 +13,8 @@ export interface IViewerIdentity {
 const isSameAuthor = (
   author: Types.ObjectId | { _id: Types.ObjectId },
   userId: unknown,
-) => String((author as { _id: Types.ObjectId })._id ?? author) === String(userId);
+) =>
+  String((author as { _id: Types.ObjectId })._id ?? author) === String(userId);
 
 /**
  * Record a view for `slug` once per reader and return the blog's fresh view
@@ -95,7 +96,9 @@ export const recordView = async (
  * total should agree with the one the next signed-in reader gets. Returns
  * `null` when there is no blog with that slug.
  */
-export const recomputeTotalViews = async (slug: string): Promise<number | null> => {
+export const recomputeTotalViews = async (
+  slug: string,
+): Promise<number | null> => {
   const blog = await Blog.findOne({ slug }).select("_id");
   if (!blog) return null;
 

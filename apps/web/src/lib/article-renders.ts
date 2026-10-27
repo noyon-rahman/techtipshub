@@ -6,7 +6,7 @@ import { revalidateTag, unstable_cache } from "next/cache";
  * An article page is prerendered with `generateStaticParams`, and from then on
  * it is served from the CDN. `generateMetadata` and the page itself receive the
  * `params` Next stored at build time, so that object is how a request tells a
- * page which version of the article it was built from — and the cache entries
+ * page which version of the article it was built from - and the cache entries
  * that rebind a page to fresher data are kept under the same key.
  *
  * Why the key looks up two layers of caching:
