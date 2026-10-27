@@ -1,5 +1,5 @@
 import { IComment } from "@/types/comment.type";
-import { Avatar } from "@heroui/avatar";
+import UserAvatar from "@/components/ui/user-avatar";
 import { Button } from "@heroui/button";
 import { Image } from "@heroui/image";
 import { formatDistanceToNow } from "date-fns";
@@ -33,7 +33,7 @@ const CommentCard = ({ user, content, createdAt, images, _id }: IProps) => {
         href={`/users/@${user?.username}`}
         className="inline-flex space-x-4"
       >
-        <Avatar
+        <UserAvatar
           className="size-12 object-cover"
           radius="full"
           src={user?.profilePicture}

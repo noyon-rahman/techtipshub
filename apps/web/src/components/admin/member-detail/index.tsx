@@ -25,8 +25,9 @@ import { ADMIN_BLOGS_KEY } from "@/hooks/admin-blogs";
 import { ADMIN_MEMBERS_KEY } from "@/hooks/admin-members";
 import { TRASHED_USERS_KEY } from "@/hooks/admin-trash";
 import ConfirmDialog from "@/components/modules/admin/kit/confirm-dialog";
+import UserAvatar from "@/components/ui/user-avatar";
 import type { IBlog } from "@/types";
-import { Avatar, Skeleton } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useCallback } from "react";
@@ -221,7 +222,7 @@ const PersonLink = ({ person }: { person: TPersonRow }) => {
   const name = person.fullName || "Unnamed member";
   const body = (
     <>
-      <Avatar
+      <UserAvatar
         src={person.profilePicture}
         name={initialsOf(person.fullName)}
         size="sm"
@@ -394,7 +395,7 @@ const MemberDetail = ({ memberId }: { memberId: string }) => {
       <section aria-labelledby="member-name">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <Avatar
+            <UserAvatar
               src={member.profilePicture}
               name={initialsOf(member.fullName)}
               className="size-16 shrink-0 text-xl"

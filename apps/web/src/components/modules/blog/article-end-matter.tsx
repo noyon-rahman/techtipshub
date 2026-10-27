@@ -5,12 +5,12 @@ import ButtonLink from "@/components/ui/button-link";
 import DownVoteButton from "@/components/ui/downvote-button";
 import FollowUnFollowButton from "@/components/ui/follow-unfollow-button";
 import PrintBlogButton from "@/components/ui/print-blog-button";
-import { searchPath } from "@/lib/feed-routes";
 import UpVoteButton from "@/components/ui/upvote-button";
+import UserAvatar from "@/components/ui/user-avatar";
+import { searchPath } from "@/lib/feed-routes";
 import type { IBlog } from "@/types";
 import type { IUser } from "@/types/user.type";
 import { formatBlogDate } from "@/utils";
-import { Avatar } from "@heroui/avatar";
 import Link from "next/link";
 import { BiDownvote, BiUpvote } from "react-icons/bi";
 import { FiArrowUp } from "react-icons/fi";
@@ -180,7 +180,7 @@ export const ArticleAuthor = ({
           aria-hidden
           className="shrink-0"
         >
-          <Avatar
+          <UserAvatar
             className="size-10"
             radius="full"
             src={author.profilePicture}

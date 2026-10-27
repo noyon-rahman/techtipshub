@@ -5,10 +5,10 @@ import AuthenticationModal from "@/components/modals/authentication-modal";
 import THForm from "@/components/form/th-from";
 import THTextarea from "@/components/form/th-textarea";
 import { useUser } from "@/context/user.provider";
+import UserAvatar from "@/components/ui/user-avatar";
 import { useCommentOnBlog } from "@/hooks/blog.hook";
 import { commentValidationSchema } from "@/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Avatar } from "@heroui/avatar";
 import { Button } from "@heroui/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -89,7 +89,7 @@ const BlogComments = ({
 
       {user ? (
         <div className="flex gap-3">
-          <Avatar
+          <UserAvatar
             className="mt-1 hidden size-9 shrink-0 sm:flex"
             src={user.profilePicture}
             name={user.name || user.email}

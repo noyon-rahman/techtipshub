@@ -31,7 +31,8 @@ import type {
   TContactListData,
 } from "@/types/admin.type";
 import type { IBlog } from "@/types";
-import { Avatar, Skeleton } from "@heroui/react";
+import UserAvatar from "@/components/ui/user-avatar";
+import { Skeleton } from "@heroui/react";
 import Link from "next/link";
 import { useState, type ReactNode } from "react";
 import { FiExternalLink, FiRefreshCw } from "react-icons/fi";
@@ -384,7 +385,7 @@ const ModerationQueue = () => {
                     key={comment._id}
                     className="flex gap-3 border-b border-default/60 py-3.5 last:border-b-0"
                   >
-                    <Avatar
+                    <UserAvatar
                       src={comment.user?.profilePicture}
                       size="sm"
                       className="mt-0.5 size-8 shrink-0"

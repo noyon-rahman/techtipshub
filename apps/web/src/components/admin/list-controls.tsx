@@ -119,3 +119,11 @@ export const quietButton = `inline-flex min-h-11 items-center justify-center rou
 
 /** Shared page-size choices. */
 export const PAGE_SIZES = [20, 50] as const;
+
+/** The same choices as `ListSelect` options, so four screens cannot drift. */
+export const PAGE_SIZE_OPTIONS = PAGE_SIZES.map((size) => ({
+  value: size,
+  label: `${size} per page`,
+}));
+
+

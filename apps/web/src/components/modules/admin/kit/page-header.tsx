@@ -5,11 +5,6 @@ interface IProps {
   description?: string;
   actions?: ReactNode;
   meta?: ReactNode;
-  /** Link label of the current section, from adminLinks. Kept so call sites
-   * compile; the top bar already shows the breadcrumb. */
-  section?: string;
-  /** Section group shown before the section in the breadcrumb. */
-  group?: string;
 }
 
 /**
@@ -19,6 +14,11 @@ interface IProps {
  *
  * It used to repeat the breadcrumb that the top bar renders one row above it.
  * One location line is enough, so this header starts at the title.
+ *
+ * It clips nothing and sets no width, so a page-level dialog can open from an
+ * action here without fighting a stacking context. The hairline that used to
+ * close the header is gone: on a list screen the card below it already draws a
+ * rule, and two parallel rules close together read as one thick one.
  */
 export default function AdminPageHeader({
   title,
@@ -27,7 +27,7 @@ export default function AdminPageHeader({
   meta,
 }: IProps) {
   return (
-    <header className="mb-6 flex flex-col gap-4 border-b border-default/60 pb-5 sm:flex-row sm:items-end sm:justify-between lg:mb-8">
+    <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         <h1 className="text-balance font-[family-name:var(--type-editorial)] text-[1.75rem] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[2rem]">
           {title}

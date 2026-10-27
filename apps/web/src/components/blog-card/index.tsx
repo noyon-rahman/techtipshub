@@ -1,5 +1,5 @@
 import { IBlog } from "@/types";
-import { Avatar } from "@heroui/avatar";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { AiOutlineComment } from "react-icons/ai";
 import { BiDownvote, BiUpvote } from "react-icons/bi";
@@ -78,7 +78,7 @@ const BlogCard = ({
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex min-w-0 items-center gap-2">
-          <Avatar
+          <UserAvatar
             className="size-6 shrink-0"
             radius="full"
             src={author?.profilePicture}

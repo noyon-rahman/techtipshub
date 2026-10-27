@@ -6,12 +6,12 @@ import {
   ownProfilePath,
   writeBlogPath,
 } from "@/lib/blog-routes";
+import UserAvatar from "@/components/ui/user-avatar";
 
 import { protectedRoutes } from "@/constant";
 import { useUser } from "@/context/user.provider";
 import { logOutUser } from "@/services/auth";
 import {
-  Avatar,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -99,7 +99,6 @@ const NavarDropdown: React.FC = () => {
 
   const displayName = user.name || user.username;
   const initial = displayName.charAt(0).toUpperCase();
-  const isAdmin = user.role === "Admin";
   const links = accountLinks({ username: user.username, role: user.role });
 
   const handleLogoutUser = async () => {
@@ -138,11 +137,8 @@ const NavarDropdown: React.FC = () => {
           aria-label={`Account menu for ${displayName}`}
           className="ml-0.5 flex size-9 items-center justify-center rounded-full transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[open=true]:ring-2 data-[open=true]:ring-primary-300"
         >
-          <Avatar
+          <UserAvatar
             size="sm"
-            radius="full"
-            isBordered={isAdmin}
-            color="primary"
             src={user.profilePicture}
             name={initial}
             classNames={{ base: "shrink-0", name: "text-xs font-semibold" }}
@@ -169,9 +165,8 @@ const NavarDropdown: React.FC = () => {
             hideSelectedIcon
             className="cursor-default opacity-100 data-[hover=true]:bg-transparent"
             startContent={
-              <Avatar
+              <UserAvatar
                 size="md"
-                radius="full"
                 src={user.profilePicture}
                 name={initial}
                 classNames={{ base: "shrink-0", name: "text-sm font-semibold" }}

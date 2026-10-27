@@ -13,6 +13,7 @@ import StatTile, {
   type StatDelta,
 } from "@/components/modules/admin/kit/stat-tile";
 import { focusRing } from "@/components/modules/admin/kit/tau";
+import UserAvatar from "@/components/ui/user-avatar";
 import { useAdminActivity, useAdminOverview } from "@/hooks/admin-overview";
 import type {
   IAdminActivityPoint,
@@ -20,7 +21,7 @@ import type {
   IAdminOverview,
   IAdminRecentItem,
 } from "@/types";
-import { Avatar, Skeleton } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
 import { FiChevronRight } from "react-icons/fi";
@@ -33,9 +34,9 @@ import {
 /**
  * Screen job: answer "is the site healthy this week, and what does it need from
  * me before I leave?" That decision owns the hierarchy. The headline row gives
- * the week its scale, the activity chart is the one focal point, and the rail
- * holds the two lists an admin acts from: which articles are working, and who
- * is writing them.
+ * the week its scale, the activity chart gives the shape of the week, and the
+ * rail holds the two lists an admin acts from: which articles are working, and
+ * who is writing them.
  */
 
 const RANGES = [
@@ -255,37 +256,6 @@ const DashboardSkeleton = () => (
     </div>
   </div>
 );
-
-const TrendSpark = ({ points }: { points: number[] }) => {
-  const values = points.length > 1 ? points : [0, 0];
-  const [min, max] = [Math.min(...values), Math.max(...values)];
-  const steps = values.length - 1;
-  const path = values
-    .map((value, index) => {
-      const x = (index / steps) * 100;
-      const y =
-        20 - (max === min ? 10 : ((value - min) / (max - min)) * 18) - 1;
-      return `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-
-  return (
-    <svg
-      viewBox="0 0 100 20"
-      preserveAspectRatio="none"
-      aria-hidden
-      className="h-5 w-16 text-primary-accessible"
-    >
-      <path
-        d={path}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-};
 
 const ActivityBlock = ({
   points,
@@ -633,7 +603,7 @@ const ContributorsList = ({
                   >
                     {index + 1}
                   </span>
-                  <Avatar
+                  <UserAvatar
                     src={person.profilePicture || undefined}
                     name={name.charAt(0).toUpperCase()}
                     className="size-7 shrink-0"
@@ -877,28 +847,20 @@ export default function AdminDashboard() {
 
   const points = activity ?? [];
 
-  const readingTotals = points.map((point) => point.views);
-
   return (
     <div className="space-y-8">
       <section aria-labelledby="week-heading">
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-          <div>
-            <h2
-              id="week-heading"
-              className="font-[family-name:var(--type-editorial)] text-[1.0625rem] font-semibold tracking-[-0.01em]"
-            >
-              This week
-            </h2>
-            <p className="mt-0.5 text-xs text-default-600">
-              {todayLabel()}. Each figure compares the seven days to Monday with
-              the week before.
-            </p>
-          </div>
-
-          {readingTotals.length > 1 ? (
-            <TrendSpark points={readingTotals} />
-          ) : null}
+        <div className="mb-3">
+          <h2
+            id="week-heading"
+            className="font-[family-name:var(--type-editorial)] text-[1.0625rem] font-semibold tracking-[-0.01em]"
+          >
+            This week
+          </h2>
+          <p className="mt-0.5 text-xs text-default-600">
+            {todayLabel()}. Each figure compares the seven days to Monday with
+            the week before.
+          </p>
         </div>
 
         <div className="grid grid-cols-2 divide-x divide-y divide-default/70 overflow-hidden rounded-[10px] border border-default/70 sm:grid-cols-4 sm:divide-y-0">

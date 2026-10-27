@@ -1,12 +1,12 @@
 "use client";
 
 import {
-  Avatar,
   Dropdown,
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
 } from "@heroui/react";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -315,7 +315,7 @@ function AdminSearch() {
                         }`}
                       >
                         {result.avatar !== undefined ? (
-                          <Avatar
+                          <UserAvatar
                             src={result.avatar || undefined}
                             size="sm"
                             className="size-7 shrink-0"
@@ -428,7 +428,7 @@ export default function AdminTopbar() {
                 aria-label="Account menu"
                 className={`inline-flex min-h-11 items-center gap-1.5 rounded-md px-1 text-default-700 transition-colors hover:bg-default-100 sm:min-h-9 ${focusRing}`}
               >
-                <Avatar
+                <UserAvatar
                   src={user?.profilePicture}
                   size="sm"
                   className="size-8 shrink-0 object-cover"

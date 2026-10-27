@@ -1,9 +1,9 @@
 import BlogViewCounter from "@/components/modules/blog/blog-view-counter";
 import FollowUnFollowButton from "@/components/ui/follow-unfollow-button";
+import UserAvatar from "@/components/ui/user-avatar";
 import type { ICategory } from "@/types/category.type";
 import type { IUser } from "@/types/user.type";
 import { formatBlogDate } from "@/utils";
-import { Avatar } from "@heroui/avatar";
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
 
@@ -68,7 +68,7 @@ const ArticleHeader = ({
       <div className="mt-7 border-y border-default/60 py-4 print:border-0 print:py-0">
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <Avatar
+            <UserAvatar
               className="size-10 shrink-0"
               radius="full"
               src={author?.profilePicture}

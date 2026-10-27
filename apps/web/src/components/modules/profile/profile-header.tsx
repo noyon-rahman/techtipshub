@@ -1,5 +1,5 @@
 import { IUser } from "@/types";
-import { Avatar } from "@heroui/avatar";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { BsTwitterX } from "react-icons/bs";
@@ -105,10 +105,7 @@ const ProfileHeader = ({ user, actions, blogsHref, blogCount }: IProps) => {
     <header className="border-b border-default/60 pb-8">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
-          <Avatar
-            color="primary"
-            radius="full"
-            isBordered
+          <UserAvatar
             src={profilePicture}
             name={displayName.charAt(0).toUpperCase()}
             className="size-24 shrink-0 object-cover text-3xl font-bold lg:size-28"

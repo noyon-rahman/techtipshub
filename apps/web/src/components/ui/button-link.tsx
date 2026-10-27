@@ -3,9 +3,13 @@ import {
   type ButtonVariantProps,
 } from "@heroui/theme";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 
-interface IProps extends Omit<ButtonVariantProps, "disableRipple" | "disableAnimation"> {
+interface IProps
+  extends Omit<
+    ButtonVariantProps,
+    "disableRipple" | "disableAnimation"
+  > {
   href: string;
   children: ReactNode;
   startContent?: ReactNode;
@@ -15,6 +19,12 @@ interface IProps extends Omit<ButtonVariantProps, "disableRipple" | "disableAnim
   fullWidth?: boolean;
   /** Renders the link as solid primary in the same box as a HeroUI button. */
   size?: "sm" | "md" | "lg";
+  /** For a control that opens something on this page instead of navigating. */
+  onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
+  /** Set on a control that opens a dialog, so screen readers announce it. */
+  hasPopup?: boolean;
+  /** Whether the dialog that `hasPopup` names is open. */
+  isExpanded?: boolean;
 }
 
 /**
@@ -33,6 +43,9 @@ const ButtonLink = ({
   className = "",
   fullWidth = false,
   size = "md",
+  onClick,
+  hasPopup = false,
+  isExpanded,
   ...variantProps
 }: IProps) => {
   // `variant: "bordered"` is rebuilt with the recipe's own default colour
@@ -49,6 +62,9 @@ const ButtonLink = ({
   return (
     <Link
       href={href}
+      onClick={onClick}
+      aria-haspopup={hasPopup ? "dialog" : undefined}
+      aria-expanded={hasPopup ? isExpanded : undefined}
       className={`${buttonStyles(recipeProps)} ${fullWidth ? "w-full" : ""} inline-flex items-center justify-center gap-2 ${
         size === "sm" ? "px-3 py-2 text-sm" : size === "lg" ? "px-6 py-3 text-base" : "px-4 py-2.5 text-sm"
       } font-semibold ${

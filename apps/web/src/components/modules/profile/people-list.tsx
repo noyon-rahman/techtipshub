@@ -1,4 +1,4 @@
-import { Avatar } from "@heroui/avatar";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 
 export interface IPersonSummary {
@@ -104,7 +104,7 @@ const PeopleList = ({
                 href={`/users/@${person.username}`}
                 className="flex items-start gap-3 px-1 py-3.5 transition-colors hover:bg-default-50"
               >
-                <Avatar
+                <UserAvatar
                   size="sm"
                   radius="full"
                   src={person.profilePicture || undefined}

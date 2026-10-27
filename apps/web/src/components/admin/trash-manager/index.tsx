@@ -1,23 +1,24 @@
 "use client";
 
-import BlockError, { RetryButton } from "@/components/admin/block-error";
 import {
   formatDate,
-  formatDateTime,
   initialsOf,
   plural,
 } from "@/components/admin/format";
 import {
+  ListSelect,
+  PAGE_SIZE_OPTIONS,
+  PAGE_SIZES,
   quietButton,
   useDebouncedTerm,
 } from "@/components/admin/list-controls";
-import AdminPagination from "@/components/modules/admin/kit/pagination";
 import ConfirmDialog from "@/components/modules/admin/kit/confirm-dialog";
 import DataTable from "@/components/modules/admin/kit/data-table";
 import DataToolbar from "@/components/modules/admin/kit/data-toolbar";
 import EmptyState from "@/components/modules/admin/kit/empty-state";
+import ListFooter from "@/components/modules/admin/kit/list-footer";
+import ListFrame from "@/components/modules/admin/kit/list-frame";
 import { focusRing } from "@/components/modules/admin/kit/tau";
-import SectionCard from "@/components/modules/admin/section-card";
 import {
   useRestoreBlog,
   useRestoreUser,
@@ -29,14 +30,12 @@ import {
   useTrashCounts,
 } from "@/hooks/admin-blogs";
 import type { IUser, ITrashedUser } from "@/types";
-import { Avatar } from "@heroui/react";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { useCallback, useId, useState } from "react";
 import { MdOutlineArticle } from "react-icons/md";
 import { PiUsers } from "react-icons/pi";
 import { RiArrowGoBackLine, RiDeleteBinLine } from "react-icons/ri";
-
-const PAGE_SIZE = 10;
 
 type Tab = "articles" | "members";
 
@@ -88,6 +87,7 @@ interface ITrashedArticle {
 const TrashManager = () => {
   const [tab, setTab] = useState<Tab>("articles");
   const [page, setPage] = useState({ articles: 1, members: 1 });
+  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
   const [query, setQuery] = useState("");
   const [restored, setRestored] = useState<IRestored | null>(null);
   const [removed, setRemoved] = useState<string | null>(null);
@@ -103,12 +103,12 @@ const TrashManager = () => {
 
   const blogsQuery = useTrashedBlogs({
     page: page.articles,
-    limit: PAGE_SIZE,
+    limit,
     searchTerm,
   });
   const usersQuery = useTrashedUsers({
     page: page.members,
-    limit: PAGE_SIZE,
+    limit,
     searchTerm,
   });
   const countsQuery = useTrashCounts();
@@ -193,39 +193,30 @@ const TrashManager = () => {
   };
 
   const articlesBody = () => {
-    if (blogsQuery.isLoading) {
-      return (
-        <DataTable
-          columns={[
-            { key: "title", header: "Article" },
-            { key: "author", header: "Author" },
-            { key: "changed", header: "Last changed" },
-            { key: "actions", header: "Actions", align: "right" },
-          ]}
-          rows={[]}
-          getRowKey={() => ""}
-          renderCell={() => null}
-          isLoading
-          minWidth="44rem"
-        />
-      );
-    }
-
     if (blogsQuery.isError) {
       return (
-        <BlockError
+        <EmptyState
+          variant="inline"
+          icon={<MdOutlineArticle className="size-5" />}
           title="Removed articles could not be loaded"
           description={
             blogsQuery.error?.message ||
             "The request failed. Check that the API is running, then try again."
           }
-          action={<RetryButton onClick={() => blogsQuery.refetch()} />}
+          action={
+            <button
+              type="button"
+              onClick={() => void blogsQuery.refetch()}
+              className={quietButton}
+            >
+              Try again
+            </button>
+          }
         />
       );
     }
 
     const meta = blogsQuery.meta;
-    const total = meta?.total ?? 0;
     const totalPages = Math.max(meta?.totalPages ?? 1, 1);
     const rows = blogsQuery.rows as ITrashedArticle[];
 
@@ -240,6 +231,8 @@ const TrashManager = () => {
         ]}
         rows={rows}
         getRowKey={(row) => row._id}
+        isLoading={blogsQuery.isLoading}
+        skeletonRows={Math.min(limit, 10)}
         minWidth="48rem"
         caption="Removed articles, most recently changed first"
         emptyState={
@@ -354,61 +347,48 @@ const TrashManager = () => {
           }
         }}
         footer={
-          <>
-            <p className="border-t border-default/60 bg-default-50/40 px-3 py-2 text-xs tabular-nums text-default-600">
-              {meta
-                ? `${plural(total, "removed article")}${
-                    searchTerm ? ` matching "${searchTerm}"` : ""
-                  }`
-                : "Counting removed articles"}
-            </p>
-            <AdminPagination
-              page={meta?.page ?? page.articles}
-              totalPages={totalPages}
-              total={total}
-              pageSize={meta?.limit ?? PAGE_SIZE}
-              onPageChange={setTabPage}
-            />
-          </>
+          <ListFooter
+            total={meta?.total}
+            shown={rows.length}
+            noun="removed article"
+            page={meta?.page ?? page.articles}
+            totalPages={totalPages}
+            pageSize={meta?.limit ?? limit}
+            onPageChange={setTabPage}
+            isLoading={blogsQuery.isLoading && !meta}
+            isError={blogsQuery.isError}
+            context={searchTerm ? `, matching "${searchTerm}"` : null}
+          />
         }
       />
     );
   };
 
   const membersBody = () => {
-    if (usersQuery.isLoading) {
-      return (
-        <DataTable
-          columns={[
-            { key: "member", header: "Member" },
-            { key: "email", header: "Email" },
-            { key: "role", header: "Role at deletion" },
-            { key: "actions", header: "Actions", align: "right" },
-          ]}
-          rows={[]}
-          getRowKey={() => ""}
-          renderCell={() => null}
-          isLoading
-          minWidth="46rem"
-        />
-      );
-    }
-
     if (usersQuery.isError) {
       return (
-        <BlockError
+        <EmptyState
+          variant="inline"
+          icon={<PiUsers className="size-5" />}
           title="Removed members could not be loaded"
           description={
             usersQuery.error?.message ||
             "The request failed. Check that the API is running, then try again."
           }
-          action={<RetryButton onClick={() => usersQuery.refetch()} />}
+          action={
+            <button
+              type="button"
+              onClick={() => void usersQuery.refetch()}
+              className={quietButton}
+            >
+              Try again
+            </button>
+          }
         />
       );
     }
 
     const meta = usersQuery.meta;
-    const total = meta?.total ?? 0;
     const totalPages = Math.max(meta?.totalPages ?? 1, 1);
 
     return (
@@ -422,6 +402,8 @@ const TrashManager = () => {
         ]}
         rows={usersQuery.rows}
         getRowKey={(row) => row._id}
+        isLoading={usersQuery.isLoading}
+        skeletonRows={Math.min(limit, 10)}
         minWidth="52rem"
         caption="Deleted member accounts, most recently changed first"
         emptyState={
@@ -460,7 +442,7 @@ const TrashManager = () => {
             case "member":
               return (
                 <div className="flex items-center gap-2.5">
-                  <Avatar
+                  <UserAvatar
                     src={user.profilePicture || undefined}
                     name={initialsOf(user.fullName)}
                     className="size-8 shrink-0"
@@ -496,7 +478,7 @@ const TrashManager = () => {
             case "changed":
               return (
                 <span className="whitespace-nowrap text-xs tabular-nums text-default-600">
-                  {formatDateTime(user.updatedAt) || "Not recorded"}
+                  {formatDate(user.updatedAt) || "Not recorded"}
                 </span>
               );
 
@@ -526,22 +508,18 @@ const TrashManager = () => {
           }
         }}
         footer={
-          <>
-            <p className="border-t border-default/60 bg-default-50/40 px-3 py-2 text-xs tabular-nums text-default-600">
-              {meta
-                ? `${plural(total, "deleted account")}${
-                    searchTerm ? ` matching "${searchTerm}"` : ""
-                  }`
-                : "Counting deleted accounts"}
-            </p>
-            <AdminPagination
-              page={meta?.page ?? page.members}
-              totalPages={totalPages}
-              total={total}
-              pageSize={meta?.limit ?? PAGE_SIZE}
-              onPageChange={setTabPage}
-            />
-          </>
+          <ListFooter
+            total={meta?.total}
+            shown={usersQuery.rows.length}
+            noun="deleted account"
+            page={meta?.page ?? page.members}
+            totalPages={totalPages}
+            pageSize={meta?.limit ?? limit}
+            onPageChange={setTabPage}
+            isLoading={usersQuery.isLoading && !meta}
+            isError={usersQuery.isError}
+            context={searchTerm ? `, matching "${searchTerm}"` : null}
+          />
         }
       />
     );
@@ -549,11 +527,7 @@ const TrashManager = () => {
 
   return (
     <div className="space-y-4">
-      <SectionCard
-        title="Removed items"
-        description="Restoring puts an item back. Deleting an article permanently erases it and cannot be undone."
-        flush
-      >
+      <ListFrame label="Removed articles and accounts">
         <DataToolbar
           filters={filters}
           activeFilter={tab}
@@ -564,6 +538,18 @@ const TrashManager = () => {
           onQueryChange={setQuery}
           searchPlaceholder={
             tab === "articles" ? "Title or slug" : "Name, username or email"
+          }
+          right={
+            <ListSelect
+              label="Per page"
+              hideLabel
+              value={limit}
+              onChange={(value) => {
+                setLimit(Number(value) || PAGE_SIZES[0]);
+                setTabPage(1);
+              }}
+              options={PAGE_SIZE_OPTIONS}
+            />
           }
         />
 
@@ -576,7 +562,7 @@ const TrashManager = () => {
         >
           {tab === "articles" ? articlesBody() : membersBody()}
         </div>
-      </SectionCard>
+      </ListFrame>
 
       <div aria-live="polite" aria-atomic="true">
         {restored ? (

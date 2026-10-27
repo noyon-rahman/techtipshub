@@ -3,7 +3,7 @@
 import { writeBlogPath } from "@/lib/blog-routes";
 
 import { useUser } from "@/context/user.provider";
-import { Avatar } from "@heroui/react";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -94,7 +94,7 @@ const UserSidebar = () => {
         >
           {/* Identity */}
           <div className="flex items-center gap-3 border-b border-default/60 pb-5">
-            <Avatar
+            <UserAvatar
               size="sm"
               radius="full"
               src={user?.profilePicture}
