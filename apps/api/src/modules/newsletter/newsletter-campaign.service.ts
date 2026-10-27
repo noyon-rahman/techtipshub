@@ -15,11 +15,12 @@ import NewsletterSubscriber from "./newsletter.model";
 import { unsubscribeUrl } from "./newsletter.tokens";
 
 /**
- * How many mails one tick sends.
+ * How many mails one press sends.
  *
  * Ten over Resend's default two-requests-per-second limit leaves room for
- * retries, and one tick fits the time a scheduled function is given. The queue
- * is resumable, so a slow list takes more ticks rather than a longer request.
+ * retries, and one press fits the time a serverless function is given. The
+ * queue is resumable, so a long list takes more presses rather than a longer
+ * request.
  */
 export const BATCH_SIZE = 10;
 
@@ -496,6 +497,10 @@ const recoverAbandoned = async () => {
   return stale.modifiedCount;
 };
 
+/**
+ * Send one batch and report what is left. The admin's "Continue" calls this:
+ * there is no scheduled job, so the queue moves when someone asks it to.
+ */
 const processBatch = async (campaignId?: string) => {
   await recoverAbandoned();
 
@@ -627,13 +632,6 @@ const progress = async (id: string) => {
   };
 };
 
-/**
- * The scheduler's entry point. It drains up to `BATCH_SIZE` mails from the
- * oldest sending campaign, then reports what is left, so one tick is one
- * bounded unit of work.
- */
-const runQueue = async () => processBatch();
-
 export const campaignService = {
   BATCH_SIZE,
   suggestion,
@@ -647,6 +645,5 @@ export const campaignService = {
   start,
   processBatch,
   progress,
-  runQueue,
   recipientCountFor,
 };

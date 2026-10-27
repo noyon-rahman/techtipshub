@@ -8,8 +8,8 @@
  * table: paged on the server, previous rows kept while the next request runs.
  *
  * The jobs are the ones that take time: adding an address, an export, and the
- * send itself. Sending is the odd one: it happens in batches over several
- * minutes, so `useCampaignProgress` polls while an issue is in flight and
+ * send itself. Sending is the odd one: it happens in batches, each one a press
+ * of its own, so `useCampaignProgress` polls while an issue is in flight and
  * stops the moment the API says it is done.
  */
 import {
@@ -250,7 +250,8 @@ export const useCampaign = (id?: string) => {
 
 /**
  * The send in flight. Polling stops on its own when the API reports `sent` or
- * `draft`, so a finished issue costs nothing while the tab stays open.
+ * `draft`, so a finished issue costs nothing while the tab stays open. It
+ * also catches a batch another admin pressed on the same issue.
  */
 export const useCampaignProgress = (
   id?: string,
@@ -371,9 +372,10 @@ export const useStartCampaign = () => {
     mutationFn: startCampaign,
     onSuccess: (_data, id) => {
       invalidateCampaign(queryClient, id);
-      toast.success("Sending has started. The rest goes out on its own.", {
-        id: "admin-newsletter-send",
-      });
+      toast.success(
+        "The first batch is out. Press Continue for each further batch.",
+        { id: "admin-newsletter-send" },
+      );
     },
     onError: (error: Error) => {
       toast.error(error?.message || "The issue did not start sending.", {

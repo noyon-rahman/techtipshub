@@ -110,12 +110,6 @@ const envSchema = z.object({
    * turns bounces and complaints into suppressions refuses every call.
    */
   RESEND_WEBHOOK_SECRET: optionalString,
-  /**
-   * Bearer token Vercel Cron sends to `/api/v1/newsletter/cron`. Empty means
-   * the endpoint refuses every call, so a campaign only moves when an admin
-   * presses "Continue".
-   */
-  CRON_SECRET: optionalString,
 
   // hashing
   BCRYPT_SALT_ROUND: positiveInt("BCRYPT_SALT_ROUND"),

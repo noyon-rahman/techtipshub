@@ -134,35 +134,41 @@ Start is a two-step confirmation that says how many people it reaches.
    unsubscribe that arrives mid-send does not change who this issue reaches;
 3. marks the campaign `sending` and processes the first batch of ten.
 
-The rest drains on its own:
+The rest goes out one batch per press:
 
-| Trigger                | Endpoint                                   |
-| ---------------------- | ------------------------------------------ |
-| Vercel Cron, every 5m  | `GET /api/v1/newsletter/cron`              |
+| Trigger                | Endpoint                                       |
+| ---------------------- | ---------------------------------------------- |
 | The admin's "Continue" | `POST /admin/newsletter/campaigns/:id/continue` |
 
-Both call the same `processBatch`. It claims one recipient at a time with a
-conditional update (pending → `sending`), so two ticks cannot take the same slot
-and no address is mailed twice. A slot left in `sending` by a crashed tick is
-released after a 5 minute lease. Each mail carries the idempotency key
-`campaign-<id>-<address>`; a recipient gets 3 attempts.
+**Nothing runs on a timer.** The queue moves when someone asks it to, because
+the deployment is on the Vercel Hobby plan, which only allows daily cron jobs and
+would refuse the every-few-minutes schedule this used to need. A press sends up
+to ten, then reports what is left; the button says how many that next press
+carries. An issue of a few hundred addresses is a short run of presses rather
+than one.
+
+Each press calls `processBatch`. It claims one recipient at a time with a
+conditional update (pending → `sending`), so two presses on the same issue
+cannot take the same slot and no address is mailed twice. A slot left in
+`sending` by a crashed request is released after a 5 minute lease. Each mail
+carries the idempotency key `campaign-<id>-<address>`; a recipient gets 3
+attempts.
 
 While an issue is `sending`, the admin page polls
 `GET /admin/newsletter/campaigns/:id/progress` every 5 seconds and stops when the
-API reports `sent`. A finished campaign drops its `recipients` array and keeps
-the counts.
+API reports `sent`. That also catches a batch pressed from another tab. A
+finished campaign drops its `recipients` array and keeps the counts.
 
 `GET /admin/newsletter/campaigns/:id/preview` re-renders the stored copy.
 
 ## Environment
 
-All three are optional. The feature runs without them, with the gaps noted.
+Both are optional. The feature runs without them, with the gaps noted.
 
 | Variable                        | Effect when unset                                                        |
 | ------------------------------- | ------------------------------------------------------------------------ |
 | `NEWSLETTER_UNSUBSCRIBE_SECRET` | Key derived from the JWT secrets. Fine, but rotating the JWT secrets kills every link already sent. |
 | `RESEND_WEBHOOK_SECRET`         | `POST /newsletter/webhook/resend` answers 503; bounces never arrive, so suppressed addresses keep being mailed. |
-| `CRON_SECRET`                   | The cron endpoint answers 401; an admin drains each issue with **Continue**. |
 
 Also required, and already used by the rest of the mail stack: `RESEND_API_KEY`,
 `MAIL_DOMAIN` (the `newsletter@` local part sits on it) and `CLIENT_BASE_URL`
@@ -175,8 +181,10 @@ lands; every campaign sets it explicitly.
 2. Add a webhook to `<API_BASE_URL>/newsletter/webhook/resend`, subscribed to
    `email.bounced` and `email.complained`. Copy the signing secret (`whsec_…`)
    into `RESEND_WEBHOOK_SECRET`.
-3. Add `CRON_SECRET` to the API's environment; Vercel Cron sends it as
-   `Authorization: Bearer` from `apps/api/vercel.json`.
+
+No `vercel.json` cron entry and no `CRON_SECRET` are needed. If the plan is ever
+upgraded, a schedule pointing at `/api/v1/newsletter/cron` (with a secret check
+put back on the route) would remove the presses.
 
 ## The admin screen
 
@@ -196,13 +204,13 @@ when it started. A row opens the draft, the send in progress, or the record.
   nothing that would let someone act on a subscriber's behalf.
 
 ## Web surface
+
 | Path                                  | Purpose                                      |
 | ------------------------------------- | -------------------------------------------- |
 | `POST /newsletter`                    | Public signup, rate limited                  |
 | `GET` / `POST /newsletter/unsubscribe`| Verify a link, then remove the address       |
 | `GET` / `PUT /newsletter/membership`  | The profile switch (session required)        |
 | `POST /newsletter/webhook/resend`     | Signature-verified bounces and complaints    |
-| `GET /newsletter/cron`                | The scheduler's batch tick                   |
 
 Admin endpoints under `/admin/newsletter/*` are listed in
 [`admin-panel.md`](./admin-panel.md).
