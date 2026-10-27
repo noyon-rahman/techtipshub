@@ -12,6 +12,9 @@ interface IProps {
   initialBlogs: IBlog[];
 }
 
+/** Articles fetched per scroll. The end is `fewer than this came back`. */
+const LOAD_MORE_LIMIT = 10;
+
 const FollowingFeedBlogs = ({ initialBlogs }: IProps) => {
   const searchParams = useSearchParams();
 
@@ -26,7 +29,7 @@ const FollowingFeedBlogs = ({ initialBlogs }: IProps) => {
 
     const params: { page: string; limit: string; [key: string]: string } = {
       page: page.toString(),
-      limit: "5",
+      limit: LOAD_MORE_LIMIT.toString(),
     };
 
     // Add searchTerm and category only if they are truthy
@@ -44,7 +47,7 @@ const FollowingFeedBlogs = ({ initialBlogs }: IProps) => {
     }
 
     // Stop further fetching if fewer blogs than the limit are returned
-    if (newBlogs.length < 5) {
+    if (newBlogs.length < LOAD_MORE_LIMIT) {
       setHasMore(false);
     }
   };

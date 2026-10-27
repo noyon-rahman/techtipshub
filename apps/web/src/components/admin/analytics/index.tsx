@@ -20,7 +20,8 @@ import type {
   IAdminTopArticle,
   IAdminTopContributor,
 } from "@/types";
-import { Avatar, Skeleton } from "@heroui/react";
+import { Skeleton } from "@heroui/react";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { RiBarChartLine } from "react-icons/ri";
@@ -360,7 +361,7 @@ const TopContributors = ({
           >
             {index + 1}
           </span>
-          <Avatar
+          <UserAvatar
             src={person.profilePicture || undefined}
             name={initialsOf(person.fullName)}
             className="size-8 shrink-0"

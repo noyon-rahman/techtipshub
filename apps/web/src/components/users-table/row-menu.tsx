@@ -129,7 +129,7 @@ export default function RowMenu({ label, children }: IProps) {
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((current) => !current)}
-        className={`inline-flex size-11 items-center justify-center rounded-md text-default-600 transition-colors hover:bg-default-100 hover:text-foreground aria-expanded:bg-default-100 aria-expanded:text-foreground sm:size-8 ${focusRing}`}
+        className={`inline-flex size-11 items-center justify-center rounded-[6px] text-default-600 transition-colors hover:bg-default-100 hover:text-foreground aria-expanded:bg-default-100 aria-expanded:text-foreground sm:size-9 ${focusRing}`}
       >
         <FiChevronDown aria-hidden className="size-4" />
       </button>

@@ -1,13 +1,13 @@
 "use client";
 
 import {
-  Avatar,
   Button,
   Dropdown,
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
 } from "@heroui/react";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef } from "react";
@@ -238,7 +238,7 @@ const AdminSidebar = () => {
           collapsed ? "justify-center" : "justify-start"
         }`}
       >
-        <Avatar
+        <UserAvatar
           src={user?.profilePicture}
           size="sm"
           className="size-8 shrink-0 object-cover"

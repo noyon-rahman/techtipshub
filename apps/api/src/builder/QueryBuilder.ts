@@ -136,6 +136,12 @@ class QueryBuilder<T> {
 
     excludeFields.forEach((el) => delete queryObj[el]);
 
+    // Visibility columns are decided by the route, never by the caller: with
+    // them spliced into the filter, `?status=draft` (or `?isDeleted=true`)
+    // would put unpublished or removed rows on a public list.
+    delete queryObj.status;
+    delete queryObj.isDeleted;
+
     if (queryObj.category) {
       const foundCat = await this.getCategoryIdByName(
         queryObj.category as string,

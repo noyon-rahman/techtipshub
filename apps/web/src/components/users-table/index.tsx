@@ -1,14 +1,15 @@
 "use client";
 
-import { ListSelect, useDebouncedTerm } from "@/components/admin/list-controls";
+import { ListSelect, PAGE_SIZE_OPTIONS, PAGE_SIZES, useDebouncedTerm } from "@/components/admin/list-controls";
 import { formatCount, formatDate } from "@/components/admin/format";
-import AdminPagination from "@/components/modules/admin/kit/pagination";
 import ConfirmDialog from "@/components/modules/admin/kit/confirm-dialog";
 import DataTable, {
   type DataTableColumn,
 } from "@/components/modules/admin/kit/data-table";
 import DataToolbar from "@/components/modules/admin/kit/data-toolbar";
 import EmptyState from "@/components/modules/admin/kit/empty-state";
+import ListFooter from "@/components/modules/admin/kit/list-footer";
+import ListFrame from "@/components/modules/admin/kit/list-frame";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import StatusPill from "@/components/ui/status-pill";
 import { useAdminMembers } from "@/hooks/admin-members";
@@ -18,8 +19,8 @@ import {
   useMakeAdmin,
   useUnblockUser,
 } from "@/hooks/user.hook";
-import type { IUser, TUserRole, TUserStatus } from "@/types";
-import { Avatar } from "@heroui/react";
+import type { IUser, TUserRole } from "@/types";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { useCallback, useState } from "react";
 import {
@@ -32,29 +33,16 @@ import {
 import { PiUsers } from "react-icons/pi";
 import RowMenu from "./row-menu";
 
-const PAGE_SIZES = [10, 20, 50] as const;
-
 type RoleFilter = "all" | TUserRole;
-type StatusFilter = "all" | TUserStatus;
 
-/** The role and status values `GET /admin/users` accepts; anything else is a 400. */
+/** The role values `GET /admin/users` accepts; anything else is a 400. */
 const ROLE_OPTIONS: { value: RoleFilter; label: string }[] = [
   { value: "all", label: "All roles" },
   { value: "User", label: "Members" },
   { value: "Admin", label: "Admins" },
 ];
 
-const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All statuses" },
-  { value: "Active", label: "Active" },
-  { value: "Blocked", label: "Blocked" },
-];
-
-const asRole = (value: string): RoleFilter =>
-  value === "User" || value === "Admin" ? value : "all";
-
-const asStatus = (value: string): StatusFilter =>
-  value === "Active" || value === "Blocked" ? value : "all";
+type Tab = "all" | "blocked";
 
 const displayName = (user: IUser) =>
   user.fullName?.trim() || user.username || "Unnamed member";
@@ -108,27 +96,28 @@ const MenuSeparator = () => (
 );
 
 /**
- * Member management. Search, role, status, page size and page go to
+ * Member management. Search, role, tab, page size and page go to
  * `GET /admin/users`, so the footer total and the pager cover every account
- * rather than the ten rows that were fetched.
+ * rather than the rows that were fetched.
  *
- * The list endpoint has no filter for unverified accounts, so there is no
- * unverified tab; the status column still says which accounts are unverified.
+ * "Blocked" is a tab and not a status select: it is the one account state an
+ * admin acts on, and the dashboard links straight to it. The status column
+ * still says which accounts are active, and which are unverified.
  */
 const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
   const [query, setQuery] = useState("");
   // `?filter=blocked` is the dashboard's blocked-accounts link.
-  const [status, setStatus] = useState<StatusFilter>(
-    initialFilter === "blocked" ? "Blocked" : "all",
+  const [tab, setTab] = useState<Tab>(
+    initialFilter === "blocked" ? "blocked" : "all",
   );
   const [role, setRole] = useState<RoleFilter>("all");
   const [seenFilter, setSeenFilter] = useState(initialFilter);
 
   if (seenFilter !== initialFilter) {
     setSeenFilter(initialFilter);
-    setStatus(initialFilter === "blocked" ? "Blocked" : "all");
+    setTab(initialFilter === "blocked" ? "blocked" : "all");
     setPage(1);
   }
 
@@ -140,7 +129,7 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
     limit,
     searchTerm,
     role: role === "all" ? undefined : role,
-    status: status === "all" ? undefined : status,
+    status: tab === "blocked" ? "Blocked" : undefined,
   });
 
   const { mutate: blockUser, isPending: isBlocking } = useBlockUser();
@@ -152,7 +141,6 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
   const { rows, meta, isLoading, isError, error, refetch } = list;
 
   const totalPages = Math.max(meta?.totalPages ?? 1, 1);
-  const total = meta?.total ?? 0;
   const pageSize = meta?.limit ?? limit;
 
   const refresh = () => {
@@ -164,27 +152,27 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
       setPage((current) => Math.max(1, current - 1));
   }, [page, rows.length]);
 
-  const isFiltered = Boolean(searchTerm) || role !== "all" || status !== "all";
+  const changeTab = (next: Tab) => {
+    setTab(next);
+    setPage(1);
+  };
+
+  const filters = [
+    {
+      key: "all",
+      label: "All members",
+      count: tab === "all" ? meta?.total : undefined,
+    },
+    { key: "blocked", label: "Blocked" },
+  ];
+
+  const isFiltered = Boolean(searchTerm) || role !== "all";
 
   const resetFilters = () => {
     setQuery("");
     setRole("all");
-    setStatus("all");
     setPage(1);
   };
-
-  const summary = [
-    `${formatCount(total)} ${total === 1 ? "account" : "accounts"}`,
-    searchTerm ? `matching "${searchTerm}"` : "",
-    role === "all" ? "" : role === "Admin" ? "admins only" : "members only",
-    status === "all"
-      ? ""
-      : status === "Blocked"
-        ? "blocked only"
-        : "active only",
-  ]
-    .filter(Boolean)
-    .join(", ");
 
   const emptyState = isError ? (
     <EmptyState
@@ -201,12 +189,28 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
         </button>
       }
     />
+  ) : tab === "blocked" ? (
+    <EmptyState
+      variant="inline"
+      icon={<PiUsers className="size-5" />}
+      title="No blocked accounts"
+      description="Accounts you block land here so you can find them again and unblock them."
+      action={
+        <button
+          type="button"
+          onClick={() => changeTab("all")}
+          className={quietButton}
+        >
+          Show all members
+        </button>
+      }
+    />
   ) : isFiltered ? (
     <EmptyState
       variant="inline"
       icon={<FiSearch className="size-5" />}
       title="No members match this view"
-      description="No account on the server matches that search, role and status. Clear them to see every member."
+      description="No account on the server matches that search and role. Clear them to see every member."
       action={
         <button type="button" onClick={resetFilters} className={quietButton}>
           Clear search and filters
@@ -223,8 +227,11 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
   );
 
   return (
-    <div className="overflow-hidden rounded-xl border border-default/60 bg-content-1">
+    <ListFrame label="Member accounts">
       <DataToolbar
+        filters={filters}
+        activeFilter={tab}
+        onFilterChange={(key) => changeTab(key === "blocked" ? "blocked" : "all")}
         query={query}
         onQueryChange={setQuery}
         searchPlaceholder="Name, username or email"
@@ -235,20 +242,10 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
               hideLabel
               value={role}
               onChange={(value) => {
-                setRole(asRole(value));
+                setRole(value === "User" || value === "Admin" ? value : "all");
                 setPage(1);
               }}
               options={ROLE_OPTIONS}
-            />
-            <ListSelect
-              label="Status"
-              hideLabel
-              value={status}
-              onChange={(value) => {
-                setStatus(asStatus(value));
-                setPage(1);
-              }}
-              options={STATUS_OPTIONS}
             />
             <ListSelect
               label="Per page"
@@ -258,10 +255,7 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
                 setLimit(Number(value) || PAGE_SIZES[0]);
                 setPage(1);
               }}
-              options={PAGE_SIZES.map((size) => ({
-                value: size,
-                label: `${size} per page`,
-              }))}
+              options={PAGE_SIZE_OPTIONS}
             />
           </>
         }
@@ -282,7 +276,7 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
               const name = displayName(user);
               return (
                 <div className="flex min-w-0 items-center gap-2.5">
-                  <Avatar
+                  <UserAvatar
                     src={user.profilePicture || undefined}
                     size="sm"
                     className="size-8 shrink-0"
@@ -491,22 +485,31 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
               return null;
           }
         }}
-        footer={
-          <>
-            <p className="border-t border-default/60 bg-default-50/40 px-3 py-2 text-xs tabular-nums text-default-600">
-              {meta ? summary : "Counting accounts"}
-            </p>
-            <AdminPagination
-              page={meta?.page ?? page}
-              totalPages={totalPages}
-              total={total}
-              pageSize={pageSize}
-              onPageChange={setPage}
-            />
-          </>
+      />
+
+      <ListFooter
+        total={meta?.total}
+        shown={rows.length}
+        noun="account"
+        page={meta?.page ?? page}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        onPageChange={setPage}
+        isLoading={isLoading && !meta}
+        isError={isError}
+        context={
+          [
+            tab === "blocked" ? ", blocked only" : "",
+            role === "all"
+              ? ""
+              : role === "Admin"
+                ? ", admins only"
+                : ", members only",
+            searchTerm ? `, matching "${searchTerm}"` : "",
+          ].join("") || null
         }
       />
-    </div>
+    </ListFrame>
   );
 };
 

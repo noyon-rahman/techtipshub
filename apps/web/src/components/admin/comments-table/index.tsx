@@ -3,14 +3,16 @@
 import ContentCard from "./content-card";
 import {
   ListSelect,
+  PAGE_SIZE_OPTIONS,
   PAGE_SIZES,
   quietButton,
   useDebouncedTerm,
 } from "@/components/admin/list-controls";
 import { plural } from "@/components/admin/format";
 import { formatExact, formatRelative } from "@/components/admin/utils";
-import AdminPagination from "@/components/modules/admin/kit/pagination";
 import ConfirmDialog from "@/components/modules/admin/kit/confirm-dialog";
+import ListFrame from "@/components/modules/admin/kit/list-frame";
+import ListFooter from "@/components/modules/admin/kit/list-footer";
 import DataTable, {
   type DataTableColumn,
 } from "@/components/modules/admin/kit/data-table";
@@ -155,7 +157,6 @@ const CommentsTable = ({ initialWithin }: IProps) => {
   const counts = countsQuery.data;
 
   const totalPages = Math.max(meta?.totalPages ?? 1, 1);
-  const total = meta?.total ?? 0;
 
   // A deletion shrinks the list under the reader. Staying on a page that no
   // longer exists shows an empty table, so step back one page.
@@ -205,10 +206,7 @@ const CommentsTable = ({ initialWithin }: IProps) => {
   ];
 
   return (
-    <section
-      aria-label="Comment moderation"
-      className="overflow-hidden rounded-[10px] border border-default/60 bg-content-1"
-    >
+    <ListFrame label="Comment moderation">
       <DataToolbar
         searchPlaceholder="Search comments"
         query={query}
@@ -236,10 +234,7 @@ const CommentsTable = ({ initialWithin }: IProps) => {
                 setLimit(Number(value) || PAGE_SIZES[0]);
                 setPage(1);
               }}
-              options={PAGE_SIZES.map((size) => ({
-                value: size,
-                label: `${size} per page`,
-              }))}
+              options={PAGE_SIZE_OPTIONS}
             />
             {list.isFetching && !list.isLoading && (
               <Spinner size="sm" color="current" aria-hidden />
@@ -258,12 +253,16 @@ const CommentsTable = ({ initialWithin }: IProps) => {
           minWidth={880}
           caption={`Comments${windowLabel ? ` from ${windowLabel}` : ""}, ${sort === "newest" ? "newest" : "oldest"} first`}
           footer={
-            <AdminPagination
+            <ListFooter
+              total={meta?.total}
+              shown={rows.length}
+              noun="comment"
               page={meta?.page ?? page}
               totalPages={totalPages}
-              total={total}
               pageSize={meta?.limit ?? limit}
               onPageChange={setPage}
+              isError={isError}
+              context={windowLabel ? ` from ${windowLabel}` : null}
             />
           }
           emptyState={
@@ -617,13 +616,17 @@ const CommentsTable = ({ initialWithin }: IProps) => {
       </ul>
 
       {!list.isLoading && rows.length > 0 && (
-        <div className="border-t border-default/60 sm:hidden">
-          <AdminPagination
+        <div className="sm:hidden">
+          <ListFooter
+            total={meta?.total}
+            shown={rows.length}
+            noun="comment"
             page={meta?.page ?? page}
             totalPages={totalPages}
-            total={total}
             pageSize={meta?.limit ?? limit}
             onPageChange={setPage}
+            isError={isError}
+            context={windowLabel ? ` from ${windowLabel}` : null}
           />
         </div>
       )}
@@ -633,7 +636,7 @@ const CommentsTable = ({ initialWithin }: IProps) => {
           Refreshing comments
         </p>
       )}
-    </section>
+    </ListFrame>
   );
 };
 

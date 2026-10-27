@@ -11,7 +11,7 @@ import EmptyState from "@/components/modules/admin/kit/empty-state";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import { useAdminLogs } from "@/hooks/admin-activity";
 import type { TAdminLog, TAdminMeta } from "@/types/admin.type";
-import { Avatar } from "@heroui/react";
+import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { useCallback, useId, useMemo, useRef, useState } from "react";
 import { FiRefreshCw } from "react-icons/fi";
@@ -445,7 +445,7 @@ const ActivityLog = () => {
                   key={log._id}
                   className="flex items-start gap-3 border-b border-default/60 py-3.5 last:border-b-0"
                 >
-                  <Avatar
+                  <UserAvatar
                     src={actor?.profilePicture}
                     size="sm"
                     className="mt-0.5 size-8 shrink-0"

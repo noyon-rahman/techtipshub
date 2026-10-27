@@ -197,6 +197,7 @@ const overview = async () => {
     }),
     Blog.countDocuments({
       isDeleted: { $ne: true },
+      status: { $ne: "draft" },
       createdAt: { $gte: last7Days },
     }),
     Comment.countDocuments({
@@ -219,6 +220,7 @@ const overview = async () => {
       {
         $match: {
           isDeleted: { $ne: true },
+          status: { $ne: "draft" },
           createdAt: { $gte: new Date(now.getTime() - 30 * DAY_MS) },
         },
       },
@@ -273,7 +275,11 @@ const overview = async () => {
       isDeleted: { $ne: true },
       postCount: { $lte: 0 },
     }),
-    Blog.countDocuments({ isDeleted: { $ne: true }, totalViews: { $lte: 0 } }),
+    Blog.countDocuments({
+      isDeleted: { $ne: true },
+      status: { $ne: "draft" },
+      totalViews: { $lte: 0 },
+    }),
   ]);
 
   const topArticles = topArticleDocs.map((blog) => ({
@@ -383,6 +389,8 @@ const search = async (rawTerm: unknown) => {
       isDeleted: { $ne: true },
       $or: [{ title: pattern }, { slug: pattern }],
     })
+      // Admin search: finding a draft again is the point of it.
+      .setOptions({ includeDrafts: true })
       .sort({ totalViews: -1 })
       .limit(5)
       .select("title slug totalViews createdAt author")
@@ -453,7 +461,13 @@ const activity = async (rawDays: unknown) => {
         { $group: { _id: dateGroup, comments: { $sum: 1 } } },
       ]),
       Blog.aggregate<TActivityRow>([
-        { $match: { createdAt: { $gte: firstDay }, isDeleted: { $ne: true } } },
+        {
+          $match: {
+            createdAt: { $gte: firstDay },
+            isDeleted: { $ne: true },
+            status: { $ne: "draft" },
+          },
+        },
         { $group: { _id: dateGroup, blogs: { $sum: 1 } } },
       ]),
       User.aggregate<TActivityRow>([

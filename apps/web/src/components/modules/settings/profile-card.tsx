@@ -1,6 +1,7 @@
 "use client";
 
-import { Avatar, Button } from "@heroui/react";
+import UserAvatar from "@/components/ui/user-avatar";
+import { Button } from "@heroui/react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiCamera, FiTrash2 } from "react-icons/fi";
@@ -93,7 +94,7 @@ const ProfileCard = ({
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-6">
       <div className="flex shrink-0 items-start gap-3">
-        <Avatar
+        <UserAvatar
           className="size-[5.5rem] shrink-0 text-2xl font-semibold"
           radius="full"
           src={photo}

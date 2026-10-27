@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { BlogContentType } from "./blog.constant";
+import { BlogContentType, BlogStatus } from "./blog.constant";
 import { IBlog } from "./blog.interface";
 
 const blogSchema = new Schema<IBlog>(
@@ -51,6 +51,28 @@ const blogSchema = new Schema<IBlog>(
       required: [true, "Tags are required"],
       default: [],
     },
+    // One place decides whether a piece is readable: `status`. `isDeleted`
+    // says it was removed. Rows written before drafts existed have no value
+    // stored, and every reader of this field treats a missing one as
+    // published, which is what they are.
+    status: {
+      type: String,
+      enum: {
+        values: BlogStatus,
+        message: "{VALUE} is not a valid status",
+      },
+      default: "published",
+    },
+    // The admin who created this on the author's behalf. Empty when the author
+    // wrote it themselves.
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
+    // When it first went live. Absent while it is a draft.
+    publishedAt: {
+      type: Date,
+    },
     upVotes: {
       type: Number,
       default: 0,
@@ -77,13 +99,21 @@ const blogSchema = new Schema<IBlog>(
   },
 );
 
-// Soft-deleted articles are hidden from every query unless the call says it
-// is looking at them, which only the trash view and the restore path do.
+// Trashed articles are hidden from every query unless the call says it is
+// looking at them, which only the trash view and the restore path do.
 // `setOptions({ bypassMiddleware: true })` is that permission, the same one
 // the member model uses.
+//
+// Drafts are hidden from the same queries, because everything that reads this
+// model without saying otherwise is a reader-facing screen. A query that means
+// "whatever state it is in" (the trash, the admin editor, a published check)
+// passes `includeDrafts: true` or writes its own filter.
 blogSchema.pre("find", function (next) {
   if (!this.getOptions()?.bypassMiddleware) {
     this.find({ isDeleted: { $ne: true } });
+  }
+  if (!this.getOptions()?.includeDrafts) {
+    this.find({ status: { $ne: "draft" } });
   }
   next();
 });
@@ -91,6 +121,9 @@ blogSchema.pre("find", function (next) {
 blogSchema.pre("findOne", function (next) {
   if (!this.getOptions()?.bypassMiddleware) {
     this.find({ isDeleted: { $ne: true } });
+  }
+  if (!this.getOptions()?.includeDrafts) {
+    this.find({ status: { $ne: "draft" } });
   }
   next();
 });

@@ -8,7 +8,7 @@ import ButtonLink from "@/components/ui/button-link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { FiPlus } from "react-icons/fi";
-import { writeBlogPath } from "@/lib/blog-routes";
+import { adminNewBlogPath } from "@/lib/blog-routes";
 
 /** `?sort=` seeds the table's starting tab, read verbatim. */
 function ManageBlogsTable() {
@@ -24,12 +24,11 @@ const ManageBlogsPage = () => {
   return (
     <div>
       <AdminPageHeader
-        section="Articles"
         title="Articles"
-        description="Every published piece, newest first. Open one to read it, jump to the editor, or remove it with a reason. Removed articles move to the Deleted tab on this screen, and they stay in Trash too."
+        description="Every article, newest first. Open one to read it, jump to the editor, or remove it with a reason. Drafts are articles written for a member but not published yet. Removed articles move to Trash, where you can restore them or delete them for good."
         actions={
           <ButtonLink
-            href={writeBlogPath}
+            href={adminNewBlogPath}
             size="sm"
             startContent={<FiPlus aria-hidden />}
           >

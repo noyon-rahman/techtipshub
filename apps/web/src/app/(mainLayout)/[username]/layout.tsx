@@ -1,9 +1,9 @@
 import Container from "@/components/ui/container";
 import FollowUnFollowButton from "@/components/ui/follow-unfollow-button";
+import UserAvatar from "@/components/ui/user-avatar";
 import { getUserByUsername } from "@/services/user";
 import { IUser } from "@/types";
 import { normaliseRouteUsername } from "@/utils/username";
-import { Avatar } from "@heroui/avatar";
 import Link from "next/link";
 import { PiCalendarDotsLight } from "react-icons/pi";
 
@@ -29,13 +29,10 @@ const FollowersFollowingLayout = async ({ params, children }: IProps) => {
           {/* Identity card */}
           <aside className="lg:sticky lg:top-[calc(var(--header-height)+2rem)]">
             <div className="flex items-start gap-4 border-b border-default/60 pb-6 lg:flex-col lg:items-start">
-              <Avatar
-                color="primary"
+              <UserAvatar
                 className="size-16 shrink-0 object-cover lg:size-20"
-                radius="full"
                 src={profilePicture}
                 name={(fullName || username || "?").charAt(0).toUpperCase()}
-                isBordered
               />
 
               <div className="min-w-0 space-y-2">

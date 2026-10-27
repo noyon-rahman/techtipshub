@@ -11,6 +11,25 @@ const create = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.CREATED, { data: result });
 };
 
+// Admin create: the admin picks whose byline it is and whether it goes live
+// now or waits as a draft for that author.
+const createByAdmin = async (c: Context<TAppBindings>) => {
+  const result = await blogService.createByAdmin(
+    c.get("user"),
+    c.get("validatedBody"),
+  );
+
+  return sendResponse(c, httpStatus.CREATED, { data: result });
+};
+
+const publishBlog = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+
+  const result = await blogService.publishBlog(id, c.get("user").email);
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const getAll = async (c: Context<TAppBindings>) => {
   const { meta, result } = await blogService.getAll(c.req.query());
 
@@ -186,6 +205,8 @@ const updateBlogByAdmin = async (c: Context<TAppBindings, string>) => {
 
 export const blogController = {
   create,
+  createByAdmin,
+  publishBlog,
   getAll,
   getLoggedInUserBlogs,
   getSingleBlog,

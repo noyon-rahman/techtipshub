@@ -16,7 +16,18 @@ const adminBlogRouter = new Hono<TAppBindings>();
 
 adminBlogRouter.get("/", blogController.getAdminList);
 
+// The admin composer: an article written for a member, live or as a draft.
+adminBlogRouter.post(
+  "/",
+  withUploads({ field: "image", target: "coverImage" }),
+  validate({ json: blogValidationSchema.createByAdmin }),
+  blogController.createByAdmin,
+);
+
 adminBlogRouter.get("/trash", blogController.getDeletedBlogs);
+
+// Takes a draft live. The only status transition an article has.
+adminBlogRouter.patch("/:id/publish", blogController.publishBlog);
 
 adminBlogRouter.get("/:id", blogController.getAdminSingle);
 
