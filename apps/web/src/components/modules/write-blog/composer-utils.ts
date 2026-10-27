@@ -125,10 +125,16 @@ export const describeFailure = (error: unknown, fallback: string) => {
   return raw && !CANCELLED.test(raw) ? raw : fallback;
 };
 
-/** Builds the multipart body for `POST /blogs`. */
+/**
+ * Builds the multipart body for `POST /blogs` and `POST /admin/blogs`.
+ *
+ * `extra` carries the fields only the admin create accepts: whose byline the
+ * article has and whether it goes live. Member callers leave it out.
+ */
 export const buildBlogPayload = (
   values: BlogFormData,
   coverImage: File | null,
+  extra?: Record<string, unknown>,
 ) => {
   const formData = new FormData();
   if (coverImage) formData.append("image", coverImage);
@@ -145,6 +151,7 @@ export const buildBlogPayload = (
     category: values.category,
     tags: values.tags,
     contentType: "html",
+    ...extra,
   };
 
   formData.append("data", JSON.stringify(blogData));

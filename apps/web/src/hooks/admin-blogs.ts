@@ -19,12 +19,14 @@
  *
  * useTrashCounts() -> data: { blogs?, users? }
  * Mutations: useDeleteAdminBlog(), useDeleteAdminBlogPermanently(),
- * useRestoreTrashedBlog().
+ * useRestoreTrashedBlog(), useCreateAdminBlog(), usePublishAdminBlog().
  */ import {
+  createAdminBlog,
   deleteAdminBlog,
   deleteAdminBlogPermanently,
   getAdminBlogList,
   getAdminTrashedBlogList,
+  publishAdminBlog,
   readBlogPage,
 } from "@/services/admin/blogs";
 import { getTrashCounts } from "@/services/admin/trash";
@@ -196,6 +198,65 @@ export const useDeleteAdminBlogPermanently = () => {
     onError: (error) => {
       toast.error(error?.message || "The article could not be deleted.", {
         id: "admin-delete-blog-permanent",
+      });
+    },
+  });
+};
+
+/**
+ * An article written for a member, live or as a draft.
+ *
+ * The form is already built by the caller (multipart, with the cover file),
+ * so this only owns the request and the refresh: the list holds drafts too, and
+ * the public feed and sitemap have to drop or gain the article.
+ */
+export const useCreateAdminBlog = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, FormData>({
+    mutationKey: ["ADMIN_CREATE_BLOG"],
+    mutationFn: async (payload) => await createAdminBlog(payload),
+    onSuccess: (data) => {
+      if (data?.success === false) {
+        toast.error(data?.message || "The article could not be saved.", {
+          id: "admin-create-blog",
+        });
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ADMIN_BLOGS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_BLOGS"] });
+    },
+  });
+};
+
+/** Takes a draft live under its author's byline. */
+export const usePublishAdminBlog = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, { id: string; onPublished?: () => void }>({
+    mutationKey: ["ADMIN_PUBLISH_BLOG"],
+    mutationFn: async ({ id }) => await publishAdminBlog(id),
+    onSuccess: (data, variables) => {
+      if (data?.success === false) {
+        toast.error(data?.message || "The draft could not be published.", {
+          id: "admin-publish-blog",
+        });
+        return;
+      }
+
+      toast.success(
+        data?.message || "Draft published. Readers can open it now.",
+        { id: "admin-publish-blog" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: ADMIN_BLOGS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_BLOGS"] });
+      variables.onPublished?.();
+    },
+    onError: (error) => {
+      toast.error(error?.message || "The draft could not be published.", {
+        id: "admin-publish-blog",
       });
     },
   });

@@ -26,9 +26,12 @@ const dashboard = async () => {
     type: string | null,
     start: Date,
     end: Date,
+    // Extra filter for models that need one, such as Blog's published check.
+    // The monthly chart counts what readers could see, so a draft waits.
+    extra?: Record<string, unknown>,
   ) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filter: any = { createdAt: { $gte: start, $lt: end } };
+    const filter: any = { createdAt: { $gte: start, $lt: end }, ...extra };
     if (type) filter.type = type;
     return model.countDocuments(filter);
   };
@@ -131,16 +134,22 @@ const dashboard = async () => {
     type: determineType(currentMonthUsers, lastMonthUsers),
   };
 
-  const totalBlogs = await Blog.countDocuments({ isDeleted: false });
+  const totalBlogs = await Blog.countDocuments({
+    isDeleted: { $ne: true },
+    status: { $ne: "draft" },
+  });
   const currentMonthBlogs = await Blog.countDocuments({
     createdAt: { $gte: currentMonthStart },
-    isDeleted: false,
+    isDeleted: { $ne: true },
+    status: { $ne: "draft" },
   });
   const lastMonthBlogs = await Blog.countDocuments({
     createdAt: {
       $gte: subMonths(currentMonthStart, 1),
       $lt: currentMonthStart,
     },
+    isDeleted: { $ne: true },
+    status: { $ne: "draft" },
   });
   const blogsData = {
     total: totalBlogs,
@@ -175,7 +184,10 @@ const dashboard = async () => {
       monthlyDownvotes,
     ] = await Promise.all([
       getMonthlyCount(View, null, monthStart, monthEnd),
-      getMonthlyCount(Blog, null, monthStart, monthEnd),
+      getMonthlyCount(Blog, null, monthStart, monthEnd, {
+        isDeleted: { $ne: true },
+        status: { $ne: "draft" },
+      }),
       getMonthlyCount(Comment, null, monthStart, monthEnd),
       getMonthlyCount(User, null, monthStart, monthEnd),
       getMonthlyCount(Vote, "upvote", monthStart, monthEnd),

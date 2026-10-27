@@ -14,12 +14,25 @@ import User from "../user/user.model";
 import { recordView, recomputeTotalViews } from "../view/view.service";
 import View from "../view/view.model";
 import Vote from "../vote/vote.model";
-import { blogSearchableFields } from "./blog.constant";
+import { LIVE_ARTICLE, blogSearchableFields } from "./blog.constant";
 import { IBlog } from "./blog.interface";
 import Blog from "./blog.model";
 import { generateUniqueSlug, toSlug } from "./blog.utils";
 
-const create = async (userData: JwtPayload, payload: IBlog) => {
+/**
+ * `onBehalfOf` is set by the admin route only, and only after the admin has
+ * confirmed the choice. It is a separate argument rather than a body field so
+ * the member route can never carry one: `POST /blogs` passes nothing and the
+ * article is the caller's own, as it always was.
+ *
+ * A published article bumps the category and author counters now. A draft
+ * waits until it is published, which is what `publish` does later.
+ */
+const create = async (
+  userData: JwtPayload,
+  payload: IBlog,
+  onBehalfOf?: { authorId?: string; publish: boolean },
+) => {
   const user = await User.findOne({ email: userData.email });
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
@@ -30,8 +43,33 @@ const create = async (userData: JwtPayload, payload: IBlog) => {
     throw new AppError(httpStatus.NOT_FOUND, "Category not found");
   }
 
-  payload.author = user._id;
+  let author = user;
+
+  if (onBehalfOf?.authorId) {
+    const chosen = await User.findOne({
+      _id: onBehalfOf.authorId,
+      isDeleted: { $ne: true },
+    });
+
+    if (!chosen) {
+      throw new AppError(httpStatus.NOT_FOUND, "Author not found");
+    }
+
+    author = chosen;
+  }
+
+  const publish = onBehalfOf ? onBehalfOf.publish : true;
+
+  payload.author = author._id;
   payload.category = category._id;
+  payload.status = publish ? "published" : "draft";
+  payload.publishedAt = publish ? new Date() : undefined;
+
+  // Set only when someone else is the author, so the record of who wrote it
+  // survives a later change of byline.
+  if (author._id.toString() !== user._id.toString()) {
+    payload.createdBy = user._id;
+  }
 
   payload.slug = await generateUniqueSlug(payload.title);
 
@@ -45,23 +83,25 @@ const create = async (userData: JwtPayload, payload: IBlog) => {
       throw new AppError(httpStatus.BAD_REQUEST, "Failed to create blog");
     }
 
-    const updatedCategory = await Category.findByIdAndUpdate(
-      category._id,
-      { $inc: { postCount: 1 } },
-      { session, new: true },
-    );
-    if (!updatedCategory) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Failed to update category");
-    }
+    if (publish) {
+      const updatedCategory = await Category.findByIdAndUpdate(
+        category._id,
+        { $inc: { postCount: 1 } },
+        { session, new: true },
+      );
+      if (!updatedCategory) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Failed to update category");
+      }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      user._id,
-      { $inc: { totalPosts: 1 } },
-      { session, new: true },
-    );
+      const updatedUser = await User.findByIdAndUpdate(
+        author._id,
+        { $inc: { totalPosts: 1 } },
+        { session, new: true },
+      );
 
-    if (!updatedUser) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Failed to update User");
+      if (!updatedUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Failed to update User");
+      }
     }
 
     await session.commitTransaction();
@@ -83,14 +123,39 @@ const create = async (userData: JwtPayload, payload: IBlog) => {
   }
 };
 
+/**
+ * Admin-only create: the admin picks whose byline it is and whether it goes
+ * live now or waits as a draft for that author. Everyone else's create goes
+ * through `create` with no choices.
+ */
+const createByAdmin = async (
+  userData: JwtPayload,
+  payload: IBlog & { userId?: string; publish?: boolean },
+) => {
+  if (!payload.userId) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Choose the member this article is for",
+    );
+  }
+
+  const { userId, publish, ...fields } = payload;
+
+  return create(userData, fields as IBlog, {
+    authorId: userId,
+    publish: publish === true,
+  });
+};
+
 // get all blogs (for anyone to see title small part of description, category, views, upvote, downvote etc)
 //
 // The filter is written out rather than left to the model's find hook: this is
-// the feed, and a deleted article must not reappear just because the page asked
-// for one (`.find()` replaces the filter, so an empty one would drop the hook's).
+// the feed, and a deleted article or a draft must not reappear just because the
+// page asked for one (`.find()` replaces the filter, so an empty one would drop
+// the hook's).
 const getAll = async (query: Record<string, unknown>) => {
   const blogQuery = new QueryBuilder(
-    Blog.find({ isDeleted: { $ne: true } })
+    Blog.find({ ...LIVE_ARTICLE })
       .populate("author")
       .populate("category"),
     query,
@@ -107,12 +172,13 @@ const getAll = async (query: Record<string, unknown>) => {
 };
 
 /**
- * Article lifecycle in the admin table. The Blog model only tracks
- * `isDeleted`: a document that exists and is not deleted is live (`status`
- * says "published", the word the public feed uses), and one that is deleted
- * sits in `/admin/blogs/trash` until it is restored.
+ * Article lifecycle in the admin table. Two columns decide it: `status` is
+ * whether readers can see the piece (`draft` or `published`), and `isDeleted`
+ * is whether it was removed. A trashed article sits in `/admin/blogs/trash`
+ * until it is restored.
  */
-const ADMIN_BLOG_STATUSES = ["published"] as const;
+const ADMIN_BLOG_STATUSES = ["published", "draft"] as const;
+type TAdminBlogStatus = (typeof ADMIN_BLOG_STATUSES)[number];
 
 // Fields the admin table may sort by. Anything else is a 400, so a typo cannot
 // silently fall back to an unindexed sort.
@@ -160,14 +226,13 @@ const getAdminList = async (query: Record<string, unknown>) => {
     parsed.sort = fields.join(",");
   }
 
-  // The list holds live articles only; deleted ones are the trash endpoint's
-  // job. `status` is the panel's "publishing status" control, whose only value
-  // this model has is `published`, so anything else is a 400 rather than a
-  // silently empty table.
+  // The list holds everything that is not in the trash, published or draft;
+  // deleted ones are the trash endpoint's job. `status` narrows it to one of
+  // those, and anything else is a 400 rather than a silently empty table.
   const status = typeof query.status === "string" ? query.status.trim() : "";
   if (
     status &&
-    !ADMIN_BLOG_STATUSES.includes(status.toLowerCase() as "published")
+    !ADMIN_BLOG_STATUSES.includes(status.toLowerCase() as TAdminBlogStatus)
   ) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -177,6 +242,11 @@ const getAdminList = async (query: Record<string, unknown>) => {
 
   // `category` takes the Mongo id, or a category name for convenience.
   const filter: Record<string, unknown> = { isDeleted: { $ne: true } };
+  // Rows written before drafts existed carry no status and are published, so
+  // "published" means "not a draft" rather than `status: "published"`.
+  if (status) {
+    filter.status = status.toLowerCase() === "draft" ? "draft" : { $ne: "draft" };
+  }
   const category =
     typeof query.category === "string" ? query.category.trim() : "";
   if (category) {
@@ -259,7 +329,11 @@ const getAdminList = async (query: Record<string, unknown>) => {
   }
 
   const blogQuery = new QueryBuilder(
-    Blog.find(filter).populate("author").populate("category"),
+    Blog.find(filter)
+      // The admin table is where drafts are found again.
+      .setOptions({ includeDrafts: true })
+      .populate("author")
+      .populate("category"),
     parsed,
   );
 
@@ -303,7 +377,7 @@ const getFollowingUsersBlogs = async (
   const blogQuery = new QueryBuilder(
     Blog.find({
       author: { $in: followingUserIds },
-      isDeleted: { $ne: true },
+      ...LIVE_ARTICLE,
     })
       .populate("author")
       .populate("category"),
@@ -330,8 +404,11 @@ const getLoggedInUserBlogs = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
+  // The writer's own list, so it holds their drafts as well as what readers
+  // can see. `includeDrafts` is the hook's permission to skip the draft filter.
   const blogQuery = new QueryBuilder(
     Blog.find({ author: user._id, isDeleted: { $ne: true } })
+      .setOptions({ includeDrafts: true })
       .populate("author")
       .populate("category"),
     query,
@@ -354,10 +431,14 @@ const getBlogByProperty = async (key: string, value: string) => {
     if (!mongoose.Types.ObjectId.isValid(value)) {
       throw new AppError(httpStatus.BAD_REQUEST, "Invalid blog Id");
     }
-    blog = await Blog.findById(value).populate("author").populate({
-      path: "category",
-      select: "name description postCount",
-    });
+    // `findById` runs no query hook, so the two ways an article is not public
+    // are written out here.
+    blog = await Blog.findOne({ _id: value, ...LIVE_ARTICLE })
+      .populate("author")
+      .populate({
+        path: "category",
+        select: "name description postCount",
+      });
   } else {
     blog = await Blog.findOne({ [key]: value })
       .populate("author")
@@ -477,7 +558,7 @@ const voteOnBlog = async (
     }
 
     const blog = await Blog.findById(blogId).session(session);
-    if (!blog) {
+    if (!blog || blog.status === "draft") {
       throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
     }
 
@@ -556,7 +637,7 @@ const getVoteStatus = async (userData: JwtPayload, blogId: string) => {
   }
 
   const blog = await Blog.findById(blogId);
-  if (!blog) {
+  if (!blog || blog.status === "draft") {
     throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
   }
 
@@ -598,7 +679,7 @@ const commentOnBlog = async (
     }
 
     const blog = await Blog.findById(blogId).session(session);
-    if (!blog) {
+    if (!blog || blog.status === "draft") {
       throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
     }
 
@@ -651,7 +732,7 @@ const getAllCommentsByBlogId = async (
   query: Record<string, unknown>,
 ) => {
   const blog = await Blog.findById(blogId);
-  if (!blog) {
+  if (!blog || blog.status === "draft") {
     throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
   }
 
@@ -693,8 +774,8 @@ const getAllBlogsByUserId = async (
 
   // The author's real article count is the source of truth for a profile, so it
   // cannot lag behind like the stored `user.totalPosts` counter did. Deleted
-  // blogs are not on the list, so they must not be in its total either.
-  const visibleFilter = { author: user._id, isDeleted: { $ne: true } };
+  // and draft articles are not on the list, so they are not in its total.
+  const visibleFilter = { author: user._id, ...LIVE_ARTICLE };
   const total = await Blog.countDocuments(visibleFilter);
 
   const blogQuery = new QueryBuilder(
@@ -868,6 +949,10 @@ const deleteBlogByUserUsingId = async (
 };
 
 // update blog by user using blog id
+//
+// The body is written as it arrives, so the two columns that decide who can
+// see the article are held back here: a member cannot publish a draft, or take
+// a published article down, by putting `status` in the request.
 const updateBlogByUserUsingId = async (
   userData: JwtPayload,
   blogId: string,
@@ -878,11 +963,13 @@ const updateBlogByUserUsingId = async (
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  payload.slug = await generateUniqueSlug(payload.title, blogId);
+  const { status: _status, publishedAt: _publishedAt, ...fields } = payload;
+
+  fields.slug = await generateUniqueSlug(fields.title, blogId);
 
   const blog = await Blog.findOneAndUpdate(
     { _id: blogId, author: user._id },
-    { ...payload },
+    { ...fields },
     { new: true, runValidators: true },
   );
 
@@ -898,14 +985,16 @@ const updateBlogByUserUsingId = async (
  *
  * Read through the admin route rather than the public slug route so opening
  * the editor does not record a view for the admin, and a deleted article is a
- * 404 like it is everywhere else until it is restored.
+ * 404 like it is everywhere else until it is restored. Drafts are the admin
+ * editor's own work, so they are read here too.
  */
 const getAdminSingleBlog = async (blogId: string) => {
   if (!mongoose.Types.ObjectId.isValid(blogId)) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid blog Id");
   }
 
-  const blog = await Blog.findById(blogId)
+  const blog = await Blog.findOne({ _id: blogId, isDeleted: { $ne: true } })
+    .setOptions({ includeDrafts: true })
     .populate({
       path: "author",
       select: "fullName username profilePicture email",
@@ -932,8 +1021,11 @@ const updateBlogByAdmin = async (
   }
 
   // The find hook hides deleted articles, so a trashed one is a 404 here: it
-  // has to be restored before it can be edited.
-  const existing = await Blog.findById(blogId);
+  // has to be restored before it can be edited. Drafts are editable, so they
+  // are read with the hook's permission.
+  const existing = await Blog.findById(blogId)
+    .setOptions({ includeDrafts: true })
+    .select("author category status publishedAt");
   if (!existing) {
     throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
   }
@@ -1008,10 +1100,15 @@ const updateBlogByAdmin = async (
   }
 
   if (categoryChanged) {
-    await Category.findByIdAndUpdate(existing.category, {
-      $inc: { postCount: -1 },
-    });
-    await Category.findByIdAndUpdate(nextCategory, { $inc: { postCount: 1 } });
+    // A draft was never counted in either category, so moving it moves nothing.
+    if (existing.status !== "draft") {
+      await Category.findByIdAndUpdate(existing.category, {
+        $inc: { postCount: -1 },
+      });
+      await Category.findByIdAndUpdate(nextCategory, {
+        $inc: { postCount: 1 },
+      });
+    }
   }
 
   await adminLogService.record({
@@ -1026,6 +1123,77 @@ const updateBlogByAdmin = async (
     { path: "author", select: "fullName username" },
     { path: "category", select: "name description postCount" },
   ]);
+};
+
+/**
+ * Takes a draft live, under its author's byline.
+ *
+ * Publishing is the one transition that changes who can see the article, so it
+ * also owns the first counters: the author's `totalPosts` and the category's
+ * `postCount` were not touched while it was a draft. `publishedAt` is stamped
+ * once and kept if the article is ever unpublished and published again.
+ */
+const publishBlog = async (blogId: string, adminEmail: string) => {
+  if (!mongoose.Types.ObjectId.isValid(blogId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid blog Id");
+  }
+
+  // Drafts are only reachable here with `includeDrafts`; trashed ones stay a
+  // 404 until restored.
+  const existing = await Blog.findOne({ _id: blogId, isDeleted: { $ne: true } })
+    .setOptions({ includeDrafts: true })
+    .select("author category status publishedAt");
+
+  if (!existing) {
+    throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
+  }
+
+  if (existing.status !== "draft") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "This article is already published",
+    );
+  }
+
+  const published = await Blog.findOneAndUpdate(
+    { _id: blogId, isDeleted: { $ne: true }, status: "draft" },
+    {
+      status: "published",
+      publishedAt: existing.publishedAt ?? new Date(),
+    },
+    { new: true, runValidators: true },
+  )
+    .setOptions({ includeDrafts: true })
+    .populate([
+      { path: "author", select: "fullName username" },
+      { path: "category", select: "name description postCount" },
+    ]);
+
+  // Lost the race with another publish; the article is live already, so the
+  // counters have been moved by whoever won.
+  if (!published) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "This article is already published",
+    );
+  }
+
+  await User.findByIdAndUpdate(existing.author, {
+    $inc: { totalPosts: 1 },
+  });
+  await Category.findByIdAndUpdate(published.category, {
+    $inc: { postCount: 1 },
+  });
+
+  await adminLogService.record({
+    adminEmail,
+    action: "article.publish",
+    targetType: "blog",
+    targetId: String(published._id),
+    summary: `Published article "${published.title}"`,
+  });
+
+  return published;
 };
 
 const getDeletedBlogs = async (rawQuery: Record<string, unknown>) => {
@@ -1108,16 +1276,20 @@ const restoreBlog = async (blogId: string, adminEmail?: string) => {
       throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
     }
 
-    await User.findByIdAndUpdate(
-      raw.author,
-      { $inc: { totalPosts: 1 } },
-      { session },
-    );
-    await Category.findByIdAndUpdate(
-      raw.category,
-      { $inc: { postCount: 1 } },
-      { session },
-    );
+    // A draft comes back as a draft: it was never counted, so it must not
+    // start counting now. Only a published article raised these numbers.
+    if (raw.status !== "draft") {
+      await User.findByIdAndUpdate(
+        raw.author,
+        { $inc: { totalPosts: 1 } },
+        { session },
+      );
+      await Category.findByIdAndUpdate(
+        raw.category,
+        { $inc: { postCount: 1 } },
+        { session },
+      );
+    }
 
     await session.commitTransaction();
 
@@ -1126,7 +1298,10 @@ const restoreBlog = async (blogId: string, adminEmail?: string) => {
       action: "article.restore",
       targetType: "blog",
       targetId: String(blog._id),
-      summary: `Restored article "${blog.title}"`,
+      summary:
+        raw.status === "draft"
+          ? `Restored draft "${blog.title}"`
+          : `Restored article "${blog.title}"`,
     });
 
     // Await this before the session ends. The document still points at the
@@ -1191,6 +1366,8 @@ const deleteBlogPermanently = async (blogId: string, adminEmail?: string) => {
 
 export const blogService = {
   create,
+  createByAdmin,
+  publishBlog,
   getAll,
   getLoggedInUserBlogs,
   getSingleBlog,

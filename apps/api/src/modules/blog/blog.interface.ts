@@ -2,8 +2,13 @@ import { Document, Types } from "mongoose";
 
 export type TContentType = "html" | "markdown" | "text";
 
+/** Writing that only its author and the admins can open, or one readers see. */
+export type TBlogStatus = "draft" | "published";
+
 export interface IBlog extends Document {
   author: Types.ObjectId;
+  /** The admin who wrote it on someone's behalf, when that is not the author. */
+  createdBy?: Types.ObjectId;
   title: string;
   slug: string;
   contentType: TContentType;
@@ -12,6 +17,8 @@ export interface IBlog extends Document {
   images: string[];
   category: Types.ObjectId;
   tags: string[];
+  status: TBlogStatus;
+  publishedAt?: Date;
   upVotes: number;
   downVotes: number;
   totalViews: number;

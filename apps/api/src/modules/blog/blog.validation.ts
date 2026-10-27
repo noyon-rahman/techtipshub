@@ -55,7 +55,7 @@ const update = z
 
 const updateByAdmin = z
   .object({
-    // The author is fixed at creation, so the panel may still send this.
+    // The author is set at creation and only an admin can choose it, there.
     userId: z
       .string({ error: "User Id must be a string" })
       .refine((val) => mongoose.Types.ObjectId.isValid(val), {
@@ -94,8 +94,25 @@ const updateByAdmin = z
   })
   .strict();
 
+/**
+ * The admin composer's body: the same article fields, plus whose byline it is
+ * and whether it goes live now. `userId` is required here because an admin
+ * writing on their own behalf should use the member composer.
+ */
+const createByAdmin = create
+  .extend({
+    userId: z
+      .string({ error: "Choose the member this article is for" })
+      .refine((val) => mongoose.Types.ObjectId.isValid(val), {
+        message: "Invalid User Id",
+      }),
+    publish: z.boolean({ error: "Publish must be true or false" }),
+  })
+  .strict();
+
 export const blogValidationSchema = {
   create,
+  createByAdmin,
   update,
   updateByAdmin,
 };

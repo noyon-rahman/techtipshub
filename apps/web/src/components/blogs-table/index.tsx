@@ -18,13 +18,23 @@ import ListFooter from "@/components/modules/admin/kit/list-footer";
 import ListFrame from "@/components/modules/admin/kit/list-frame";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import Thumbnail from "@/components/modules/admin/kit/thumbnail";
-import { useAdminBlogs, useDeleteAdminBlog } from "@/hooks/admin-blogs";
+import {
+  useAdminBlogs,
+  useDeleteAdminBlog,
+  usePublishAdminBlog,
+} from "@/hooks/admin-blogs";
 import { useAdminCategories } from "@/hooks/admin-categories";
 import { adminEditBlogPath } from "@/lib/blog-routes";
 import type { IBlog } from "@/types";
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { FiArrowUpRight, FiEdit3, FiSearch, FiTrash2 } from "react-icons/fi";
+import {
+  FiArrowUpRight,
+  FiEdit3,
+  FiSearch,
+  FiSend,
+  FiTrash2,
+} from "react-icons/fi";
 import { MdOutlineArticle } from "react-icons/md";
 import RowMenu from "../users-table/row-menu";
 
@@ -37,6 +47,9 @@ const SORTS = [
 
 type SortKey = (typeof SORTS)[number]["key"];
 
+/** The two views of the table: live articles, and what is still a draft. */
+type Tab = "published" | "draft";
+
 const isSortKey = (value: string | null | undefined): value is SortKey =>
   SORTS.some((option) => option.key === value);
 
@@ -44,6 +57,12 @@ const sortOf = (key: SortKey) =>
   SORTS.find((option) => option.key === key)?.sort ?? "-createdAt";
 
 const count = (value?: number) => (value ?? 0).toLocaleString("en-GB");
+
+/**
+ * A stored article is published unless it says otherwise: rows written before
+ * drafts existed carry no status, and they are live.
+ */
+const isDraft = (blog: IBlog) => blog.status === "draft";
 
 const displayName = (blog: IBlog) =>
   blog.author?.fullName?.trim() || blog.author?.username || "";
@@ -102,14 +121,17 @@ const MenuLink = ({
 /** Cover, title and slug, the first column of every article row. */
 const ArticleCell = ({ blog }: { blog: IBlog }) => {
   const title = blog.title?.trim() || "Untitled article";
+  // A draft has an address but no page: opening it would 404 for the admin.
+  const publicHref =
+    blog.slug && !isDraft(blog) ? `/blogs/${blog.slug}` : undefined;
 
   return (
     <div className="flex max-w-[26rem] items-start gap-3">
       <Thumbnail src={blog.coverImage} size={40} />
       <div className="min-w-0">
-        {blog.slug ? (
+        {publicHref ? (
           <Link
-            href={`/blogs/${blog.slug}`}
+            href={publicHref}
             className={`line-clamp-2 rounded-sm font-medium leading-snug hover:text-primary-accessible ${focusRing}`}
           >
             {title}
@@ -117,8 +139,15 @@ const ArticleCell = ({ blog }: { blog: IBlog }) => {
         ) : (
           <span className="line-clamp-2 font-medium leading-snug">{title}</span>
         )}
-        <span className="mt-0.5 block truncate text-xs text-default-600">
-          {blog.slug ? `/${blog.slug}` : "No slug recorded"}
+        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-default-600">
+          <span className="truncate">
+            {blog.slug ? `/${blog.slug}` : "No slug recorded"}
+          </span>
+          {isDraft(blog) && (
+            <span className="shrink-0 rounded-full border border-warning-300 px-1.5 text-[0.6875rem] font-medium text-warning-700 dark:border-warning/60 dark:text-warning">
+              Draft
+            </span>
+          )}
         </span>
       </div>
     </div>
@@ -126,14 +155,19 @@ const ArticleCell = ({ blog }: { blog: IBlog }) => {
 };
 
 /**
- * Published articles. Search, category, sort, page size and page are the API's
- * own query parameters, so the footer total and the pager describe every
- * published piece rather than the rows on screen.
+ * The article table, two views of it: what readers can see, and the drafts
+ * written for a member but not published yet.
  *
- * Removing an article sends it to Trash. The "Deleted" tab that used to sit
- * next to Published duplicated that screen, so this one list has one job.
+ * Search, category, sort, page size and page are the API's own query
+ * parameters, so the footer total and the pager describe every article in the
+ * view rather than the rows on screen. Only count tabs are left to the client,
+ * and they come from a second one-row request.
+ *
+ * Removing an article sends it to Trash. Publishing a draft takes it live under
+ * its author's byline, which is also when its author and category counts move.
  */
 const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
+  const [tab, setTab] = useState<Tab>("published");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
   const [query, setQuery] = useState("");
@@ -145,33 +179,54 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
   const resetPage = useCallback(() => setPage(1), []);
   const searchTerm = useDebouncedTerm(query, resetPage);
 
-  const published = useAdminBlogs({
+  const articleSort = sortOf(sort);
+
+  const list = useAdminBlogs({
     page,
     limit,
     searchTerm,
     category,
-    sort: sortOf(sort),
+    sort: articleSort,
+    status: tab,
+  });
+
+  // The tab counts: one row is enough for `meta.total`, and it is asked for
+  // without the search or category, so each tab counts its own whole view.
+  const publishedCount = useAdminBlogs({
+    page: 1,
+    limit: 1,
+    sort: articleSort,
+    status: "published",
+  });
+  const draftCount = useAdminBlogs({
+    page: 1,
+    limit: 1,
+    sort: articleSort,
+    status: "draft",
   });
 
   const { mutate: deleteBlog, isPending: isDeleting } = useDeleteAdminBlog();
+  const { mutate: publishBlog, isPending: isPublishing } = usePublishAdminBlog();
 
   // One call for the whole list: the category endpoint is not paged.
   const categories = useAdminCategories().rows;
 
-  const { rows, meta, isLoading, isFetching, isError, error, refetch } =
-    published;
+  const { rows, meta, isLoading, isFetching, isError, error, refetch } = list;
 
   const totalPages = Math.max(meta?.totalPages ?? 1, 1);
   const pageSize = meta?.limit ?? limit;
 
-  // A removal can empty the last page. Stepping back keeps the table on a
-  // page that still exists instead of an empty frame the filters did not empty.
-  const onDeleted = useCallback(() => {
+  // A removal or a publish can empty the last page. Stepping back keeps the
+  // table on a page that still exists instead of an empty frame the filters
+  // did not empty.
+  const stepBackIfEmpty = useCallback(() => {
     if (page > 1 && rows.length <= 1)
       setPage((current) => Math.max(1, current - 1));
   }, [page, rows.length]);
 
   const isFiltered = Boolean(searchTerm) || category !== "all";
+  const isDrafts = tab === "draft";
+  const noun = isDrafts ? "draft" : "article";
 
   const clearFilters = () => {
     setQuery("");
@@ -179,11 +234,20 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
     setPage(1);
   };
 
+  const filters = [
+    {
+      key: "published",
+      label: "Published",
+      count: publishedCount.meta?.total,
+    },
+    { key: "draft", label: "Drafts", count: draftCount.meta?.total },
+  ];
+
   const emptyState = isError ? (
     <EmptyState
       variant="inline"
       icon={<MdOutlineArticle className="size-5" />}
-      title="Articles could not be loaded"
+      title={isDrafts ? "Drafts could not be loaded" : "Articles could not be loaded"}
       description={
         error?.message ||
         "The articles request failed. Check that the API is running, then try again."
@@ -202,15 +266,22 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
     <EmptyState
       variant="inline"
       icon={<FiSearch className="size-5" />}
-      title="No articles match this view"
-      description={`Nothing published matches ${
+      title={isDrafts ? "No drafts match this view" : "No articles match this view"}
+      description={`Nothing in ${noun}s matches ${
         searchTerm ? `"${searchTerm}"` : "this category"
-      }. Clear the filters to see every published article.`}
+      }. Clear the filters to see every ${noun} in this view.`}
       action={
         <button type="button" onClick={clearFilters} className={quietButton}>
           Clear search and filters
         </button>
       }
+    />
+  ) : isDrafts ? (
+    <EmptyState
+      variant="inline"
+      icon={<MdOutlineArticle className="size-5" />}
+      title="No drafts waiting"
+      description="A draft written for a member appears here until it is published, under that member's byline."
     />
   ) : (
     <EmptyState
@@ -222,8 +293,14 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
   );
 
   return (
-    <ListFrame label="Published articles">
+    <ListFrame label={isDrafts ? "Draft articles" : "Published articles"}>
       <DataToolbar
+        filters={filters}
+        activeFilter={tab}
+        onFilterChange={(key) => {
+          setTab(key === "draft" ? "draft" : "published");
+          setPage(1);
+        }}
         query={query}
         onQueryChange={setQuery}
         searchPlaceholder="Title, slug or author"
@@ -273,7 +350,7 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
       />
 
       <DataTable
-        caption="Published articles, newest first"
+        caption="Articles, newest first"
         columns={COLUMNS}
         rows={rows}
         getRowKey={(blog) => blog._id}
@@ -348,27 +425,34 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
               );
 
             case "published":
+              // A draft has never been published, so it has no date to show and
+              // its creation date would read as one.
               return (
                 <span className="text-xs tabular-nums text-default-700">
-                  {formatDate(blog.createdAt) || "Not recorded"}
+                  {isDraft(blog)
+                    ? "Not published"
+                    : formatDate(blog.publishedAt ?? blog.createdAt) ||
+                      "Not recorded"}
                 </span>
               );
 
             case "actions": {
               const title = blog.title?.trim() || "this article";
-              const publicHref = blog.slug ? `/blogs/${blog.slug}` : undefined;
+              const draft = isDraft(blog);
+              const publicHref =
+                blog.slug && !draft ? `/blogs/${blog.slug}` : undefined;
               const editorHref = blog._id
                 ? adminEditBlogPath(blog._id)
                 : undefined;
 
               return (
                 <RowMenu label={`Actions for ${title}`}>
-                  {publicHref ? (
+                  {draft ? null : publicHref ? (
                     <MenuLink href={publicHref} external>
                       <FiArrowUpRight aria-hidden className="size-4" />
                       Read on the site
                     </MenuLink>
-                  ) : (
+                  ) : draft ? null : (
                     <span
                       role="menuitem"
                       aria-disabled="true"
@@ -378,6 +462,29 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
                       No public link
                     </span>
                   )}
+
+                  {draft ? (
+                    <ConfirmDialog
+                      trigger={
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className={menuItem}
+                        >
+                          <FiSend aria-hidden className="size-4" />
+                          Publish now
+                        </button>
+                      }
+                      title={`Publish "${title}"?`}
+                      description={`It goes live on the site under ${
+                        displayName(blog) || "its author"
+                      }'s byline, and readers can open it straight away.`}
+                      confirmLabel="Publish"
+                      onConfirm={() =>
+                        publishBlog({ id: blog._id, onPublished: stepBackIfEmpty })
+                      }
+                    />
+                  ) : null}
 
                   {editorHref ? (
                     <MenuLink href={editorHref}>
@@ -406,7 +513,11 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
                       </button>
                     }
                     title={`Remove "${title}"?`}
-                    description="It leaves the feed and its article page and moves to Trash. Restoring it brings the article back without the comments, views and votes it had."
+                    description={
+                      draft
+                        ? "It leaves the drafts list and moves to Trash. Restoring it brings the draft back as it was."
+                        : "It leaves the feed and its article page and moves to Trash. Restoring it brings the article back without the comments, views and votes it had."
+                    }
                     confirmLabel="Move to the trash"
                     tone="danger"
                     isPending={isDeleting}
@@ -414,7 +525,7 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
                       deleteBlog({
                         id: blog._id,
                         reason: "Removed from the admin articles table",
-                        onDeleted,
+                        onDeleted: stepBackIfEmpty,
                       })
                     }
                   />
@@ -431,7 +542,7 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
       <ListFooter
         total={meta?.total}
         shown={rows.length}
-        noun="article"
+        noun={noun}
         page={meta?.page ?? page}
         totalPages={totalPages}
         pageSize={pageSize}
@@ -446,7 +557,11 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
       />
 
       <p className="sr-only" role="status">
-        {isFetching && !isLoading ? "Refreshing articles" : ""}
+        {(isFetching && !isLoading) || isPublishing
+          ? isPublishing
+            ? "Publishing the draft"
+            : `Refreshing ${noun}s`
+          : ""}
       </p>
     </ListFrame>
   );

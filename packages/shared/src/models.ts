@@ -68,6 +68,15 @@ export interface IBlog {
   totalComments: number;
   totalViews: number;
   isDeleted: boolean;
+  /**
+   * Whether readers can see it. A draft is only open to its author and the
+   * admins. Rows stored before drafts existed have no value and are published.
+   */
+  status?: "draft" | "published";
+  /** When it first went live. Absent while it is a draft. */
+  publishedAt?: string;
+  /** The admin who created it on the author's behalf, when that was someone else. */
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;

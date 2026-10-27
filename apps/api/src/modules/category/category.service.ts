@@ -84,6 +84,7 @@ const deleteSingleCategory = async (id: string, adminEmail?: string) => {
   const blogCount = await Blog.countDocuments({
     category: category._id,
     isDeleted: { $ne: true },
+    status: { $ne: "draft" },
   });
   if (blogCount > 0) {
     throw new AppError(
@@ -173,12 +174,17 @@ const getAdminList = async (query: Record<string, unknown> = {}) => {
 
   const categories = await Category.find(search).sort({ name: 1 });
 
-  // Deleted blogs are excluded so the count matches what readers see.
+  // Deleted blogs and drafts are excluded so the count matches what readers see.
   const counts = await Blog.aggregate<{
     _id: mongoose.Types.ObjectId;
     count: number;
   }>([
-    { $match: { isDeleted: { $ne: true } } },
+    {
+      $match: {
+        isDeleted: { $ne: true },
+        status: { $ne: "draft" },
+      },
+    },
     { $group: { _id: "$category", count: { $sum: 1 } } },
   ]);
 

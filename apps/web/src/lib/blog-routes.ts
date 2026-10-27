@@ -35,6 +35,13 @@ export const adminEditBlogPath = (id: string) =>
   `/admin/manage-blogs/${encodeURIComponent(id)}/edit`;
 
 /**
+ * The admin composer: an article written for a member. It sits under the list
+ * rather than at `/blogs/new`, so an admin writing for someone else never
+ * lands in the member composer, which always makes the article your own.
+ */
+export const adminNewBlogPath = "/admin/manage-blogs/new";
+
+/**
  * Standalone routes that live beside the articles at the root. A slug never
  * resolves to one of these, so a published article cannot shadow "new".
  */

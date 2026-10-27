@@ -114,3 +114,32 @@ export const deleteAdminBlog = async (id: string, reason?: string) => {
     throw toServiceError(error, "The article could not be deleted.");
   }
 };
+
+/**
+ * `POST /admin/blogs` (Admin) -> `{ success, data: IBlog }`.
+ *
+ * An article written on someone's behalf. `userId` is the member whose byline
+ * it carries, and `publish` decides whether it goes live now or waits in the
+ * list as a draft for them. The body is multipart, the same shape the member
+ * composer sends, because the cover arrives as a file.
+ */
+export const createAdminBlog = async (payload: FormData) => {
+  try {
+    const res = await axiosInstance.post("/admin/blogs", payload);
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The article could not be saved.");
+  }
+};
+
+/** `PATCH /admin/blogs/:id/publish` (Admin): takes a draft live. */
+export const publishAdminBlog = async (id: string) => {
+  try {
+    const res = await axiosInstance.patch(`/admin/blogs/${id}/publish`);
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The draft could not be published.");
+  }
+};
