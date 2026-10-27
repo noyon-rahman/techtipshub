@@ -1,16 +1,22 @@
 "use client";
 
-import { Button, Modal, ModalBody, ModalContent, ModalHeader, useDisclosure } from "@heroui/react";
+import { Button, ButtonProps, Modal, ModalBody, ModalContent, ModalHeader, useDisclosure } from "@heroui/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 
-interface IProps {
-  redirect: string;
+interface IProps extends ButtonProps {
+  /**
+   * Where to come back to once the reader has signed in, as a path without the
+   * leading slash. Left out, it is the page they are on.
+   */
+  redirect?: string;
   buttonContent: ReactNode;
-  className?: string;
 }
 
 const AuthenticationModal = ({ redirect, buttonContent, ...props }: IProps) => {  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const pathname = usePathname();
+  const backTo = redirect ?? pathname.replace(/^\//, "");
   return (
     <>
       <Button onPress={onOpen} {...props} >
@@ -18,7 +24,7 @@ const AuthenticationModal = ({ redirect, buttonContent, ...props }: IProps) => {
       </Button>
       <Modal size="md" isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
               <ModalHeader className="flex flex-col gap-1">
                 Authentication Required
@@ -33,7 +39,7 @@ const AuthenticationModal = ({ redirect, buttonContent, ...props }: IProps) => {
                     as={Link}
                     className="flex-1 font-semibold"
                     color="primary"
-                    href={`/signup?redirect=${redirect}`}
+                    href={`/signup?redirect=${backTo}`}
                     radius="sm"
                   >
                     Sign up
@@ -42,7 +48,7 @@ const AuthenticationModal = ({ redirect, buttonContent, ...props }: IProps) => {
                   <Button
                     as={Link}
                     className="flex-1 border border-default-300 font-medium text-foreground hover:bg-default-100"
-                    href={`/login?redirect=${redirect}`}
+                    href={`/login?redirect=${backTo}`}
                     radius="sm"
                     variant="bordered"
                   >

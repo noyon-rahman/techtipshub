@@ -3,4 +3,4 @@
  * `@techtipshub/shared`; this re-export keeps the existing `@/types` imports
  * working.
  */
-export type { IBlog } from "@techtipshub/shared";
+export type { IBlog, IVoteResult, TVoteType } from "@techtipshub/shared";

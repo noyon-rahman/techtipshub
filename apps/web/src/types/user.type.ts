@@ -4,6 +4,7 @@
  * screen imports from `@/types`.
  */
 export type {
+  IFollowResult,
   ILoggedInUser,
   ILoggedInUser as TLoggedInUser,
   IUser,

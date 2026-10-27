@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AdminSidebar from "@/components/shared/admin-sidebar";
 import { AdminShellProvider } from "@/components/shared/admin-sidebar/admin-shell";
+import { AdminRailFrame } from "@/components/shared/admin-sidebar/admin-rail-frame";
 import AdminTopbar from "@/components/shared/admin-sidebar/admin-topbar";
 
 export const metadata: Metadata = {
@@ -18,10 +19,14 @@ export const metadata: Metadata = {
  * Admin shell. Rendered on the server; only the rail, the drawer and the top
  * bar hydrate.
  *
- * One column of content beside a fixed rail: content sits on the page surface,
- * panels carry the hairlines. The rail and the top bar own their sticky
- * offsets; putting `sticky` or `overflow-hidden` on this flex row would break
- * both, because an overflowing ancestor kills sticky.
+ * The rail is painted out of the flow (`fixed`, own full viewport height). The
+ * `AdminRailFrame` wrapper reserves the rail's width on the content column, so
+ * the rail cannot drift while the page scrolls and it never depends on the
+ * height of its parent. A sticky rail would still be at the mercy of every
+ * ancestor above it: any wrapper that gains a scroll container or a height cap,
+ * including the AdSense script that stamps styles on layout ancestors, parks it
+ * at the top of the document. The rail body scrolls its own nav when the
+ * viewport is short.
  *
  * The page keeps the site's warm paper; the white belongs to the cards on it.
  * Panels, stat tiles and toolbar fields take `content1`, which is white in the
@@ -35,7 +40,7 @@ export const metadata: Metadata = {
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <AdminShellProvider>
-      <div className="min-h-dvh lg:flex">
+      <AdminRailFrame>
         <a
           href="#admin-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-[6px] focus:bg-foreground focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-background"
@@ -45,7 +50,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
         <AdminSidebar />
 
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 flex-col">
           <AdminTopbar />
 
           <main
@@ -72,7 +77,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             </div>
           </footer>
         </div>
-      </div>
+      </AdminRailFrame>
     </AdminShellProvider>
   );
 };

@@ -347,9 +347,7 @@ const AdminSidebar = () => {
       <aside
         id={groupId}
         data-collapsed={isRailCollapsed ? "true" : undefined}
-        className={`hidden shrink-0 self-start border-r border-default/60 bg-background/60 lg:sticky lg:top-0 lg:flex lg:h-[100dvh] lg:flex-col ${
-          isRailCollapsed ? "lg:w-[4.25rem]" : "lg:w-60"
-        }`}
+        className="hidden shrink-0 border-r border-default/60 bg-background/60 lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:h-dvh lg:flex-col lg:w-[var(--admin-rail-width)]"
       >
         <div
           className={`flex h-14 shrink-0 items-center border-b border-default/60 ${

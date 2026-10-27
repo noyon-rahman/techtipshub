@@ -1,37 +1,31 @@
 "use client";
 
-import { useUser } from "@/context/user.provider";
-import { useVoteOnBlog } from "@/hooks/blog.hook";
-import { Button, ButtonProps } from "@heroui/react";
-import { useRouter } from "next/navigation";
+import type { IVoteCounts } from "@/hooks/blog.hook";
 import { ReactNode } from "react";
-import { AuthenticationModal } from "../modals";
+import VoteButton from "./vote-button";
 
-interface IProps extends ButtonProps {
+interface IProps {
   children: ReactNode;
   blogId: string;
   slug?: string;
+  /** The totals the page was rendered with. */
+  counts: IVoteCounts;
+  className?: string;
 }
 
-const DownVoteButton = ({ children, blogId, slug,  ...props }: IProps) => {
-  const { user } = useUser();
-  const { mutate: upVote, isPending } = useVoteOnBlog();
-
-  const handleDownvote = () => {
-    upVote({ blogId: blogId, voteType: "downvote" });
-  };
-
-  return (
-    <>
-      {user ? (
-        <Button isLoading={isPending} onClick={handleDownvote} {...props}>
-          {children}
-        </Button>
-      ) : (
-        <AuthenticationModal buttonContent={children} redirect={`blogs/${slug}`} {...props} />
-      )}
-    </>
-  );
-};
+const DownVoteButton = ({ children, counts, ...props }: IProps) => (
+  <VoteButton
+    {...props}
+    counts={counts}
+    voteType="downvote"
+    label="Downvote this article"
+    activeLabel="Remove your downvote"
+    radius="full"
+    variant="light"
+    className={`h-9 ${props.className ?? ""}`}
+  >
+    {children}
+  </VoteButton>
+);
 
 export default DownVoteButton;

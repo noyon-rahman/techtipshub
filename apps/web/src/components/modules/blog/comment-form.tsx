@@ -53,12 +53,6 @@ const CommentForm = ({ blogId, slug }: IProps) => {
     setSelectedImages([]); // Reset selected images after successful submission
   };
 
-  // Authentication modal button props
-  const props = {
-    radius: "sm",
-    color: "primary",
-  };
-
   return (
     <THForm onSubmit={onSubmit} resolver={zodResolver(commentValidationSchema)}>
       <div className="space-y-4">
@@ -106,9 +100,11 @@ const CommentForm = ({ blogId, slug }: IProps) => {
             </Button>
           ) : (
             <AuthenticationModal
-              redirect={`/blogs/${slug}`}
+              redirect={`blogs/${slug}`}
               buttonContent={"Comment"}
-              {...props}
+              color="primary"
+              radius="sm"
+              variant="solid"
             />
           )}
         </div>
