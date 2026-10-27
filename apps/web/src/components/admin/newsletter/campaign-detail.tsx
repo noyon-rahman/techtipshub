@@ -22,7 +22,7 @@ import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
 
 import CampaignEditor from "./campaign-editor";
-import { dangerButton, quietButton } from "./buttons";
+import { dangerButton, primaryButton, quietButton } from "./buttons";
 import { CAMPAIGN_LABEL } from "./labels";
 
 interface IProps {
@@ -74,9 +74,9 @@ const Progress = ({
  * One issue, read three ways.
  *
  * A draft is the builder, with sending behind a confirmation that states how
- * many people it reaches. A sending issue is the progress, polled while it
- * runs, with a "send the next batch" button for when the cron is not set up.
- * A sent issue is a record: what went out, when, and to how many.
+ * many people it reaches. A sending issue is the progress, with the button
+ * that sends each further batch. A sent issue is a record: what went out,
+ * when, and to how many.
  */
 const CampaignDetail = ({ id, onBack }: IProps) => {
   const query = useCampaign(id);
@@ -182,18 +182,24 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
             remaining={remaining}
           />
           <p className="text-xs leading-relaxed text-default-600">
-            The rest goes out in batches of ten on the scheduler&apos;s next
-            tick. This page updates itself while it runs. If the scheduler is
-            not set up, send each batch by hand below.
+            The rest goes out ten at a time, one press per batch.{" "}
+            {remaining > 0
+              ? `${remaining.toLocaleString()} ${remaining === 1 ? "address" : "addresses"} still to go.`
+              : "This batch was the last one, so the issue is done."}{" "}
+            The counters update here after each batch.
           </p>
           <button
             type="button"
             onClick={() => drain.mutate(id)}
-            disabled={drain.isPending}
+            disabled={drain.isPending || remaining === 0}
             aria-busy={drain.isPending}
-            className={quietButton}
+            className={primaryButton}
           >
-            {drain.isPending ? "Sending a batch…" : "Send the next batch now"}
+            {drain.isPending
+              ? "Sending a batch…"
+              : remaining === 0
+                ? "Everything is out"
+                : `Send the next ${Math.min(remaining, 10)}`}
           </button>
         </div>
       )}
@@ -272,8 +278,10 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
               mailed.
             </p>
             <p className="text-sm leading-relaxed text-default-600">
-              Sending starts right away and cannot be undone. Send yourself a
-              test copy first if you have not.
+              The first batch goes out right away and cannot be undone. The
+              rest waits for you: press Continue once per batch of ten until
+              the counters reach everyone. Send yourself a test copy first if
+              you have not.
             </p>
           </ModalBody>
           <ModalFooter className="gap-2">

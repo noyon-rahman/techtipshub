@@ -113,9 +113,8 @@ const campaignSchema = new Schema<INewsletterCampaign>(
 );
 
 /**
- * The queue the cron and the admin's "Continue" both read from: a sending
- * campaign with work left. A partial index keeps a draft or a finished one
- * out of it.
+ * How the "Continue" press finds work: a sending campaign with recipients
+ * left. The partial index keeps a draft or a finished one out of the scan.
  */
 campaignSchema.index(
   { status: 1, createdAt: 1 },

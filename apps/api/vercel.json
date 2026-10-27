@@ -2,11 +2,5 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "cd ../.. && pnpm install",
   "buildCommand": "pnpm run typecheck",
-  "outputDirectory": "public",
-  "crons": [
-    {
-      "path": "/api/v1/newsletter/cron",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  "outputDirectory": "public"
 }

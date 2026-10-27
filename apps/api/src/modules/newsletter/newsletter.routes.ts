@@ -33,10 +33,8 @@ newsletterRoutes.post(
   newsletterController.unsubscribe,
 );
 
-// Machine callers: Resend's webhook and the scheduler. Neither is a browser.
+// Machine callers: Resend's webhook. Not a browser.
 newsletterRoutes.post("/webhook/resend", newsletterController.resendEvents);
-
-newsletterRoutes.get("/cron", newsletterController.cron);
 
 /**
  * The profile switch, both readings of it. Membership is the account's own

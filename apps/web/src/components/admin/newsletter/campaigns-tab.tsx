@@ -74,9 +74,8 @@ const CampaignsTab = () => {
       </div>
 
       <p className="text-xs leading-relaxed text-default-600">
-        Sending runs in batches of ten on the scheduler, so a list of a few
-        thousand is drained over a few minutes rather than in one burst a mail
-        provider is likely to throttle.
+        Sending runs in batches of ten, one press per batch, so a mail provider
+        never sees a few thousand messages arrive in one burst.
       </p>
     </div>
   );

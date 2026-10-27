@@ -130,24 +130,6 @@ const resendEvents = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-/**
- * The scheduler's tick. Vercel Cron sends `Authorization: Bearer <secret>`; an
- * empty secret leaves the endpoint shut, and an admin drains the queue with
- * "Continue" instead.
- */
-const cron = async (c: Context<TAppBindings>) => {
-  const secret = config.CRON_SECRET;
-  const given = c.req.header("authorization") ?? "";
-
-  if (!secret || given !== `Bearer ${secret}`) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Invalid cron credentials.");
-  }
-
-  const result = await campaignService.runQueue();
-
-  return sendResponse(c, httpStatus.OK, { data: result });
-};
-
 /* --------------------------------------------------------------- member */
 
 /**
@@ -319,8 +301,8 @@ const startCampaign = async (c: Context<TAppBindings, string>) => {
 };
 
 /**
- * Draining the rest by hand. The cron does this on its own; this keeps a send
- * moving when the cron is not configured or has just missed a tick.
+ * The next batch. This is how a send finishes: nothing runs on a timer, so an
+ * issue moves one press at a time until its recipients are all dealt with.
  */
 const continueCampaign = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
@@ -346,7 +328,6 @@ export const newsletterController = {
   readUnsubscribeLink,
   unsubscribe,
   resendEvents,
-  cron,
   getMembership,
   setMembership,
 };

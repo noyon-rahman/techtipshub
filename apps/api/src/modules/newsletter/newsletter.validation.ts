@@ -85,19 +85,6 @@ const createCampaign = z.object(campaignContent).strict();
 const updateCampaign = z.object(campaignContent).strict();
 
 /**
- * The cron's `Authorization` header. Checked here so the handler can read the
- * parsed value like every other route.
- */
-const cronHeaders = z
-  .object({
-    authorization: z
-      .string({ error: "Authorization is required" })
-      .trim()
-      .min(1, "Authorization is required"),
-  })
-  .passthrough();
-
-/**
  * What Resend posts to the webhook, reduced to the parts we act on. The
  * signature is checked against the raw body before this ever runs; here the
  * body only has to be shaped like an event.
@@ -123,6 +110,5 @@ export const newsletterValidationSchema = {
   createSubscriber,
   createCampaign,
   updateCampaign,
-  cronHeaders,
   resendEvent,
 };
