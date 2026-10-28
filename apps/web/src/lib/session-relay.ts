@@ -45,12 +45,11 @@ export const sessionCookiesFrom = (
 };
 
 /**
- * Turn the single-use handoff code from a Google callback into a session.
+ * Turn the signed handoff code from a Google callback into a session.
  *
- * The code is the API's answer to "the browser could not carry your cookies, so
- * here is how to fetch them": short-lived, single-use, and bound to the session
- * that response created. It is spent the first time it is claimed, so a URL
- * copied from a history entry or shared by mistake yields nothing.
+ * The code is the API's answer to "the browser could not carry your cookies,
+ * so here is how to fetch them": short-lived, signed by the API, and holding
+ * nothing but the session that response created.
  */
 export const claimGoogleSession = async (
   handoff: string,

@@ -131,8 +131,9 @@ const envSchema = z
         })
         .optional(),
     ),
-    // Signs the one-time `state` that starts a Google sign-in. A key of its own
-    // keeps a value one endpoint hands out from being usable as a session token.
+    // Signs both short-lived values a Google sign-in carries: the `state` that
+    // starts it and the handoff the site trades for cookies. A key of its own
+    // keeps a value one endpoint hands out from doubling as a session token.
     GOOGLE_STATE_SECRET: optionalString,
 
     // rate limits. Tuned per environment; the defaults suit a small site.

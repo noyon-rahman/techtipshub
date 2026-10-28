@@ -38,6 +38,6 @@ const viewSchema = new Schema<IView>(
 // user.)
 viewSchema.index({ post: 1, visitorKey: 1 }, { unique: true });
 
-const View = model<IView>("View", viewSchema);
+const View = model<IView>("View", viewSchema, "views");
 
 export default View;

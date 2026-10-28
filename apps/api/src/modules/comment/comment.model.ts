@@ -51,6 +51,6 @@ commentSchema.pre("findOne", function (next) {
   next();
 });
 
-const Comment = model<IComment>("Comment", commentSchema);
+const Comment = model<IComment>("Comment", commentSchema, "comments");
 
 export default Comment;

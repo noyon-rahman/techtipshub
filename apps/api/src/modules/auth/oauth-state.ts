@@ -19,23 +19,65 @@ const STATE_TTL = "10m";
 const secret = () =>
   config.GOOGLE_STATE_SECRET ?? config.JWT_ACCESS_TOKEN_SECRET;
 
-/** Anything that is not this is a forged, expired or reused-start state. */
-const START = "google";
+/** The leg of the sign-in the value was minted for. */
+type TGooglePurpose = "start" | "handoff";
 
-export const createOAuthState = (redirect?: string) =>
-  jwt.sign({ redirect: redirect ?? "/", started: START }, secret(), {
+/**
+ * A Google sign-in is two redirects across two sites: this API starts it and
+ * ends it, and the site in between only carries the browser. Each leg carries
+ * a value signed here.
+ *
+ * Both are stateless: a callback spends nothing, so a browser that reloads it
+ * still signs in, and there is no temporary collection to expire.
+ */
+const sign = (payload: Record<string, string>, purpose: TGooglePurpose) =>
+  jwt.sign({ ...payload, purpose }, secret(), {
     expiresIn: STATE_TTL as SignOptions["expiresIn"],
   });
 
-export const verifyOAuthState = (state: string): { redirect: string } => {
-  const decoded = jwt.verify(state, secret()) as {
-    redirect?: string;
-    started?: string;
-  };
+const read = (value: string, purpose: TGooglePurpose): jwt.JwtPayload => {
+  const decoded = jwt.verify(value, secret());
 
-  if (decoded.started !== START) {
-    throw new Error("OAuth state was not issued by the sign-in start route");
+  if (typeof decoded === "string" || decoded.purpose !== purpose) {
+    throw new Error(`Value was not minted for the Google ${purpose} step`);
   }
 
-  return { redirect: decoded.redirect ?? "/" };
+  return decoded;
+};
+
+export const createOAuthState = (redirect?: string) =>
+  sign({ redirect: redirect ?? "/" }, "start");
+
+export const verifyOAuthState = (state: string): { redirect: string } => {
+  const decoded = read(state, "start");
+
+  return { redirect: (decoded.redirect as string) ?? "/" };
+};
+
+/**
+ * The code a Google callback hands to the site in the URL.
+ *
+ * The tokens travel inside the signed value, so the database keeps no session
+ * copy, and the URL holds nothing that is usable on its own. The site trades
+ * it for cookies within the TTL; after that the value, and the session in it,
+ * expires like any other token.
+ */
+export const createHandoff = async (session: {
+  accessToken: string;
+  refreshToken: string;
+}) => sign(session, "handoff");
+
+export const claimHandoff = async (code: string) => {
+  if (!code) return null;
+
+  try {
+    const decoded = read(code, "handoff");
+
+    return {
+      accessToken: decoded.accessToken as string,
+      refreshToken: decoded.refreshToken as string,
+    };
+  } catch {
+    return null;
+  }
 };

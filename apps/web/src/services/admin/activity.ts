@@ -3,8 +3,8 @@
 import axiosInstance from "@/lib/AxiosInstance";
 import { toServiceError } from "./shared";
 
-/** The API caps `limit` at 200 and ignores every other parameter. */
-export const getAdminLogs = async (limit = 50) => {
+/** The API caps `limit` at 200; `page` and `sort` are accepted too. */
+export const getAdminLogs = async (limit = 100) => {
   try {
     const res = await axiosInstance.get("/admin/logs", { params: { limit } });
 

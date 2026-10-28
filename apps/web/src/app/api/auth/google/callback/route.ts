@@ -9,8 +9,13 @@ import { claimGoogleSession } from "@/lib/session-relay";
  * The API has already set the session cookies, but on *its* domain: a browser
  * only accepts a cookie for the site that sent it, so they do nothing here.
  * This route is therefore the one place the site receives a session - it takes
- * the single-use handoff code the API put in the URL and trades it for the
+ * the signed handoff code the API put in the URL and trades it for the
  * cookies, server to server, exactly as it does after a password sign-in.
+ *
+ * The code is signed by the API with `GOOGLE_STATE_SECRET` (the access-token
+ * secret where that is unset), so a build whose environment holds a different
+ * value answers `unavailable` for every sign-in. When Google sign-in stops
+ * working after a deploy, compare that variable on both apps first.
  *
  * A failed sign-in never reaches this route: the API sends those straight to
  * `/login` with a reason the page explains.

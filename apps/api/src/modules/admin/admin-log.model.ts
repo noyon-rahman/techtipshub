@@ -47,6 +47,6 @@ const adminLogSchema = new Schema<IAdminLog>(
 
 adminLogSchema.index({ createdAt: -1 });
 
-const AdminLog = model<IAdminLog>("AdminLog", adminLogSchema);
+const AdminLog = model<IAdminLog>("AdminLog", adminLogSchema, "admin_logs");
 
 export default AdminLog;

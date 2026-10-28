@@ -63,7 +63,7 @@ const resetPassword = z
   })
   .strict();
 
-/** The one-time code a Google callback hands to the site. */
+/** The code a Google callback hands to the site. */
 const claimSession = z
   .object({
     handoff: z.string({ error: "Handoff code must be a string" }).min(1),

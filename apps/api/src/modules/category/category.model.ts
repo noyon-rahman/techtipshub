@@ -45,6 +45,6 @@ categorySchema.pre("findOne", function (next) {
   next();
 });
 
-const Category = model<ICategory>("Category", categorySchema);
+const Category = model<ICategory>("Category", categorySchema, "categories");
 
 export default Category;

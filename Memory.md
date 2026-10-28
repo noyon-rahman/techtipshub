@@ -108,8 +108,15 @@ Things known to be wrong or unfinished, in the order they matter.
   change, not a dashboard setting.
 - **`totalPosts` is stored, `totalBlogs` is exposed.** The model has a virtual
   for the second name; do not rename the stored field.
-- **`posts` collection, `Post` model name** for what the product calls blogs.
-  Keep them when adding indexes.
+- **Collection names are pinned, not derived.** Every model passes its stored
+  name as the third argument of `model()` (`blog.model.ts` keeps `posts` for
+  `Post`). Renaming a model therefore leaves the data where it is; changing a
+  collection's name is a migration, through `pnpm migrate:collections`.
+- **`pnpm migrate:collections` is run by hand, against production, before the
+  deploy that renames a collection.** Vercel's build only typechecks, so nothing
+  runs it for you. It moves rows into the pinned collection, keeps the old rows
+  as `<name>_migrated`, and prints them so the copies can be dropped once
+  checked.
 - **Newsletter issue articles are frozen copies,** and the recipient list is
   frozen at first send. Editing after that is refused on purpose.
 - **Blog slugs `new` and `edit` are reserved** (`RESERVED_BLOG_SLUGS`) so an
@@ -122,6 +129,11 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-10-28: Collections renamed to snake_case and pinned in every model
+  (`admin_logs`, `newsletter_subscribers`, `newsletter_campaigns`); the
+  `authhandoffs` collection is gone, the Google handoff is a signed JWT;
+  `payments` and `subscriptions` given models (`modules/billing/`); migration
+  script `pnpm migrate:collections` added.
 - 2026-10-27: Phase 7 (hardening) done. Legal pages name the operator;
   `siteConfig.links` and the dead SMTP keys removed; `pnpm test` added as the
   typecheck/format/invariants/lint/build gate; one root Prettier config, applied

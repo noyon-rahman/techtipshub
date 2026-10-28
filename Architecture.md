@@ -77,9 +77,12 @@ There is no auth library. The API is the only authority on who is signed in.
   password reset actually end a stolen refresh token.
 
 Google sign-in is handled by the API (`/auth/google` then
-`/auth/google/callback`, which redirects to the site with a one-time handoff
-code that `POST /auth/session/claim` exchanges), so the client secret never
-reaches the web app.
+`/auth/google/callback`, which redirects to the site with a handoff code that
+`POST /auth/session/claim` exchanges), so the client secret never reaches the
+web app. The handoff is stateless: a short-lived JWT signed with
+`GOOGLE_STATE_SECRET` that carries the two tokens, so nothing temporary is
+written to the database. Both apps read the same variable, which is why it is
+in the web app's environment too.
 
 ## API inside
 
@@ -111,8 +114,10 @@ admin's identity (for example `DELETE /comments/:id` versus
 
 ## Data model
 
-MongoDB collections, named as stored (several keep older names so documents stay
-reachable).
+MongoDB collections, all snake_case, each name pinned as the third argument of
+its model call so a rename of the model cannot move the data. Field names that
+predate the product's "blog" wording (`post`, `postCount`, `totalPosts`) keep
+their stored spelling, because documents already hold them.
 
 | Collection | Model | Notes |
 | --- | --- | --- |
@@ -124,9 +129,21 @@ reachable).
 | `followers` | `Follower` | follower to following, one row per pair |
 | `views` | `View` | one per reader per article, guest id or member id |
 | `contacts` | `Contact` | contact form, status `new`/`read`/`archived` |
-| `newslettersubscribers` | `NewsletterSubscriber` | status `active`/`unsubscribed`/`bounced`/`complained`, `suppressedAt`, source |
-| `newslettercampaigns` | `NewsletterCampaign` | status `draft`/`sending`/`sent`, frozen article copies, frozen `recipients[]` |
-| `adminlogs` | `AdminLog` | who did what, never throws when the write fails |
+| `newsletter_subscribers` | `NewsletterSubscriber` | status `active`/`unsubscribed`/`bounced`/`complained`, `suppressedAt`, source |
+| `newsletter_campaigns` | `NewsletterCampaign` | status `draft`/`sending`/`sent`, frozen article copies, frozen `recipients[]` |
+| `admin_logs` | `AdminLog` | who did what, never throws when the write fails |
+| `payments` | `Payment` | stored receipts from the older billing build; no route writes them, the site takes no payments |
+| `subscriptions` | `Subscription` | stored membership periods from the same build; no route writes them |
+
+The Google sign-in handoff stores nothing of its own: no collection exists for
+it, so nothing has to be cleaned up.
+
+Indexes are built by Mongoose when an instance connects (`settings.autoIndex`,
+left on), so the constraints the app relies on -- one vote per member, unique
+slug -- do not wait for a deploy step. A collection older than the model that
+now pins it needs its index before it is written to; `pnpm migrate:collections`
+builds it. The same script moves documents from any collection still under a
+name no model pins into its model's collection, and keeps the old rows.
 
 Two soft-delete rules live in model middleware rather than in each query:
 `pre("find")` and `pre("findOne")` add `isDeleted: { $ne: true }` unless the call

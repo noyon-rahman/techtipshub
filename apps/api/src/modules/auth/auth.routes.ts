@@ -46,7 +46,7 @@ authRoutes.get("/google/callback", authController.googleCallback);
 
 /**
  * The site trading a Google handoff code for the session, server to server.
- * Limited like a sign-in, since it is one.
+ * Limited like a sign-in, since the answer sets a session.
  */
 authRoutes.post(
   "/session/claim",
