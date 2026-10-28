@@ -7,7 +7,13 @@
  * receive.
  */
 
-import type { TContentType, TSocialLink, TUserGender, TUserRole, TUserStatus } from "./enums";
+import type {
+  TContentType,
+  TSocialLink,
+  TUserGender,
+  TUserRole,
+  TUserStatus,
+} from "./enums";
 
 export interface ICategory {
   _id: string;
@@ -80,6 +86,37 @@ export interface IBlog {
   createdAt: string;
   updatedAt: string;
   __v: number;
+}
+
+export type TVoteType = "upvote" | "downvote";
+
+/**
+ * What `PUT /blogs/:id/vote` answers, and what `GET /blogs/:id/vote-status`
+ * describes, once the request has committed.
+ *
+ * `myVote` is the signed-in reader's vote afterwards: `null` when the same
+ * button was pressed again and the vote was taken back. A page that voted
+ * optimistically compares against this instead of assuming its guess was right.
+ */
+export interface IVoteResult {
+  blogId: string;
+  upVotes: number;
+  downVotes: number;
+  myVote: TVoteType | null;
+}
+
+/**
+ * Whether the signed-in reader follows a member, and that member's follower
+ * count afterwards.
+ *
+ * `GET /users/:id/follow-status`, `PUT /users/:id/follow` and
+ * `DELETE /users/:id/unfollow` all answer with this, so the button can settle
+ * on the server's answer instead of trusting its optimistic count.
+ */
+export interface IFollowResult {
+  userId: string;
+  isFollowing: boolean;
+  totalFollowers: number;
 }
 
 export interface ICommentBlog {

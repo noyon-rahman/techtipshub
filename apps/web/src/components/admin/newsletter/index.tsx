@@ -37,7 +37,9 @@ const NewsletterManager = () => {
     if (next === undefined) return;
     event.preventDefault();
     setTab(TABS[next].id);
-    tabRef.current?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
+    tabRef.current
+      ?.querySelectorAll<HTMLElement>('[role="tab"]')
+      [next]?.focus();
   };
 
   return (

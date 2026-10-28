@@ -12,7 +12,11 @@ const authRoutes = new Hono<TAppBindings>();
 authRoutes.post(
   "/register",
   authAttemptLimit,
-  withUploads({ field: "image", target: "profilePicture", resourceType: "auto" }),
+  withUploads({
+    field: "image",
+    target: "profilePicture",
+    resourceType: "auto",
+  }),
   validate({ json: authValidationSchema.register }),
   authController.register,
 );
@@ -42,7 +46,7 @@ authRoutes.get("/google/callback", authController.googleCallback);
 
 /**
  * The site trading a Google handoff code for the session, server to server.
- * Limited like a sign-in, since it is one.
+ * Limited like a sign-in, since the answer sets a session.
  */
 authRoutes.post(
   "/session/claim",
@@ -61,7 +65,11 @@ authRoutes.post("/refresh-token", authController.generateNewAccessToken);
 
 authRoutes.post("/logout", authController.logOut);
 
-authRoutes.get("/me", auth(USER_ROLE.USER, USER_ROLE.ADMIN), authController.getMe);
+authRoutes.get(
+  "/me",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  authController.getMe,
+);
 
 authRoutes.put(
   "/change-password",

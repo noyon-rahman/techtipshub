@@ -25,7 +25,7 @@ export const signUpValidationSchema = z.object({
   dateOfBirth: z
     .object(
       { day: z.number(), month: z.number(), year: z.number() },
-      { error: "Date of birth is required" }
+      { error: "Date of birth is required" },
     )
     .transform(({ day, month, year }) => {
       return `${year}-${month <= 9 ? "0" + month : month}-${

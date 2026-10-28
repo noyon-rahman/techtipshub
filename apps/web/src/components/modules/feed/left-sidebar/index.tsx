@@ -1,7 +1,6 @@
 "use client";
 
-import { writeBlogPath } from "@/lib/blog-routes";
-
+import { writeBlogPath } from "@/lib/blog-routes";
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -71,9 +70,7 @@ const NavSection = ({
   children: React.ReactNode;
 }) => (
   <div className="space-y-1">
-    <p className="px-3 pb-1 tth-label-sm text-default-600">
-      {title}
-    </p>
+    <p className="px-3 pb-1 tth-label-sm text-default-600">{title}</p>
     {children}
   </div>
 );

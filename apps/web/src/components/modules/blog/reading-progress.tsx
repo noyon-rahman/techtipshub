@@ -34,10 +34,7 @@ const ReadingProgress = ({ targetId }: { targetId: string }) => {
   }, [targetId]);
 
   return (
-    <div
-      aria-hidden
-      className="fixed inset-x-0 top-0 z-50 h-0.5 print:hidden"
-    >
+    <div aria-hidden className="fixed inset-x-0 top-0 z-50 h-0.5 print:hidden">
       <div
         className="h-full bg-primary transition-[width] duration-150"
         style={{ width: `${progress * 100}%` }}

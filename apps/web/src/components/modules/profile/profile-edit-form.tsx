@@ -245,7 +245,7 @@ const ProfileEditForm = ({
           Edit profile
         </button>
         <span className="text-xs text-default-600">
-          Name, photo, bio and links — edited right here.
+          Name, photo, bio and links - edited right here.
         </span>
       </div>
     );

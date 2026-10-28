@@ -3,8 +3,8 @@
 A monthly roundup of articles the site already has, sent to a list readers join
 themselves. Three parts: the list, the issues, and the sending.
 
-- **List** lives in `newslettersubscribers` (`apps/api/src/modules/newsletter/newsletter-subscriber.service.ts`).
-- **Issues** live in `newslettercampaigns` (`newsletter-campaign.service.ts`).
+- **List** lives in `newsletter_subscribers` (`apps/api/src/modules/newsletter/newsletter-subscriber.service.ts`).
+- **Issues** live in `newsletter_campaigns` (`newsletter-campaign.service.ts`).
 - **Sending** goes through Resend as the `newsletter@` sender, in batches.
 
 Nothing here is a free-form mail merge: an issue names articles, and the

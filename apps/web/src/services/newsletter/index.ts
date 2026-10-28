@@ -139,8 +139,7 @@ export const getNewsletterMembership = async (
         success: false,
         subscribed: false,
         status: null,
-        message:
-          payload?.message || "Your newsletter setting did not load.",
+        message: payload?.message || "Your newsletter setting did not load.",
       };
     }
 

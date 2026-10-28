@@ -16,7 +16,8 @@ interface IProps {
 /** These values never change on their own, so there is nothing to subscribe to. */
 const subscribeToBrowser = () => () => {};
 
-const targets = (url: string, title: string) => [  {
+const targets = (url: string, title: string) => [
+  {
     id: "x",
     label: "X",
     icon: <BsTwitterX aria-hidden />,
@@ -158,10 +159,7 @@ const BlogShare = ({ path, title }: IProps) => {
                     }}
                     className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm text-default-700 transition-colors hover:bg-default-100 hover:text-foreground"
                   >
-                    <FiShare2
-                      aria-hidden
-                      className="size-4 text-default-600"
-                    />
+                    <FiShare2 aria-hidden className="size-4 text-default-600" />
                     More options…
                   </button>
                 </li>

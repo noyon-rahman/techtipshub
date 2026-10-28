@@ -12,12 +12,14 @@
     "start": "turbo run start",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "format": "turbo run format",
-    "format:check": "turbo run format:check",
+    "test": "node scripts/test/run.mjs",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
     "dev:api": "turbo run dev --filter=@techtipshub/api",
     "dev:web": "turbo run dev --filter=@techtipshub/web"
   },
   "devDependencies": {
+    "prettier": "^3.9.10",
     "turbo": "^2.6.1"
   }
 }

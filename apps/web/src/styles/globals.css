@@ -98,7 +98,8 @@
      registers on `<body>`: referencing its `--font-fraunces` /
      `--font-sans` variables from inside a custom property resolves to nothing
      in Chromium, which silently dropped the hero headline back to Inter. */
-  --type-editorial: "Fraunces", "Fraunces Fallback", Georgia, "Times New Roman", serif;
+  --type-editorial:
+    "Fraunces", "Fraunces Fallback", Georgia, "Times New Roman", serif;
 
   /* HeroUI converts the hex theme values in tailwind.config.js into the
      `--heroui-*` channel variables, but resolves `foreground: <hex>` only into
@@ -189,11 +190,33 @@
   .dark .group:focus-visible .text-primary-accessible {
     color: hsl(var(--heroui-primary-400));
   }
+
+  /* A vote this reader holds, on the button itself: amber for an upvote,
+     rose for a downvote. HeroUI's light variant sets the icon colour from its
+     own `data-*` rule, which outranks a Tailwind colour utility appended in
+     `className`, so this is scoped to the button element and marked
+     `!important`. Marking it important is what lets a pressed vote win over
+     the variant without changing the variant for every other button. */
+  .tth-vote-on {
+    color: hsl(var(--heroui-primary-800)) !important;
+  }
+
+  .dark .tth-vote-on {
+    color: hsl(var(--heroui-primary-400)) !important;
+  }
+
+  .tth-vote-down {
+    color: hsl(var(--heroui-danger-700)) !important;
+  }
+
+  .dark .tth-vote-down {
+    color: hsl(var(--heroui-danger-400)) !important;
+  }
 }
 
 /* Paragraphs inherit their container's colour by default. The old
    unconditional `p { color: gray-500 }` override made every paragraph on the
-   site grey — including article body copy inside `prose` — so readable ink and
+   site grey - including article body copy inside `prose` - so readable ink and
    muted secondary text are now chosen per component. Legacy screens that
    relied on the grey can opt in with `.tth-muted-prose`. */
 .tth-muted-prose p {
@@ -671,11 +694,13 @@
 /* The composer uses Fira Code through `--font-mono` on <body>; the literal
    name is the fallback for pages that do not mount that variable. */
 .tth-article code {
-  font-family: "Fira Code", var(--font-mono), ui-monospace, SFMono-Regular,
-    Menlo, monospace;
+  font-family:
+    "Fira Code", var(--font-mono), ui-monospace, SFMono-Regular, Menlo,
+    monospace;
   font-size: 0.875em;
   background-color: var(--color-content-2);
-  border: 1px solid color-mix(in srgb, var(--color-default-300) 60%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-default-300) 60%, transparent);
   border-radius: 4px;
   padding: 0.1em 0.35em;
   overflow-wrap: break-word;
@@ -686,7 +711,8 @@
   max-width: 100%;
   overflow-x: auto;
   background-color: var(--color-content-2);
-  border: 1px solid color-mix(in srgb, var(--color-default-300) 70%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-default-300) 70%, transparent);
   border-radius: 10px;
   padding: 0.9rem 1rem;
   font-size: 0.8125rem;
@@ -718,7 +744,8 @@
   max-width: 100%;
   height: auto;
   border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--color-default-300) 70%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--color-default-300) 70%, transparent);
 }
 
 .tth-article figure {
@@ -804,8 +831,8 @@
 
    No attribute yet is the state before that answer lands, after it if the
    client never runs, and for every crawler: the members prompt, with the body
-   out of the flow. It is the conservative state — the body is never shown to a
-   visitor the check has not confirmed — and the readable copy for search
+   out of the flow. It is the conservative state - the body is never shown to a
+   visitor the check has not confirmed - and the readable copy for search
    engines is the server-rendered preview at `?view=preview`, the canonical URL.
    -------------------------------------------------------------------------- */
 [data-article-for] {
@@ -828,7 +855,7 @@
    shown. Without this the members prompt is painted for the length of the
    round trip and then swapped for the body. The attribute is only ever set by
    `ArticleAccess`, in the browser, so a crawler or a browser that never runs it
-   keeps the prompt above — search engines read the article at `?view=preview`. */
+   keeps the prompt above - search engines read the article at `?view=preview`. */
 [data-article-access][data-article-waiting] [data-article-for] {
   display: none;
 }

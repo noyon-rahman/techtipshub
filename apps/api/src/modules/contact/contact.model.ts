@@ -66,6 +66,6 @@ const contactSchema = new Schema<IContact>(
 
 contactSchema.index({ status: 1, createdAt: -1 });
 
-const Contact = model<IContact>("Contact", contactSchema);
+const Contact = model<IContact>("Contact", contactSchema, "contacts");
 
 export default Contact;

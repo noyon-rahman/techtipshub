@@ -128,8 +128,9 @@ blogSchema.pre("findOne", function (next) {
   next();
 });
 
-// Model name and collection are the stored DB identifiers: keep them as "Post"
-// and "posts" so existing documents stay reachable.
+// The model is named "Post" so every `ref: "Post"` resolves; the collection is
+// pinned because a name Mongoose would derive is a second scheme to keep in
+// step with the migration script.
 const Blog = model<IBlog>("Post", blogSchema, "posts");
 
 export default Blog;

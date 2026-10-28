@@ -11,8 +11,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import { FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
 
-const label =
-  "mb-1 block tth-label-sm text-default-600";
+const label = "mb-1 block tth-label-sm text-default-600";
 
 type TokenState = "reading" | "ready" | "missing";
 

@@ -90,7 +90,8 @@ export const useUnsavedChangesGuard = ({
   // whenever the writer tries to go back, then asks.
   useEffect(() => {
     if (!dirty) return;
-    const arm = () => window.history.pushState({ tthEditorGuard: pathname }, "");
+    const arm = () =>
+      window.history.pushState({ tthEditorGuard: pathname }, "");
     arm();
     const onPop = () => {
       if (!dirtyRef.current) return;

@@ -26,8 +26,7 @@ export interface ArticleAccessResult {
  * of deciding what to show, and it belongs to one place only: `BlogViewCounter`
  * records it from the browser, which is also where a guest's visitor id lives.
  */
-export const resolveArticleAccess = async (
-): Promise<ArticleAccessResult> => {
+export const resolveArticleAccess = async (): Promise<ArticleAccessResult> => {
   const session = await readReaderSession();
 
   if (!session.reader) {

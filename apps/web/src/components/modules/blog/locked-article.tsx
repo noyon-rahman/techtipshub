@@ -5,7 +5,7 @@ import { FcGoogle } from "react-icons/fc";
  * Where a guest's reading stops.
  *
  * The preview above this is several paragraphs of the real article. Its last
- * lines fade into the page colour — the text runs out rather than being cut —
+ * lines fade into the page colour - the text runs out rather than being cut -
  * and then a gap, and then the ask.
  *
  * The ask is centred and has no surface of its own. Nothing here is a card: it
@@ -20,7 +20,7 @@ import { FcGoogle } from "react-icons/fc";
  * Every option carries `redirectPath`, which is how the reader comes back to
  * this article rather than the feed. The page around it is prerendered and
  * cached, so it is the same document for a guest and a member: it cannot read
- * the session to build these links, and does not need to — `ArticleAccess`
+ * the session to build these links, and does not need to - `ArticleAccess`
  * shows the body once the reader is back with a session.
  *
  * Only options the site actually offers appear here. There is no Facebook
@@ -56,8 +56,8 @@ const LockedArticle = ({ redirectPath, loginHref }: IProps) => {
         </h2>
 
         <p className="mx-auto mt-4 max-w-[44ch] text-[0.9rem] leading-relaxed text-default-600">
-          The author made this article available to TechTipsHub members. It takes
-          a moment to join, and you can read everything on the site.
+          The author made this article available to TechTipsHub members. It
+          takes a moment to join, and you can read everything on the site.
         </p>
 
         <div className="mx-auto mt-9 flex max-w-sm flex-col items-stretch gap-2.5">

@@ -101,7 +101,6 @@ const readLinks = [
 ];
 
 const Footer = () => {
-
   return (
     <footer className="border-t border-default bg-default-50 print:hidden">
       <Container>

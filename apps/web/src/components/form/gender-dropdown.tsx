@@ -1,6 +1,12 @@
 "use client";
 
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@heroui/react";
 import { SharedSelection } from "@heroui/system";
 import React, { useEffect, useState } from "react";
 import { useFormContext } from "react-hook-form";
@@ -32,7 +38,7 @@ const GenderDropdown: React.FC<IProps> = ({ name, label }) => {
 
   const selectedValue = React.useMemo(
     () => Array.from(selectedKeys).join(", ").replaceAll("_", " "),
-    [selectedKeys]
+    [selectedKeys],
   );
 
   useEffect(() => {

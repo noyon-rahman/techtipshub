@@ -14,7 +14,6 @@ export interface IFollower {
   totalFollowing: number;
 }
 
-
 export interface IUFollowing {
   _id: string;
   following: IFollowing;

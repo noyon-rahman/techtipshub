@@ -125,5 +125,3 @@ export const PAGE_SIZE_OPTIONS = PAGE_SIZES.map((size) => ({
   value: size,
   label: `${size} per page`,
 }));
-
-

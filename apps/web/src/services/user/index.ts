@@ -2,7 +2,9 @@
 
 import envConfig from "@/config/env.config";
 import { legacyResponse } from "@/lib/api-contract";
+import type { TLegacyBody } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
+import type { IFollowResult } from "@techtipshub/shared";
 import { TSocialLink } from "@/types";
 import { updateTag } from "next/cache";
 
@@ -28,17 +30,26 @@ export const getUserByUsername = async (username: string) => {
   }
 };
 
-export const getUserFollowingStatus = async (userId: string) => {
+/**
+ * Whether the signed-in reader follows `userId`, with that member's current
+ * follower count. Used when a page has no answer of its own yet; the button
+ * stays quiet until it has one.
+ */
+export const getUserFollowingStatus = async (
+  userId: string,
+): Promise<TLegacyBody<IFollowResult>> => {
   try {
     const res = await axiosInstance.get(`/users/${userId}/follow-status`);
 
-    return res?.data;
+    return res.data;
   } catch (err: any) {
-    return err?.response?.data;
+    return err?.response?.data ?? { success: false, message: err?.message };
   }
 };
 
-export const followUser = async (userId: string) => {
+export const followUser = async (
+  userId: string,
+): Promise<TLegacyBody<IFollowResult>> => {
   try {
     const res = await axiosInstance.put(`/users/${userId}/follow`);
 
@@ -46,11 +57,13 @@ export const followUser = async (userId: string) => {
 
     return res.data;
   } catch (err: any) {
-    throw new Error(err.message);
+    return err?.response?.data ?? { success: false, message: err?.message };
   }
 };
 
-export const unfollowUser = async (userId: string) => {
+export const unfollowUser = async (
+  userId: string,
+): Promise<TLegacyBody<IFollowResult>> => {
   try {
     const res = await axiosInstance.delete(`/users/${userId}/unfollow`);
 
@@ -58,7 +71,7 @@ export const unfollowUser = async (userId: string) => {
 
     return res.data;
   } catch (err: any) {
-    throw new Error(err.message);
+    return err?.response?.data ?? { success: false, message: err?.message };
   }
 };
 

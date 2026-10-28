@@ -58,7 +58,9 @@ const GoogleSignIn = () => {
           radius="lg"
           variant="bordered"
           className="min-h-11 border border-default-300 font-medium text-foreground hover:bg-default-100"
-          startContent={leaving ? undefined : <FcGoogle aria-hidden size={18} />}
+          startContent={
+            leaving ? undefined : <FcGoogle aria-hidden size={18} />
+          }
         >
           {leaving ? "Opening Google…" : "Continue with Google"}
         </Button>

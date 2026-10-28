@@ -5,7 +5,7 @@ import { UserGender } from "../user/user.constant";
  * What a password has to be, everywhere one is chosen.
  *
  * Signup, change and reset all read this, so a rule can't hold on one route
- * and not another — the old code required six characters to *change* a
+ * and not another - the old code required six characters to *change* a
  * password but accepted one character at signup. Length is the property that
  * actually resists guessing, so it is the one enforced; the upper bound stops a
  * pathological input from being hashed, since bcrypt silently ignores anything
@@ -63,7 +63,7 @@ const resetPassword = z
   })
   .strict();
 
-/** The one-time code a Google callback hands to the site. */
+/** The code a Google callback hands to the site. */
 const claimSession = z
   .object({
     handoff: z.string({ error: "Handoff code must be a string" }).min(1),

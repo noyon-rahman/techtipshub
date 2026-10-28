@@ -15,11 +15,12 @@
     "JWT_REFRESH_TOKEN_EXPIRES_IN",
     "JWT_RESET_PASSWORD_SECRET",
     "JWT_RESET_PASSWORD_EXPIRES_IN",
-    "SMTP_AUTH_USER",
-    "SMTP_AUTH_PASSWORD",
-    "SMTP_HOST",
-    "SMTP_PORT",
-    "NODEMAILER_EMAIL_FROM",
+    "JWT_VERIFY_EMAIL_EXPIRES_IN",
+    "RESEND_API_KEY",
+    "MAIL_DOMAIN",
+    "MAIL_REPLY_TO",
+    "NEWSLETTER_UNSUBSCRIBE_SECRET",
+    "RESEND_WEBHOOK_SECRET",
     "CONTACT_INBOX",
     "BCRYPT_SALT_ROUND",
     "GOOGLE_CLIENT_ID",
@@ -43,12 +44,6 @@
       "outputs": []
     },
     "lint": {
-      "outputs": []
-    },
-    "format": {
-      "outputs": []
-    },
-    "format:check": {
       "outputs": []
     },
     "dev": {

@@ -124,35 +124,58 @@ const BRAND_MARK =
 // Function to convert HTML string to PDF components
 const renderHtmlToPdf = (html: string) => {
   const parser = new DOMParser();
-  const doc = parser.parseFromString(html, 'text/html');
+  const doc = parser.parseFromString(html, "text/html");
   const elements = Array.from(doc.body.childNodes);
 
   return elements.map((element, index) => {
-    if (element.nodeName === 'H1') {
-      return <Text key={index} style={{ fontSize: 24, fontWeight: 'bold' }}>{element.textContent}</Text>;
-    } else if (element.nodeName === 'H2') {
-      return <Text key={index} style={{ fontSize: 20, fontWeight: 'bold' }}>{element.textContent}</Text>;
-    } else if (element.nodeName === 'P') {
-      return <Text key={index} style={{ marginBottom: 10 }}>{element.textContent}</Text>;
-    } else if (element.nodeName === 'UL') {
+    if (element.nodeName === "H1") {
+      return (
+        <Text key={index} style={{ fontSize: 24, fontWeight: "bold" }}>
+          {element.textContent}
+        </Text>
+      );
+    } else if (element.nodeName === "H2") {
+      return (
+        <Text key={index} style={{ fontSize: 20, fontWeight: "bold" }}>
+          {element.textContent}
+        </Text>
+      );
+    } else if (element.nodeName === "P") {
+      return (
+        <Text key={index} style={{ marginBottom: 10 }}>
+          {element.textContent}
+        </Text>
+      );
+    } else if (element.nodeName === "UL") {
       return (
         <View key={index}>
           {Array.from(element.children).map((li, liIndex) => (
-            <Text key={liIndex} style={{ marginBottom: 5 }}>• {li.textContent}</Text>
+            <Text key={liIndex} style={{ marginBottom: 5 }}>
+              • {li.textContent}
+            </Text>
           ))}
         </View>
       );
-    } else if (element.nodeName === 'OL') {
+    } else if (element.nodeName === "OL") {
       return (
         <View key={index}>
           {Array.from(element.children).map((li, liIndex) => (
-            <Text key={liIndex} style={{ marginBottom: 5 }}>{liIndex + 1}. {li.textContent}</Text>
+            <Text key={liIndex} style={{ marginBottom: 5 }}>
+              {liIndex + 1}. {li.textContent}
+            </Text>
           ))}
         </View>
       );
-    } else if (element.nodeName === 'CODE') {
+    } else if (element.nodeName === "CODE") {
       return (
-        <Text key={index} style={{ fontFamily: 'Courier', backgroundColor: '#f0f0f0', padding: 5 }}>
+        <Text
+          key={index}
+          style={{
+            fontFamily: "Courier",
+            backgroundColor: "#f0f0f0",
+            padding: 5,
+          }}
+        >
           {element.textContent}
         </Text>
       );

@@ -69,7 +69,9 @@ const About = async () => {
                   title={
                     <>
                       Practical writing for people who{" "}
-                      <span className="text-primary-accessible">build software</span>
+                      <span className="text-primary-accessible">
+                        build software
+                      </span>
                     </>
                   }
                   lede="TechTipsHub is an independent publication about web development, AI and the tools modern developers reach for every day. We favour clear explanations and working examples over hype."
@@ -98,9 +100,7 @@ const About = async () => {
 
               {/* The masthead facts, as a quiet table rather than giant numerals. */}
               <aside className="lg:pt-2">
-                <h2 className="tth-label">
-                  The publication
-                </h2>
+                <h2 className="tth-label">The publication</h2>
                 <FactList label="Publication details" className="mt-4">
                   {articleCount > 0 && (
                     <Fact term="Articles published">
@@ -113,7 +113,10 @@ const About = async () => {
                     </Fact>
                   )}
                   <Fact term="Access">Free, no tiers</Fact>
-                  <FactLink term="Contact" href={`mailto:${legalConfig.contactEmail}`}>
+                  <FactLink
+                    term="Contact"
+                    href={`mailto:${legalConfig.contactEmail}`}
+                  >
                     {legalConfig.contactEmail}
                   </FactLink>
                 </FactList>
@@ -129,10 +132,7 @@ const About = async () => {
           aria-labelledby="mission"
           className="grid gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 lg:py-20"
         >
-          <h2
-            id="mission"
-            className="tth-label leading-6 lg:pt-2"
-          >
+          <h2 id="mission" className="tth-label leading-6 lg:pt-2">
             Our mission
           </h2>
           <div>
@@ -155,10 +155,7 @@ const About = async () => {
           className="grid gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 lg:py-20"
         >
           <div className="lg:pt-2">
-            <h2
-              id="standards"
-              className="tth-label leading-6"
-            >
+            <h2 id="standards" className="tth-label leading-6">
               How we work
             </h2>
             <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">
@@ -192,10 +189,7 @@ const About = async () => {
             aria-labelledby="topics"
             className="grid gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16"
           >
-            <h2
-              id="topics"
-              className="tth-label leading-6 lg:pt-2"
-            >
+            <h2 id="topics" className="tth-label leading-6 lg:pt-2">
               Topics we cover
             </h2>
             <ul className="grid gap-x-8 sm:grid-cols-2">

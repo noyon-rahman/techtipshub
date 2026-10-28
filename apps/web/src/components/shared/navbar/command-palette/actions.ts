@@ -38,7 +38,7 @@ const toCommandBlog = (blog: IBlog): CommandBlog => ({
   author: blog.author?.username ?? "",
 });
 
-const asArray = <T,>(value: unknown): T[] =>
+const asArray = <T>(value: unknown): T[] =>
   Array.isArray(value) ? (value as T[]) : [];
 
 /**
@@ -65,7 +65,10 @@ export const searchArticles = async (
     if (!res.ok) return { blogs: [], failed: true };
 
     const json = await res.json();
-    return { blogs: asArray<IBlog>(json?.data).map(toCommandBlog), failed: false };
+    return {
+      blogs: asArray<IBlog>(json?.data).map(toCommandBlog),
+      failed: false,
+    };
   } catch {
     return { blogs: [], failed: true };
   }
@@ -135,7 +138,10 @@ export const listCategories = async (): Promise<CategorySearchResult> => {
 };
 
 export interface ProfileSearchResult {
-  user: Pick<IUser, "username" | "fullName" | "profilePicture" | "totalBlogs"> | null;
+  user: Pick<
+    IUser,
+    "username" | "fullName" | "profilePicture" | "totalBlogs"
+  > | null;
   failed: boolean;
 }
 

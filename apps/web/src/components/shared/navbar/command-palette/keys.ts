@@ -9,7 +9,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
  * what lets Enter do the right thing: a theme entry runs a command, an
  * article navigates. `groups` is the grouping used in the rendered list.
  */
-export type CommandKind = "article" | "category" | "profile" | "page" | "action";
+export type CommandKind =
+  "article" | "category" | "profile" | "page" | "action";
 
 export interface CommandTarget {
   /** Unique per palette session; the list keys and the active index point at it. */
@@ -32,7 +33,8 @@ export interface CommandGroup {
   items: CommandTarget[];
 }
 
-const flatten = (groups: CommandGroup[]) => groups.flatMap((group) => group.items);
+const flatten = (groups: CommandGroup[]) =>
+  groups.flatMap((group) => group.items);
 
 /**
  * Roving selection over a grouped list.

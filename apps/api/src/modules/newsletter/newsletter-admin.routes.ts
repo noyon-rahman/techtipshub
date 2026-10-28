@@ -51,7 +51,10 @@ adminNewsletterCampaignRouter.post(
   newsletterAdminController.createCampaign,
 );
 
-adminNewsletterCampaignRouter.get("/:id", newsletterAdminController.getCampaign);
+adminNewsletterCampaignRouter.get(
+  "/:id",
+  newsletterAdminController.getCampaign,
+);
 adminNewsletterCampaignRouter.put(
   "/:id",
   validate({ json: newsletterValidationSchema.updateCampaign }),

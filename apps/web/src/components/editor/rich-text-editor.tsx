@@ -60,8 +60,8 @@ export const EditorSurface = ({
  * Creates the editor and keeps the form value in sync without re-creating it.
  *
  * `useBlogEditor` takes the value once (the initial content). When the value
- * changes from outside the editor — restoring a draft, or resetting after a
- * publish — the content is replaced too.
+ * changes from outside the editor - restoring a draft, or resetting after a
+ * publish - the content is replaced too.
  */
 export const useComposerEditor = ({
   value,
@@ -104,7 +104,7 @@ interface IProps {
  *
  * These callers already hold the content in form state, so the editor owns it
  * after mount and reports every change through `onChange`. Syncing back from
- * `value` is deliberately not done here — see `useComposerEditor` for the
+ * `value` is deliberately not done here - see `useComposerEditor` for the
  * composer, which needs it to restore drafts.
  */
 const RichTextEditor = ({

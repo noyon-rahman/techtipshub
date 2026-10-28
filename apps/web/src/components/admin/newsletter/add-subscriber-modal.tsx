@@ -125,9 +125,7 @@ const AddSubscriberModal = ({ isOpen, onClose }: IProps) => {
               onValueChange={setSendWelcome}
               isDisabled={isPending}
             >
-              <span className="text-sm">
-                Send the welcome email now
-              </span>
+              <span className="text-sm">Send the welcome email now</span>
             </Checkbox>
 
             {error && (

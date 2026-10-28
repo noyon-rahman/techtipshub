@@ -25,9 +25,7 @@ export default function Error({
           role="alert"
           className="grid min-h-[calc(100dvh-8rem)] content-center gap-10 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16"
         >
-          <p className="tth-label text-danger lg:pt-2">
-            Something went wrong
-          </p>
+          <p className="tth-label text-danger lg:pt-2">Something went wrong</p>
 
           <div>
             <h1 className="text-pretty font-[family-name:var(--type-editorial)] text-3xl font-semibold leading-[1.1] tracking-[-0.01em] md:text-4xl">
@@ -35,7 +33,7 @@ export default function Error({
             </h1>
             <p className="mt-4 max-w-xl leading-relaxed text-default-600">
               A request failed while rendering the page. Trying again usually
-              fixes it — if it keeps happening, the service may be temporarily
+              fixes it - if it keeps happening, the service may be temporarily
               unavailable.
             </p>
 

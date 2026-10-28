@@ -88,8 +88,8 @@ const InlineCode = Code.extend({
  *
  * Every existing blog was written as a tight list (`<li>text</li>`), and the
  * site styles `<li>` and `<p>` differently. Tiptap's listItem requires a
- * paragraph child, so an unmodified save emits `<li><p>text</p></li>` — +270
- * paragraphs across current blogs — and visibly changes every list on the site.
+ * paragraph child, so an unmodified save emits `<li><p>text</p></li>` - +270
+ * paragraphs across current blogs - and visibly changes every list on the site.
  *
  * The paragraph stays a real `<p>` in the DOM: the caret, native typing and the
  * browser's block handling all depend on real block elements (inline spans put
@@ -173,7 +173,9 @@ const MarkdownShortcuts = Extension.create({
  * default, and treating `ql-align-left` as an attribute would add
  * `style="text-align: left"` to blogs that do not have it today.
  */
-const AlignWithLegacyClasses = TextAlign.configure({ types: ["heading", "paragraph"] }).extend({
+const AlignWithLegacyClasses = TextAlign.configure({
+  types: ["heading", "paragraph"],
+}).extend({
   addGlobalAttributes() {
     return (this.parent?.() ?? []).map((attributeSet) => ({
       ...attributeSet,
@@ -202,7 +204,7 @@ const AlignWithLegacyClasses = TextAlign.configure({ types: ["heading", "paragra
 /**
  * Quill legacy: bold sometimes landed in
  * `<span style="color: var(--tw-prose-bold)">` instead of `<strong>`.
- * The span carries no style the site needs — only the weight — so map it to
+ * The span carries no style the site needs - only the weight - so map it to
  * the bold mark. Without this the text silently loses its emphasis when the
  * blog is saved from the new editor.
  */
@@ -216,7 +218,9 @@ const LegacyBoldSpan = Bold.extend({
       {
         tag: "span[style]",
         getAttrs: (element) =>
-          /--tw-prose-bold/.test((element as HTMLElement).getAttribute("style") || "")
+          /--tw-prose-bold/.test(
+            (element as HTMLElement).getAttribute("style") || "",
+          )
             ? null
             : false,
       },

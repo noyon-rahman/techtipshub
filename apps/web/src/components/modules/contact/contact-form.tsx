@@ -29,9 +29,13 @@ const ContactForm = () => {
   // explanation when the problem was not one specific field.
   useEffect(() => {
     if (status?.type !== "error") return;
-    const firstInvalid = ["firstName", "lastName", "email", "subject", "message"].find(
-      (name) => name in errors,
-    );
+    const firstInvalid = [
+      "firstName",
+      "lastName",
+      "email",
+      "subject",
+      "message",
+    ].find((name) => name in errors);
     if (firstInvalid) {
       setFocus(firstInvalid as "firstName");
     } else {

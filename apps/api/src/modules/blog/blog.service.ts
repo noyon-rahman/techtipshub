@@ -245,7 +245,8 @@ const getAdminList = async (query: Record<string, unknown>) => {
   // Rows written before drafts existed carry no status and are published, so
   // "published" means "not a draft" rather than `status: "published"`.
   if (status) {
-    filter.status = status.toLowerCase() === "draft" ? "draft" : { $ne: "draft" };
+    filter.status =
+      status.toLowerCase() === "draft" ? "draft" : { $ne: "draft" };
   }
   const category =
     typeof query.category === "string" ? query.category.trim() : "";
@@ -576,9 +577,15 @@ const voteOnBlog = async (
       user: currentLoggedInUser._id,
     }).session(session);
 
+    // What the reader holds once this call commits. Sending the vote back is
+    // what lets the page settle on the server's answer instead of assuming
+    // its optimistic guess matched.
+    let myVote: "upvote" | "downvote" | null = voteType;
+
     if (existingVote) {
       if (existingVote.type === voteType) {
         await existingVote.deleteOne({ session });
+        myVote = null;
 
         if (voteType === "upvote") {
           blog.upVotes -= 1;
@@ -622,7 +629,12 @@ const voteOnBlog = async (
     await session.commitTransaction();
     session.endSession();
 
-    return blog;
+    return {
+      blogId: blog._id,
+      upVotes: blog.upVotes,
+      downVotes: blog.downVotes,
+      myVote,
+    };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -647,15 +659,13 @@ const getVoteStatus = async (userData: JwtPayload, blogId: string) => {
     user: user._id,
   });
 
-  if (!existingVote) {
-    throw new AppError(httpStatus.NOT_FOUND, "Not Voted yet!");
-  }
-
+  // Not having voted is an answer, not a fault: the page shows the counts
+  // either way and needs `myVote: null` to know which button it is on.
   return {
-    status: "Voted",
-    voteType: existingVote.type,
     blogId: blog._id,
-    userId: user._id,
+    upVotes: blog.upVotes,
+    downVotes: blog.downVotes,
+    myVote: existingVote?.type ?? null,
   };
 };
 

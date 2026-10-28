@@ -4,7 +4,9 @@
   "private": true,
   "license": "ISC",
   "type": "module",
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "exports": {
     ".": "./src/index.ts"
   },

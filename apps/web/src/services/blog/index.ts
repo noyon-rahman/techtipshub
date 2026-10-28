@@ -6,6 +6,7 @@ import type { TLegacyBody } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
 import { getAccessToken } from "@/lib/fetch-with-auth";
 import { forgetRenderedArticles } from "@/lib/article-renders";
+import type { IVoteResult, TVoteType } from "@techtipshub/shared";
 import { revalidatePath, updateTag } from "next/cache";
 
 /**
@@ -195,7 +196,7 @@ export const getLoggedInUserBlogs = async (
 
     // A visitor with no usable session gets a failed answer with no `data`.
     // Callers treat `data` as a list, so normalise it here rather than
-    // spreading `undefined` and crashing the page — and keep the reason, so the
+    // spreading `undefined` and crashing the page - and keep the reason, so the
     // page can say "sign in again" instead of "you have no articles".
     if (!res.ok || !Array.isArray(data?.data)) {
       return { ...data, success: false, data: [] as unknown[] };
@@ -240,23 +241,46 @@ export const getBlogsByUserId = async (
   }
 };
 
-// upvote/downvote by blog id
+/**
+ * Upvote or downvote an article.
+ *
+ * The answer is the vote as it now stands: the counts and which vote the
+ * reader holds. The page settles on it, which is why this does not expire the
+ * article's cached copy. Doing that made every vote throw away the render of a
+ * page that is otherwise static, so the next visit had to rebuild it, and the
+ * counts the reader is looking at are already correct here.
+ */
 export const voteOnBlog = async (
   blogId: string,
-  voteType: "upvote" | "downvote",
-) => {
+  voteType: TVoteType,
+): Promise<TLegacyBody<IVoteResult>> => {
   try {
     const res = await axiosInstance.put(
       `/blogs/${blogId}/vote?voteType=${voteType}`,
     );
 
-    updateTag("singleBlog");
-    // The page shows the vote totals.
-    updateTag("articleData");
+    return res.data;
+  } catch (err: any) {
+    return err?.response?.data ?? { success: false, message: err?.message };
+  }
+};
+
+/**
+ * This reader's vote on one article, as the vote controls draw it.
+ *
+ * The article page is prerendered and shared, so it carries neither the
+ * reader's own vote nor counts that include it. This answers both; a
+ * signed-out reader gets the article's totals and no vote.
+ */
+export const getVoteStatus = async (
+  blogId: string,
+): Promise<TLegacyBody<IVoteResult>> => {
+  try {
+    const res = await axiosInstance.get(`/blogs/${blogId}/vote-status`);
 
     return res.data;
   } catch (err: any) {
-    return err?.response?.data;
+    return err?.response?.data ?? { success: false, message: err?.message };
   }
 };
 

@@ -25,13 +25,14 @@ export const REFRESH_TOKEN_COOKIE = "tth_refresh_token";
  */
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
-const cookieOptions = () => ({
-  secure: config.NODE_ENV === "production",
-  httpOnly: true,
-  sameSite: "Lax",
-  path: "/",
-  maxAge: COOKIE_MAX_AGE,
-}) as const;
+const cookieOptions = () =>
+  ({
+    secure: config.NODE_ENV === "production",
+    httpOnly: true,
+    sameSite: "Lax",
+    path: "/",
+    maxAge: COOKIE_MAX_AGE,
+  }) as const;
 
 export const setSessionCookies = (
   c: Context<TAppBindings>,

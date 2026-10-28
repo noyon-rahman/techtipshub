@@ -5,9 +5,11 @@ import axios from "axios";
 
 /**
  * A client build must never pull an API URL out of the environment: in the
- * browser a bare `NEXT_PUBLIC_*` path would point at the backend directly and
- * skip the app's own `/api/admin` handler. Snapshots that run on the server
- * keep using the configured base.
+ * browser `/api/v1` is this app's own handler for the calls a member makes
+ * (see `src/app/api/v1/[...path]/route.ts`), which forwards them to the API
+ * with the session attached. A direct address would skip that handler and the
+ * httpOnly cookie with it. Snapshots that run on the server keep using the
+ * configured base.
  */
 const serverBaseApi =
   typeof process === "undefined" || typeof window !== "undefined"
@@ -70,12 +72,7 @@ axiosInstance.interceptors.request.use(
 // still rejected, which is how callers already handle a failed request.
 axiosInstance.interceptors.response.use(
   function (response) {
-    response.data = legacyBody(
-      response.data,
-      true,
-      undefined,
-      response.status,
-    );
+    response.data = legacyBody(response.data, true, undefined, response.status);
     return response;
   },
   function (error) {

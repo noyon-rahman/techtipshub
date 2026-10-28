@@ -1,6 +1,13 @@
 import { useDeleteUserAccount } from "@/hooks/user.hook";
 import { Button } from "@heroui/button";
-import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from "@heroui/modal";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  useDisclosure,
+} from "@heroui/modal";
 import { FiTrash2 } from "react-icons/fi";
 
 interface IProps {
@@ -9,16 +16,20 @@ interface IProps {
   reFetchUsers: () => void;
 }
 
-const DeleteUserAccountConfirmationModal = ({ id, role, reFetchUsers }: IProps) => {
+const DeleteUserAccountConfirmationModal = ({
+  id,
+  role,
+  reFetchUsers,
+}: IProps) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const { mutate: deleteAccount, isPending } = useDeleteUserAccount()
+  const { mutate: deleteAccount, isPending } = useDeleteUserAccount();
 
   const handleMakeAdmin = () => {
     deleteAccount(id, {
       onSuccess: () => {
-        reFetchUsers()
-      }
-    })
+        reFetchUsers();
+      },
+    });
     onOpenChange();
   };
 

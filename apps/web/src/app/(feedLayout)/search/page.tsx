@@ -1,5 +1,6 @@
 import FeedBlogs from "@/components/modules/feed";
-import { getBlogs } from "@/services/blog";import { IBlog } from "@/types";
+import { getBlogs } from "@/services/blog";
+import { IBlog } from "@/types";
 import type { Metadata } from "next";
 
 /**
@@ -20,7 +21,9 @@ const INITIAL_NUMBERS_OF_BLOGS = "5";
 const termFrom = (raw?: string | string[]) =>
   (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: Props): Promise<Metadata> {
   const term = termFrom((await searchParams).q);
 
   if (!term) {

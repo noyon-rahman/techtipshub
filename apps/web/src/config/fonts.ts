@@ -1,4 +1,8 @@
-import { Fira_Code as FontMono, Fraunces, Inter as FontSans } from "next/font/google";
+import {
+  Fira_Code as FontMono,
+  Fraunces,
+  Inter as FontSans,
+} from "next/font/google";
 
 /** Interface text. Legible at 13 to 15px, which is where most of the site lives. */
 export const fontSans = FontSans({

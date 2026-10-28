@@ -49,8 +49,7 @@ const SlashMenu = ({ editor }: IProps) => {
   const setSelected = useCallback(
     (next: number | ((current: number) => number)) => {
       setSelection((current) => {
-        const value =
-          typeof next === "function" ? next(current.index) : next;
+        const value = typeof next === "function" ? next(current.index) : next;
         return { query: slash.query, index: value };
       });
     },

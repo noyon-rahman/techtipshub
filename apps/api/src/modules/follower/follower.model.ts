@@ -26,5 +26,5 @@ const followerSchema = new Schema<IFollower>(
 // Create a unique index to prevent duplicate follow relationships
 // followerSchema.index({ follower: 1, following: 1 }, { unique: true });
 
-const Follower = model<IFollower>("Follower", followerSchema);
+const Follower = model<IFollower>("Follower", followerSchema, "followers");
 export default Follower;

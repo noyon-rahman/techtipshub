@@ -8,10 +8,7 @@ import CampaignEditor from "./campaign-editor";
 import CampaignList from "./campaign-list";
 import { primaryButton } from "./buttons";
 
-type View =
-  | { mode: "list" }
-  | { mode: "new" }
-  | { mode: "issue"; id: string };
+type View = { mode: "list" } | { mode: "new" } | { mode: "issue"; id: string };
 
 /**
  * Issues, and the three screens they need: the list, the builder, and one

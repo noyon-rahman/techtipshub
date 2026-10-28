@@ -13,7 +13,8 @@
     "lint": "eslint ./src",
     "lint:fix": "eslint ./src --fix",
     "format": "prettier ./src --write",
-    "format:check": "prettier ./src --check"
+    "format:check": "prettier ./src --check",
+    "migrate:collections": "tsx --env-file=.env.development ./src/scripts/rename-collections.ts"
   },
   "repository": {
     "type": "git",

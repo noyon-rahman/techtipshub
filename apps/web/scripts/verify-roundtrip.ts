@@ -9,7 +9,9 @@ import {
 
 const BASE = process.env.BASE_API || "http://localhost:5000/api/v1";
 const res = await fetch(`${BASE}/blogs?limit=100`);
-const json = (await res.json()) as { data: Array<{ slug: string; content: string }> };
+const json = (await res.json()) as {
+  data: Array<{ slug: string; content: string }>;
+};
 
 const text = (h: string) =>
   h
@@ -75,7 +77,8 @@ for (const blog of json.data) {
   if (!boldText(after).includes(boldText(before)))
     issues.push("bold text lost");
 
-  if (issues.length) problems.push(`${blog.slug.slice(0, 45)}: ${issues.join(", ")}`);
+  if (issues.length)
+    problems.push(`${blog.slug.slice(0, 45)}: ${issues.join(", ")}`);
   else textSame++;
 }
 

@@ -16,5 +16,7 @@ export default function AdSlotWrapper({
   placement = "legacy",
   className,
 }: AdSlotWrapperProps) {
-  return <AdSlot variant={variant} placement={placement} className={className} />;
+  return (
+    <AdSlot variant={variant} placement={placement} className={className} />
+  );
 }

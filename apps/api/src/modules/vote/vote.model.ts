@@ -26,5 +26,5 @@ const voteSchema = new Schema<IVote>(
 // Ensure a user can vote on a blog only once (either upvote or downvote)
 // voteSchema.index({ post: 1, user: 1 }, { unique: true });
 
-const Vote = model<IVote>("Vote", voteSchema);
+const Vote = model<IVote>("Vote", voteSchema, "votes");
 export default Vote;

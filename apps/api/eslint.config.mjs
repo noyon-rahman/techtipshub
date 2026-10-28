@@ -2,7 +2,13 @@ import { node } from "@techtipshub/eslint-config/node";
 
 export default [
   {
-    ignores: ["dist/**", "node_modules/**", "email-templates/**", "*.js", "*.cjs"],
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "email-templates/**",
+      "*.js",
+      "*.cjs",
+    ],
   },
   ...node,
   {

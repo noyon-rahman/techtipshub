@@ -24,7 +24,7 @@ const SignupAvatarPicker = () => {
 
   const preview = useMemo(
     () => (file ? URL.createObjectURL(file) : null),
-    [file]
+    [file],
   );
   useEffect(() => {
     if (!preview) return;

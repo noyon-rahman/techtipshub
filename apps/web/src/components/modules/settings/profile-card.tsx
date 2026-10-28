@@ -24,8 +24,8 @@ interface IProps {
 const MAX_BYTES = 5 * 1024 * 1024;
 
 /**
- * The member's identity, shown the way readers see it — avatar, name,
- * designation, bio — with the photo controls beside it.
+ * The member's identity, shown the way readers see it - avatar, name,
+ * designation, bio - with the photo controls beside it.
  *
  * The preview is the saved picture until a new file is picked, so nothing
  * changes on the public profile until "Save changes" is pressed.

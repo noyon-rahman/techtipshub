@@ -4,23 +4,31 @@
  * Everything here is shown to visitors, so update the `lastUpdated` pair
  * whenever a policy changes materially. `lastUpdated` is the machine-readable
  * value used by `<time dateTime="…">`; `lastUpdatedLabel` is what readers see.
+ *
+ * The operator is a person, not a company: TechTipsHub is published by Novon
+ * Rahman as an individual. There is no registered company name and no business
+ * address, so the pages name the person and give the contact address as the
+ * address of record. Restoring a company name or a street address means
+ * updating `legalEntity`, `legalAddress` and `legalAddressLabel` together.
  */
 export const legalConfig = {
   operator: "TechTipsHub",
   siteUrl: "https://techtipshub.vercel.app",
   contactEmail:
-    process.env.NEXT_PUBLIC_CONTACT_EMAIL || "contact.techtipshub@noyonrahman.com",
+    process.env.NEXT_PUBLIC_CONTACT_EMAIL ||
+    "contact.techtipshub@noyonrahman.com",
+  /** The person who publishes the site. Named on every policy. */
+  legalEntity: "Novon Rahman, publishing as TechTipsHub",
+  /** How the entity is described on the pages. */
+  legalEntityLabel: "Published by",
   /**
-   * Legal entity behind the site. AdSense and data-protection law require a
-   * named entity, so this must be filled in before the policies are relied
-   * upon. It is rendered verbatim, brackets included, so the placeholder is
-   * obvious on the page rather than quietly wrong.
+   * No registered office exists, so this is the contact address rather than a
+   * postal one. The label says "Address" so nothing claims to be registered.
    */
-  legalEntity: "[YOUR COMPANY NAME]",
-  /** Registered address / jurisdiction of the legal entity. */
-  legalAddress: "[YOUR REGISTERED ADDRESS]",
-  lastUpdated: "2026-10-26",
-  lastUpdatedLabel: "26 October 2026",
+  legalAddress: "contact.techtipshub@noyonrahman.com",
+  legalAddressLabel: "Address",
+  lastUpdated: "2026-10-27",
+  lastUpdatedLabel: "27 October 2026",
   /** Minimum age for an account, in years. */
   minimumAge: 13,
   governingLaw: "the laws of the People's Republic of Bangladesh",

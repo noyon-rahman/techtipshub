@@ -61,7 +61,11 @@ const getAll = async (query: Record<string, unknown>) => {
 
   const status = typeof query.status === "string" ? query.status.trim() : "";
   if (status && status !== "all") {
-    if (!NEWSLETTER_SUBSCRIBER_STATUSES.includes(status as TNewsletterSubscriberStatus)) {
+    if (
+      !NEWSLETTER_SUBSCRIBER_STATUSES.includes(
+        status as TNewsletterSubscriberStatus,
+      )
+    ) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
         `Status must be one of ${NEWSLETTER_SUBSCRIBER_STATUSES.join(", ")}`,
@@ -84,8 +88,7 @@ const getAll = async (query: Record<string, unknown>) => {
   const listQuery = new QueryBuilder(
     NewsletterSubscriber.find({}),
     parsed,
-  )
-    .search(["name", "email"], ["status", "source"]);
+  ).search(["name", "email"], ["status", "source"]);
 
   await listQuery.filter();
 

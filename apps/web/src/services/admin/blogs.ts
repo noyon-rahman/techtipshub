@@ -11,7 +11,7 @@ export interface IAdminBlogQuery extends IAdminBlogsParams {
  * `GET /admin/blogs` (Admin) -> `{ success, data: IBlog[], meta }`.
  *
  * Takes `page`, `limit`, `searchTerm`, `sort`, `category`, `author` and
- * `status`. Throws on failure — including the 404 an API that does not ship
+ * `status`. Throws on failure - including the 404 an API that does not ship
  * the endpoint yet answers with, so the screen shows an error rather than an
  * empty list.
  */

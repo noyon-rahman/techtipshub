@@ -7,7 +7,7 @@ packages:
 allowBuilds:
   bcrypt: true
   esbuild: true
-  '@heroui/shared-utils': true
+  "@heroui/shared-utils": true
   unrs-resolver: true
 
 minimumReleaseAgeExclude:

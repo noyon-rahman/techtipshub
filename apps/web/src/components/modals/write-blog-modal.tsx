@@ -1,8 +1,13 @@
 import { Button } from "@heroui/button";
-import { Modal, ModalBody, ModalContent, ModalHeader, useDisclosure } from "@heroui/modal";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
+  useDisclosure,
+} from "@heroui/modal";
 import WriteBlog from "../modules/write-blog";
 import { GoPencil } from "react-icons/go";
-
 
 interface IProps {}
 

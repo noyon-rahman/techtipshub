@@ -69,8 +69,8 @@ const editableFingerprint = (values: BlogFormData) =>
 /**
  * The article editor, at `/blogs/<slug>/edit`.
  *
- * Same tool as the composer — `EditorShell`, `WritingPane`, the same details
- * panel — so moving between writing and editing is moving between pages of one
+ * Same tool as the composer - `EditorShell`, `WritingPane`, the same details
+ * panel - so moving between writing and editing is moving between pages of one
  * editor. What differs is all about being safe to edit something readers can
  * already see: changes are measured against the saved blog, the primary button
  * says whether there is anything to save, and leaving asks first.
@@ -124,8 +124,11 @@ const EditBlog = ({
 
   // A cover picked here is only stored once the save succeeds, so abandoning an
   // edit cannot leave a replacement image behind.
-  const { file: coverImage, setFile: setCoverImage, sync: syncCover } =
-    useStoredUpload(`blog:${blog._id}`, { remember: false });
+  const {
+    file: coverImage,
+    setFile: setCoverImage,
+    sync: syncCover,
+  } = useStoredUpload(`blog:${blog._id}`, { remember: false });
   const pickedCoverUrl = useObjectUrl(coverImage);
 
   // The blog's cover as the server has it, or as this session just saved it.
@@ -135,9 +138,7 @@ const EditBlog = ({
   // The API cannot delete a stored cover, so "remove" only hides it on screen.
   const [coverRemoved, setCoverRemoved] = useState(false);
 
-  const displayedCover = coverRemoved
-    ? null
-    : pickedCoverUrl ?? savedCover;
+  const displayedCover = coverRemoved ? null : (pickedCoverUrl ?? savedCover);
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
   // Object URLs made for a just-saved cover; released when the page unmounts.
@@ -244,9 +245,9 @@ const EditBlog = ({
     const found = validateDraft(values, Boolean(coverImage || savedCover));
     setErrors(found);
 
-    const first = (["title", "content", "category", "tags"] as DraftField[]).find(
-      (field) => found[field],
-    );
+    const first = (
+      ["title", "content", "category", "tags"] as DraftField[]
+    ).find((field) => found[field]);
     if (first) {
       focusField(first);
       toast.error(found[first], { id: "edit-check" });
@@ -288,7 +289,9 @@ const EditBlog = ({
             // separately, so an admin save has to refresh them.
             if (adminMode) {
               void queryClient.invalidateQueries({ queryKey: ["ADMIN_BLOGS"] });
-              void queryClient.invalidateQueries({ queryKey: ["TRASHED_BLOGS"] });
+              void queryClient.invalidateQueries({
+                queryKey: ["TRASHED_BLOGS"],
+              });
               void queryClient.invalidateQueries({
                 queryKey: ["ADMIN_TRASH_COUNTS"],
               });
@@ -390,9 +393,7 @@ const EditBlog = ({
     <EditorShell
       // Inside the admin shell the sticky bar belongs under its 3.5rem top bar,
       // not under the site header the member composer sits beneath.
-      barStickyClass={
-        adminMode ? "top-[calc(3.5rem+1px)]" : undefined
-      }
+      barStickyClass={adminMode ? "top-[calc(3.5rem+1px)]" : undefined}
       railStickyClass={
         adminMode ? "lg:top-[calc(3.5rem+1px+3.5rem)]" : undefined
       }

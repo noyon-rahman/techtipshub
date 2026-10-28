@@ -6,6 +6,10 @@ import { metricsController } from "./metrics.controller";
 
 const metricsRouter = new Hono<TAppBindings>();
 
-metricsRouter.get("/dashboard", auth(USER_ROLE.ADMIN), metricsController.dashboard);
+metricsRouter.get(
+  "/dashboard",
+  auth(USER_ROLE.ADMIN),
+  metricsController.dashboard,
+);
 
 export default metricsRouter;

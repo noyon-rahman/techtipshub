@@ -224,10 +224,9 @@ export const useNewsletterCampaigns = (
     placeholderData: keepPreviousData,
   });
 
-  return toAdminList<
-    ICampaignSummary,
-    IAdminListResult<ICampaignSummary>
-  >(query);
+  return toAdminList<ICampaignSummary, IAdminListResult<ICampaignSummary>>(
+    query,
+  );
 };
 
 /** What a new issue should start with: the heading, and articles not yet sent. */
@@ -323,7 +322,9 @@ export const useDeleteCampaign = () => {
     mutationFn: deleteCampaign,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.campaigns });
-      toast.success("The draft is deleted.", { id: "admin-newsletter-campaign" });
+      toast.success("The draft is deleted.", {
+        id: "admin-newsletter-campaign",
+      });
     },
     onError: (error: Error) => {
       toast.error(error?.message || "The draft was not deleted.", {
@@ -352,7 +353,9 @@ export const useTestCampaign = () => {
     onSuccess: (data) => {
       const address = (data as { data?: { sentTo?: string } })?.data?.sentTo;
       toast.success(
-        address ? `A test copy is on its way to ${address}.` : "Test copy sent.",
+        address
+          ? `A test copy is on its way to ${address}.`
+          : "Test copy sent.",
         { id: "admin-newsletter-test" },
       );
     },

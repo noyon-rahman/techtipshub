@@ -23,16 +23,15 @@ const sections: ILegalSection[] = [
     content: (
       <>
         <p>
-          These Terms and Conditions (&ldquo;terms&rdquo;) are a legal
-          agreement between you and {legalConfig.operator} (&ldquo;we&rdquo;,
-          &ldquo;us&rdquo; or &ldquo;our&rdquo;) covering your use of{" "}
+          These Terms and Conditions (&ldquo;terms&rdquo;) are a legal agreement
+          between you and {legalConfig.legalEntity} (&ldquo;we&rdquo; or
+          &ldquo;us&rdquo;), who publishes TechTipsHub, covering your use of{" "}
           <a href={legalConfig.siteUrl}>{legalConfig.siteUrl}</a> and its
           features (the &ldquo;service&rdquo;).
         </p>
         <p>
           By browsing the site, creating an account or publishing content, you
-          agree to these terms. If you do not
-          agree, do not use the service. Our{" "}
+          agree to these terms. If you do not agree, do not use the service. Our{" "}
           <Link href="/privacy">Privacy Policy</Link>,{" "}
           <Link href="/cookie">Cookie Policy</Link> and{" "}
           <Link href="/community-guidelines">Community Guidelines</Link> form
@@ -50,14 +49,14 @@ const sections: ILegalSection[] = [
           TechTipsHub is an independent publication and community for people
           interested in software development. Visitors can browse the feed and
           read a preview of any article. Registered users can read every
-          article, comment, vote, follow other users, manage a public profile and
-          publish their own work. Every account has the same abilities; nothing
-          is reserved for paying members.
+          article, comment, vote, follow other users, manage a public profile
+          and publish their own work. Every account has the same abilities;
+          nothing is reserved for paying members.
         </p>
         <p>
-          We provide the platform, not professional advice. Articles are
-          written by us and by community authors, and the views expressed in a
-          bylined article belong to its author.
+          We provide the platform, not professional advice. Articles are written
+          by us and by community authors, and the views expressed in a bylined
+          article belong to its author.
         </p>
       </>
     ),
@@ -102,7 +101,8 @@ const sections: ILegalSection[] = [
         <p>
           If you sign in through Google, Facebook or GitHub, you also agree to
           that provider&rsquo;s terms. We receive only the basic profile
-          information described in our <Link href="/privacy">Privacy Policy</Link>.
+          information described in our{" "}
+          <Link href="/privacy">Privacy Policy</Link>.
         </p>
       </>
     ),
@@ -120,12 +120,12 @@ const sections: ILegalSection[] = [
         <p>
           To operate the service, you grant us a worldwide, non-exclusive,
           royalty-free licence to host, store, reproduce, format, display,
-          distribute and make your content available on and through the
-          service, including in feeds, search results, previews and social
-          posts that link to your article. We may allow our hosting and
-          delivery providers to process your content on our behalf. This
-          licence lasts while your content is published and for a reasonable
-          period afterwards while caches and backups expire.
+          distribute and make your content available on and through the service,
+          including in feeds, search results, previews and social posts that
+          link to your article. We may allow our hosting and delivery providers
+          to process your content on our behalf. This licence lasts while your
+          content is published and for a reasonable period afterwards while
+          caches and backups expire.
         </p>
         <p>You confirm that:</p>
         <ul>
@@ -147,8 +147,8 @@ const sections: ILegalSection[] = [
         <p>
           You can edit or delete your content at any time. Deleting it removes
           it from the service, but copies may persist briefly in caches,
-          backups, search-engine indexes and posts by other people that quote
-          or link to it.
+          backups, search-engine indexes and posts by other people that quote or
+          link to it.
         </p>
         <p>
           We may remove content that breaches these terms, infringes rights or
@@ -195,8 +195,7 @@ const sections: ILegalSection[] = [
             publish another author&rsquo;s work as your own;
           </li>
           <li>
-            advertise products or services without our prior written
-            permission.
+            advertise products or services without our prior written permission.
           </li>
         </ul>
         <p>
@@ -247,8 +246,8 @@ const sections: ILegalSection[] = [
         </p>
         <ul>
           <li>
-            Some actions — reading an article in full, commenting, voting,
-            following, publishing and managing a profile — require you to be
+            Some actions - reading an article in full, commenting, voting,
+            following, publishing and managing a profile - require you to be
             signed in.
           </li>
           <li>
@@ -358,16 +357,17 @@ const sections: ILegalSection[] = [
         </p>
         <p>
           Technical articles describe one approach that worked at the time of
-          writing. Code samples are illustrative, not production-ready, and
-          must be reviewed and tested in your own environment. We are not
-          responsible for data loss, downtime or security problems that result
-          from applying an example.
+          writing. Code samples are illustrative, not production-ready, and must
+          be reviewed and tested in your own environment. We are not responsible
+          for data loss, downtime or security problems that result from applying
+          an example.
         </p>
         <p>
           Nothing on this site is legal, financial, medical or other
-          professional advice. See the <Link href="/disclaimer">Disclaimer</Link>{" "}
-          for details. Some jurisdictions do not allow certain warranties to be
-          excluded, so parts of this section may not apply to you.
+          professional advice. See the{" "}
+          <Link href="/disclaimer">Disclaimer</Link> for details. Some
+          jurisdictions do not allow certain warranties to be excluded, so parts
+          of this section may not apply to you.
         </p>
       </>
     ),
@@ -378,15 +378,15 @@ const sections: ILegalSection[] = [
     content: (
       <>
         <p>
-          To the fullest extent permitted by law, we are not liable for indirect,
-          incidental, special, consequential or punitive loss, or for loss of
-          profit, revenue, data, goodwill or business opportunity, arising from
-          your use of or inability to use the service.
+          To the fullest extent permitted by law, we are not liable for
+          indirect, incidental, special, consequential or punitive loss, or for
+          loss of profit, revenue, data, goodwill or business opportunity,
+          arising from your use of or inability to use the service.
         </p>
         <p>
           Our total liability for all claims relating to the service in any
-          twelve-month period is limited to BDT 5,000, or the amount you paid
-          us during that period if greater.
+          twelve-month period is limited to BDT 5,000, or the amount you paid us
+          during that period if greater.
         </p>
         <p>
           Nothing in these terms excludes liability for death or personal injury
@@ -408,8 +408,8 @@ const sections: ILegalSection[] = [
           fees) arising from your content, your breach of these terms, or your
           infringement of another person&rsquo;s rights. We will tell you about
           any such claim and may ask you to participate in the defence. This
-          does not apply to the extent the claim results from our own
-          negligence or breach.
+          does not apply to the extent the claim results from our own negligence
+          or breach.
         </p>
       </>
     ),
@@ -456,8 +456,8 @@ const sections: ILegalSection[] = [
           If we cannot resolve it, the courts of Bangladesh have jurisdiction,
           except where consumer law in your country of residence gives you the
           right to bring proceedings locally. Nothing here prevents either party
-          from seeking urgent relief to protect intellectual property or
-          prevent misuse.
+          from seeking urgent relief to protect intellectual property or prevent
+          misuse.
         </p>
       </>
     ),
@@ -488,9 +488,9 @@ const sections: ILegalSection[] = [
       <>
         <p>
           If any provision of these terms is found unenforceable, the rest
-          remains in force and the unenforceable part is applied to the
-          greatest extent the law allows. A failure to enforce a provision is
-          not a waiver of it.
+          remains in force and the unenforceable part is applied to the greatest
+          extent the law allows. A failure to enforce a provision is not a
+          waiver of it.
         </p>
         <p>
           These terms, together with the policies linked above, are the entire

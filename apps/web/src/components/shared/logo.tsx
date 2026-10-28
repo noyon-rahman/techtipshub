@@ -66,10 +66,16 @@ export const Logo = ({
 }: LogoProps) => {
   const m = markMetrics[size];
   const toneClass =
-    tone === "light" ? "text-[#1E1B17]" : tone === "dark" ? "text-[#F2EDE4]" : "text-foreground";
+    tone === "light"
+      ? "text-[#1E1B17]"
+      : tone === "dark"
+        ? "text-[#F2EDE4]"
+        : "text-foreground";
 
   return (
-    <span className={`inline-flex items-center ${m.gap} ${toneClass} ${className}`}>
+    <span
+      className={`inline-flex items-center ${m.gap} ${toneClass} ${className}`}
+    >
       {/*
         The tile is always amber 400 and the T always ink, in both themes.
         It used to inherit `text-primary-accessible`, which is the *text*
@@ -80,7 +86,9 @@ export const Logo = ({
       <LogoMark size={size} className="shrink-0 text-primary-400" />
       {wordmark && (
         <span className="flex min-w-0 flex-col justify-center leading-none">
-          <span className={`font-[family-name:var(--type-editorial)] font-bold tracking-tight ${m.word} ${wordClass}`}>
+          <span
+            className={`font-[family-name:var(--type-editorial)] font-bold tracking-tight ${m.word} ${wordClass}`}
+          >
             TechTips<span className="text-primary-accessible">Hub</span>
           </span>
           {tagline && (

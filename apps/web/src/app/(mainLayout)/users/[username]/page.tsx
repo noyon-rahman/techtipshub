@@ -43,7 +43,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `/users/${actualUsername}`,
       images: profilePicture
         ? [{ url: profilePicture, alt: fullName }]
-        : [{ url: "/brand/og-image.png", width: 1200, height: 630, alt: siteConfig.name }],
+        : [
+            {
+              url: "/brand/og-image.png",
+              width: 1200,
+              height: 630,
+              alt: siteConfig.name,
+            },
+          ],
     },
   };
 }
@@ -80,9 +87,7 @@ const GetUserByIdPage = async ({ params }: Props) => {
       <section className="py-16 lg:py-24">
         <Container>
           <div className="mx-auto max-w-md text-center">
-            <p className="tth-label text-primary-accessible">
-              404
-            </p>
+            <p className="tth-label text-primary-accessible">404</p>
             <h1 className="mt-3 text-2xl font-bold tracking-tight">
               We could not find that member
             </h1>

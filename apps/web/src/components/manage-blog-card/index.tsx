@@ -31,8 +31,16 @@ const formatDate = (value?: string) =>
  * for; View and Delete are quiet until the row is hovered or focused.
  */
 const ManageBlogCard = ({ blog }: IProps) => {
-  const { title, content, coverImage, createdAt, updatedAt, category, slug, _id } =
-    blog ?? {};
+  const {
+    title,
+    content,
+    coverImage,
+    createdAt,
+    updatedAt,
+    category,
+    slug,
+    _id,
+  } = blog ?? {};
 
   const parsedContent = parseHtmlContent(content ?? "");
   const excerpt =
@@ -75,7 +83,9 @@ const ManageBlogCard = ({ blog }: IProps) => {
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-x-2 text-xs text-default-600">
           {category?.name && (
-            <span className="font-medium text-default-700">{category.name}</span>
+            <span className="font-medium text-default-700">
+              {category.name}
+            </span>
           )}
           {category?.name && createdAt && (
             <span aria-hidden className="text-default-300">

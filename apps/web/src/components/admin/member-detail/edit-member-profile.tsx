@@ -165,8 +165,8 @@ const EditMemberProfile = ({ member, onSaved }: IProps) => {
                   Edit profile
                 </span>
                 <span className="text-sm font-normal leading-relaxed text-default-600">
-                  The name, username and bio appear on the public profile.
-                  Every save is recorded in the admin log.
+                  The name, username and bio appear on the public profile. Every
+                  save is recorded in the admin log.
                 </span>
               </ModalHeader>
 

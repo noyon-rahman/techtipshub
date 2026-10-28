@@ -32,7 +32,9 @@ const unsubscribeQuery = z
 /** The profile switch. `subscribed` is the state the switch is being moved to. */
 const membership = z
   .object({
-    subscribed: z.boolean({ error: "Choose whether to receive the newsletter" }),
+    subscribed: z.boolean({
+      error: "Choose whether to receive the newsletter",
+    }),
   })
   .strict();
 
@@ -68,11 +70,7 @@ const campaignContent = {
     .trim()
     .min(3, "Heading must be at least 3 characters")
     .max(120, "Heading is too long"),
-  intro: z
-    .string()
-    .trim()
-    .max(2000, "The intro is too long")
-    .default(""),
+  intro: z.string().trim().max(2000, "The intro is too long").default(""),
   articleIds: z
     .array(z.string().trim().min(1), {
       error: "Pick the articles for this issue",

@@ -37,18 +37,16 @@ const StatusPill = ({
 
   const content = (
     <>
-      {dot && (
-        <span
-          aria-hidden
-          className="size-1.5 rounded-full bg-current"
-        />
-      )}
+      {dot && <span aria-hidden className="size-1.5 rounded-full bg-current" />}
       {children}
     </>
   );
 
   return href ? (
-    <Link href={href} className={`${classes} transition-opacity hover:opacity-80`}>
+    <Link
+      href={href}
+      className={`${classes} transition-opacity hover:opacity-80`}
+    >
       {content}
     </Link>
   ) : (

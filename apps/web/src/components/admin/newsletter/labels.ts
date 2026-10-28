@@ -32,7 +32,8 @@ export const CAMPAIGN_LABEL: Record<TCampaignStatus, string> = {
 
 /** Why an address cannot be mailed, in a sentence, for the row's detail. */
 export const SUPPRESS_REASON: Record<"bounced" | "complained", string> = {
-  bounced: "The receiving server refused mail to this address. It stays off every list for good.",
+  bounced:
+    "The receiving server refused mail to this address. It stays off every list for good.",
   complained:
     "The reader marked an issue as spam. Mail to this address is no longer sent.",
 };

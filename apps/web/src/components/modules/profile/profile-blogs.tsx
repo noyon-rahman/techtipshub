@@ -19,7 +19,7 @@ const formatDate = (value?: string) =>
 
 /**
  * A member's published articles, rendered as a compact dated list rather than
- * cards — this is a summary inside a profile page, not a feed.
+ * cards - this is a summary inside a profile page, not a feed.
  */
 const ProfileBlogs = ({ blogs, emptyMessage }: IProps) => {
   if (blogs.length === 0) {
@@ -27,7 +27,8 @@ const ProfileBlogs = ({ blogs, emptyMessage }: IProps) => {
       <div className="rounded-xl border border-dashed border-default/60 px-6 py-12 text-center">
         <p className="text-sm font-medium">No articles yet</p>
         <p className="mx-auto mt-1.5 max-w-xs text-sm text-default-600">
-          {emptyMessage ?? "Published articles by this member will appear here."}
+          {emptyMessage ??
+            "Published articles by this member will appear here."}
         </p>
       </div>
     );

@@ -16,10 +16,7 @@ import {
  */
 
 export type TSubscriberStatus =
-  | "active"
-  | "unsubscribed"
-  | "bounced"
-  | "complained";
+  "active" | "unsubscribed" | "bounced" | "complained";
 
 export type TSubscriberSource = "site" | "profile" | "admin";
 
@@ -253,8 +250,7 @@ export const getCampaignSuggestion = async () => {
     );
 
     return readData(res.data, "The article picks did not load.") as
-      | ICampaignSuggestion
-      | undefined;
+      ICampaignSuggestion | undefined;
   } catch (error) {
     throw toServiceError(error, "The article picks did not load.");
   }
@@ -266,8 +262,7 @@ export const getCampaign = async (id: string) => {
     const res = await axiosInstance.get(`/admin/newsletter/campaigns/${id}`);
 
     return readData(res.data, "The issue did not load.") as
-      | { campaign: ICampaign; progress: ICampaignProgress }
-      | undefined;
+      { campaign: ICampaign; progress: ICampaignProgress } | undefined;
   } catch (error) {
     throw toServiceError(error, "The issue did not load.");
   }
@@ -378,8 +373,7 @@ export const getCampaignProgress = async (id: string) => {
     );
 
     return readData(res.data, "The sending progress did not load.") as
-      | ICampaignProgress
-      | undefined;
+      ICampaignProgress | undefined;
   } catch (error) {
     throw toServiceError(error, "The sending progress did not load.");
   }

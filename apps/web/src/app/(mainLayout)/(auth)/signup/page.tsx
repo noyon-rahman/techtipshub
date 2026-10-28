@@ -42,8 +42,8 @@ const points = [
 /**
  * The signup page.
  *
- * It reads `?redirect=` so a reader who arrives here from an article — and
- * turns out to have an account after all — keeps their way back to it. The
+ * It reads `?redirect=` so a reader who arrives here from an article - and
+ * turns out to have an account after all - keeps their way back to it. The
  * form and the Google button read the same value themselves.
  */
 const SignUpPage = async ({

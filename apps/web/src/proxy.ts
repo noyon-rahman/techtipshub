@@ -103,7 +103,6 @@ const LEGACY_SETTINGS = new Set([
   "/settings/manage-blogs",
 ]);
 
-
 /**
  * Hand back a session cookie the API renewed while `getSession` was asking.
  *
@@ -132,8 +131,8 @@ const relayRenewedCookies = (request: NextRequest, response: NextResponse) => {
 /**
  * Session handling for the whole app.
  *
- * The site does not decide what a session is. It asks the API once — "who is
- * this?" — and follows the answer, so an expired access token, a revoked
+ * The site does not decide what a session is. It asks the API once - "who is
+ * this?" - and follows the answer, so an expired access token, a revoked
  * session, a changed password and a role change all take effect here the
  * moment the API says so, with no second implementation to keep in step.
  *

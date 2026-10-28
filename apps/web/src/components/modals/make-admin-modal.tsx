@@ -1,6 +1,13 @@
 import { useMakeAdmin } from "@/hooks/user.hook";
 import { Button } from "@heroui/button";
-import { Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure } from "@heroui/modal";
+import {
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  useDisclosure,
+} from "@heroui/modal";
 import { FiUserCheck } from "react-icons/fi";
 
 interface IProps {
@@ -10,16 +17,21 @@ interface IProps {
   reFetchUsers: () => void;
 }
 
-const MakeAdminConfirmationModal = ({ id, role, status, reFetchUsers }: IProps) => {
+const MakeAdminConfirmationModal = ({
+  id,
+  role,
+  status,
+  reFetchUsers,
+}: IProps) => {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-  const { mutate: makeAdmin, isPending } = useMakeAdmin()
+  const { mutate: makeAdmin, isPending } = useMakeAdmin();
 
   const handleMakeAdmin = () => {
     makeAdmin(id, {
       onSuccess: () => {
-        reFetchUsers()
-      }
-    })
+        reFetchUsers();
+      },
+    });
     onOpenChange();
   };
 

@@ -60,7 +60,9 @@ const Contact = () => {
                 title={
                   <>
                     Write to the people who{" "}
-                    <span className="text-primary-accessible">publish here</span>
+                    <span className="text-primary-accessible">
+                      publish here
+                    </span>
                   </>
                 }
                 lede="Corrections, pitches and account questions all reach the same inbox. A real person reads every message, usually within a couple of business days."
@@ -87,9 +89,7 @@ const Contact = () => {
               />
 
               <aside className="lg:pt-2">
-                <h2 className="tth-label">
-                  Where to write
-                </h2>
+                <h2 className="tth-label">Where to write</h2>
                 <FactList label="Contact details" className="mt-4">
                   <FactLink term="Email" href={`mailto:${CONTACT_EMAIL}`}>
                     {CONTACT_EMAIL}
@@ -118,10 +118,7 @@ const Contact = () => {
           className="grid gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16"
         >
           <div className="lg:pt-2">
-            <h2
-              id="reasons"
-              className="tth-label leading-6"
-            >
+            <h2 id="reasons" className="tth-label leading-6">
               What reaches us
             </h2>
             <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">
@@ -132,7 +129,10 @@ const Contact = () => {
 
           <ol className="divide-y divide-default/60 border-t border-default/60 md:grid md:grid-cols-2 md:gap-x-12 md:divide-y-0">
             {reasons.map((reason, index) => (
-              <li key={reason.title} className="border-b border-default/60 py-6">
+              <li
+                key={reason.title}
+                className="border-b border-default/60 py-6"
+              >
                 <span className="text-xs font-semibold tabular-nums tracking-wider text-primary-accessible">
                   {String(index + 1).padStart(2, "0")}
                 </span>
@@ -153,10 +153,7 @@ const Contact = () => {
           className="grid scroll-mt-24 gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 lg:py-20"
         >
           <div className="lg:pt-2">
-            <h2
-              id="contact-form"
-              className="tth-label leading-6"
-            >
+            <h2 id="contact-form" className="tth-label leading-6">
               Send a message
             </h2>
             <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">

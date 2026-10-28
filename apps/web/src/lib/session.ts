@@ -1,5 +1,8 @@
 import envConfig from "@/config/env.config";
-import { ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE } from "@/lib/fetch-with-auth";
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+} from "@/lib/fetch-with-auth";
 import { cookies } from "next/headers";
 
 /** What the API says about the request's session. */
@@ -13,8 +16,7 @@ export interface ISessionUser {
 }
 
 export type TSession =
-  | { signedIn: true; user: ISessionUser }
-  | { signedIn: false };
+  { signedIn: true; user: ISessionUser } | { signedIn: false };
 
 const SIGNED_OUT: TSession = { signedIn: false };
 
@@ -26,7 +28,8 @@ const cookieDomain = () => {
 };
 
 const isPageRender = () =>
-  Boolean(process.env.NEXT_RUNTIME) && process.env.NEXT_PHASE !== "phase-production-build";
+  Boolean(process.env.NEXT_RUNTIME) &&
+  process.env.NEXT_PHASE !== "phase-production-build";
 
 /**
  * Who is signed in, according to the API.
@@ -34,7 +37,7 @@ const isPageRender = () =>
  * This is the only place the site learns about a session. It does not read a
  * token, compare an expiry or interpret a role: it passes the browser's
  * cookies to the API and gets back the answer. Everything that makes a session
- * valid — signature, revocation, a password change, a blocked account — is
+ * valid - signature, revocation, a password change, a blocked account - is
  * decided in one place on the server, so the site cannot drift out of step with
  * it.
  *
@@ -102,7 +105,8 @@ export const getSession = async (): Promise<TSession> => {
       const value = pair.slice(index + 1).trim();
       const isRemoval = /max-age=0/i.test(raw);
 
-      if (name !== ACCESS_TOKEN_COOKIE && name !== REFRESH_TOKEN_COOKIE) continue;
+      if (name !== ACCESS_TOKEN_COOKIE && name !== REFRESH_TOKEN_COOKIE)
+        continue;
 
       cookieStore.set(name, value, {
         ...cookieDomain(),

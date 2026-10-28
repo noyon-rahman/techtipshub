@@ -110,9 +110,9 @@ const unfollowUser = async (c: Context<TAppBindings, string>) => {
 
 const getFollowStatus = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams; // user id want's to follow
-  const isFollowing = await userService.getFollowStatus(c.get("user"), id);
+  const result = await userService.getFollowStatus(c.get("user"), id);
 
-  return sendResponse(c, httpStatus.OK, { data: { isFollowing } });
+  return sendResponse(c, httpStatus.OK, { data: result });
 };
 
 const getLoggedInUserFollowers = async (c: Context<TAppBindings>) => {

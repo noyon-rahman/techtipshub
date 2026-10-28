@@ -528,6 +528,7 @@ const restoreUser = async (id: string, adminEmail?: string) => {
 
 const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
   const session = await mongoose.startSession();
+  let totalFollowers;
 
   try {
     session.startTransaction();
@@ -574,6 +575,7 @@ const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
 
     // Update totalFollowers for userToFollow
     userToFollow.totalFollowers += 1;
+    totalFollowers = Math.max(0, userToFollow.totalFollowers);
     await userToFollow.save({ session, validateModifiedOnly: true });
 
     // Update totalFollowing for currentLoggedInUser
@@ -587,11 +589,18 @@ const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
   } finally {
     session.endSession();
   }
+
+  return {
+    userId: userIdToFollow,
+    isFollowing: true,
+    totalFollowers,
+  };
 };
 
 // Unfollow a user with transaction
 const unfollowUser = async (userData: JwtPayload, userIdToUnfollow: string) => {
   const session = await mongoose.startSession();
+  let totalFollowers;
 
   try {
     session.startTransaction();
@@ -635,6 +644,7 @@ const unfollowUser = async (userData: JwtPayload, userIdToUnfollow: string) => {
     }).session(session);
 
     userToUnfollow.totalFollowers -= 1;
+    totalFollowers = Math.max(0, userToUnfollow.totalFollowers);
     await userToUnfollow.save({ session, validateModifiedOnly: true });
 
     currentLoggedInUser.totalFollowing -= 1;
@@ -647,9 +657,17 @@ const unfollowUser = async (userData: JwtPayload, userIdToUnfollow: string) => {
   } finally {
     session.endSession();
   }
+
+  return {
+    userId: userIdToUnfollow,
+    isFollowing: false,
+    totalFollowers,
+  };
 };
 
-// check follow status
+// Whether the reader follows this member, and the member's current count.
+// Reading is never a fault here: "not following" is the answer for most
+// readers, and the page needs the count next to the button either way.
 const getFollowStatus = async (
   userData: JwtPayload,
   userIdToFollow: string,
@@ -672,7 +690,11 @@ const getFollowStatus = async (
     following: userIdToFollow,
   });
 
-  return !!followStatus;
+  return {
+    userId: userToFollow._id,
+    isFollowing: !!followStatus,
+    totalFollowers: userToFollow.totalFollowers,
+  };
 };
 
 // get current logged in user followers

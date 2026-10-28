@@ -227,5 +227,7 @@ userSchema.statics.isJWTIssuedBeforePasswordChanged = function (
   return passwordChangedTime > jwtIssuedTimestamp;
 };
 
-const User = model<IUser, IUserModel>("User", userSchema);
+// The third argument pins the stored name, so it does not follow a future
+// rename of the model.
+const User = model<IUser, IUserModel>("User", userSchema, "users");
 export default User;

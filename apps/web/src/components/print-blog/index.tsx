@@ -1,10 +1,10 @@
 import { IBlog } from "@/types";
 
 interface IProps {
-  blog: IBlog
+  blog: IBlog;
 }
 
-const PrintBlog = ({blog}: IProps) => {
+const PrintBlog = ({ blog }: IProps) => {
   return (
     <div>
       <h1>Component</h1>

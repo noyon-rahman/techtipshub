@@ -1,15 +1,11 @@
-import {
-  button as buttonStyles,
-  type ButtonVariantProps,
-} from "@heroui/theme";
+import { button as buttonStyles, type ButtonVariantProps } from "@heroui/theme";
 import Link from "next/link";
 import type { MouseEvent, ReactNode } from "react";
 
-interface IProps
-  extends Omit<
-    ButtonVariantProps,
-    "disableRipple" | "disableAnimation"
-  > {
+interface IProps extends Omit<
+  ButtonVariantProps,
+  "disableRipple" | "disableAnimation"
+> {
   href: string;
   children: ReactNode;
   startContent?: ReactNode;
@@ -66,7 +62,11 @@ const ButtonLink = ({
       aria-haspopup={hasPopup ? "dialog" : undefined}
       aria-expanded={hasPopup ? isExpanded : undefined}
       className={`${buttonStyles(recipeProps)} ${fullWidth ? "w-full" : ""} inline-flex items-center justify-center gap-2 ${
-        size === "sm" ? "px-3 py-2 text-sm" : size === "lg" ? "px-6 py-3 text-base" : "px-4 py-2.5 text-sm"
+        size === "sm"
+          ? "px-3 py-2 text-sm"
+          : size === "lg"
+            ? "px-6 py-3 text-base"
+            : "px-4 py-2.5 text-sm"
       } font-semibold ${
         // RecipeProps above already carries the ink label and the transparent
         // fill; the hairline swap and hover wash finish the secondary look.

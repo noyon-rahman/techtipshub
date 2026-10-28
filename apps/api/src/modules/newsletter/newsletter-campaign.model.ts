@@ -124,6 +124,7 @@ campaignSchema.index(
 const NewsletterCampaign = model<INewsletterCampaign>(
   "NewsletterCampaign",
   campaignSchema,
+  "newsletter_campaigns",
 );
 
 export default NewsletterCampaign;

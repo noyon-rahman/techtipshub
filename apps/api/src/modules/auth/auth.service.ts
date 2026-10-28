@@ -188,7 +188,10 @@ const googleLogin = async (profile: IGoogleProfile) => {
 
   // A Google id on one account and a different address arriving with it is
   // never a legitimate sign-in.
-  if (byGoogleId && byGoogleId.email.toLowerCase() !== profile.email.toLowerCase()) {
+  if (
+    byGoogleId &&
+    byGoogleId.email.toLowerCase() !== profile.email.toLowerCase()
+  ) {
     throw new AppError(
       httpStatus.CONFLICT,
       "This Google account is already linked to a different TechTipsHub account.",
@@ -244,7 +247,10 @@ const googleLogin = async (profile: IGoogleProfile) => {
 
 /** `ada.lovelace@example.com` reads as `adalovelace`, never as an empty name. */
 const usernameBase = (profile: IGoogleProfile) => {
-  const fromEmail = profile.email.split("@")[0].toLowerCase().replace(/\W/g, "");
+  const fromEmail = profile.email
+    .split("@")[0]
+    .toLowerCase()
+    .replace(/\W/g, "");
 
   return fromEmail || "reader";
 };
@@ -267,7 +273,6 @@ const uniqueUsername = async (base: string) => {
 
   return candidate;
 };
-
 
 const getMe = async (payload: JwtPayload) => {
   const user = await User.findOne({ email: payload.email });
@@ -398,8 +403,8 @@ const resetPassword = async (
   token: string,
 ) => {
   // Verify the link's token first so an expired or tampered link reports that
-  // clearly. The account comes from the token itself — never from a field the
-  // caller can edit — so a valid link can only ever reset its own account.
+  // clearly. The account comes from the token itself - never from a field the
+  // caller can edit - so a valid link can only ever reset its own account.
   let decoded: JwtPayload;
   try {
     decoded = User.verifyToken(
@@ -468,12 +473,18 @@ const userForRefreshToken = async (refreshToken: string) => {
       config.JWT_REFRESH_TOKEN_SECRET,
     ) as JwtPayload;
   } catch {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Session expired. Sign in again.");
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Session expired. Sign in again.",
+    );
   }
 
   const user = await User.findOne({ email: decoded.email });
   if (!user) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Session expired. Sign in again.");
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Session expired. Sign in again.",
+    );
   }
 
   if (user.isDeleted) {
@@ -492,7 +503,10 @@ const userForRefreshToken = async (refreshToken: string) => {
         decoded.iat as number,
       ))
   ) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Session ended. Sign in again.");
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Session ended. Sign in again.",
+    );
   }
 
   return user;
@@ -520,10 +534,7 @@ const logOut = async (refreshToken: string | undefined) => {
   try {
     const user = await userForRefreshToken(refreshToken);
 
-    await User.updateOne(
-      { _id: user._id },
-      { $inc: { tokenVersion: 1 } },
-    );
+    await User.updateOne({ _id: user._id }, { $inc: { tokenVersion: 1 } });
   } catch {
     // A token that is already invalid needs no revoking. Signing out must
     // still succeed and clear the browser, or a member is stuck signed in.

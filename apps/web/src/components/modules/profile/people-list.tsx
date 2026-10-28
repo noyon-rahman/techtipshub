@@ -90,7 +90,9 @@ const PeopleList = ({
       {people.length === 0 ? (
         <div className="mt-6 rounded-xl border border-dashed border-default/60 px-6 py-14 text-center">
           <p className="text-sm font-medium">
-            {activeTab === "followers" ? "No followers yet" : "Not following anyone yet"}
+            {activeTab === "followers"
+              ? "No followers yet"
+              : "Not following anyone yet"}
           </p>
           <p className="mx-auto mt-1.5 max-w-xs text-sm text-default-600">
             {emptyMessage}

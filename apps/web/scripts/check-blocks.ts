@@ -9,10 +9,14 @@ import {
 const BASE = process.env.BASE_API || "http://localhost:5000/api/v1";
 
 const res = await fetch(`${BASE.replace(/\/$/, "")}/blogs?limit=100`);
-const json = (await res.json()) as { data: Array<{ slug: string; content: string }> };
+const json = (await res.json()) as {
+  data: Array<{ slug: string; content: string }>;
+};
 
 const roundTrip = (html: string) =>
-  serializeBlogHTML(generateHTML(generateJSON(html, schemaExtensions), schemaExtensions));
+  serializeBlogHTML(
+    generateHTML(generateJSON(html, schemaExtensions), schemaExtensions),
+  );
 
 const countBlocks = (html: string) => {
   const tags = (name: string) =>
@@ -50,9 +54,13 @@ for (const blog of json.data) {
   for (const k of Object.keys(b) as Array<keyof typeof b>) {
     totals[k] = (totals[k] || 0) + (a[k] - b[k]);
   }
-  rows.push(`${blog.slug.slice(0, 50)}: ${diffs.join(", ") || "text/attr only"}`);
+  rows.push(
+    `${blog.slug.slice(0, 50)}: ${diffs.join(", ") || "text/attr only"}`,
+  );
 }
 
-console.log(`blogs: ${json.data.length}  exact: ${exact}  differing: ${rows.length}`);
+console.log(
+  `blogs: ${json.data.length}  exact: ${exact}  differing: ${rows.length}`,
+);
 for (const r of rows) console.log("  - " + r);
 console.log("\nnet deltas:", JSON.stringify(totals));

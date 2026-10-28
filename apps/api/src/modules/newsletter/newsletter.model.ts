@@ -74,6 +74,7 @@ subscriberSchema.index({ createdAt: -1 });
 const NewsletterSubscriber = model<INewsletterSubscriber>(
   "NewsletterSubscriber",
   subscriberSchema,
+  "newsletter_subscribers",
 );
 
 export default NewsletterSubscriber;

@@ -47,7 +47,10 @@ const UserLoadingPage = () => {
           <div className="mt-10 space-y-5">
             <Skeleton className="h-6 w-32 rounded" />
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="flex gap-4 border-b border-default/60 py-4">
+              <div
+                key={index}
+                className="flex gap-4 border-b border-default/60 py-4"
+              >
                 <Skeleton className="h-3 w-16 rounded" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-5 w-4/5 rounded" />

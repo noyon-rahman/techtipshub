@@ -11,8 +11,13 @@ import { FieldValues, SubmitHandler } from "react-hook-form";
 import { FiMail } from "react-icons/fi";
 
 const PasswordResetForm = () => {
-  const { mutate: handleForgetPassword, isPending, data, isError, error } =
-    useForgetPassword();
+  const {
+    mutate: handleForgetPassword,
+    isPending,
+    data,
+    isError,
+    error,
+  } = useForgetPassword();
 
   const onSubmit: SubmitHandler<FieldValues> = (payload) => {
     handleForgetPassword({ email: payload.email });
@@ -46,7 +51,7 @@ const PasswordResetForm = () => {
             ) : (
               <>We sent a reset link to the address on your account.</>
             )}{" "}
-            It expires in 30 minutes. If it does not arrive, check spam — or
+            It expires in 30 minutes. If it does not arrive, check spam - or
             send it again.
           </p>
         </div>

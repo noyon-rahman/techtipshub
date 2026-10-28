@@ -41,7 +41,7 @@ const FollowingFeedBlogs = ({ initialBlogs }: IProps) => {
     const data = await getFollowingUsersBlogs(params);
     const newBlogs = data?.data || [];
 
-    if(data.success && newBlogs.length > 0) {
+    if (data.success && newBlogs.length > 0) {
       setBlogs((prevBlogs) => [...prevBlogs, ...newBlogs]);
       setPage((prevPage) => prevPage + 1);
     }

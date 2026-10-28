@@ -8,13 +8,7 @@ import { getLoggedInUserBlogs } from "@/services/blog";
 import { IBlog } from "@/types";
 import { Button, Input } from "@heroui/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useInView } from "react-intersection-observer";
 import { FiPlus, FiSearch, FiX } from "react-icons/fi";
 
@@ -30,7 +24,11 @@ const SORTS = [
   { value: "newest", label: "Newest first", sort: "-createdAt,-_id" },
   { value: "oldest", label: "Oldest first", sort: "createdAt,_id" },
   { value: "views", label: "Most views", sort: "-totalViews,-createdAt" },
-  { value: "comments", label: "Most comments", sort: "-totalComments,-createdAt" },
+  {
+    value: "comments",
+    label: "Most comments",
+    sort: "-totalComments,-createdAt",
+  },
 ] as const;
 
 /**
@@ -47,7 +45,11 @@ interface IListState {
   nextPage: number;
 }
 
-const MyBlogs = ({ initialBlogs, total, categories = [] }: IProps & { categories?: string[] }) => {
+const MyBlogs = ({
+  initialBlogs,
+  total,
+  categories = [],
+}: IProps & { categories?: string[] }) => {
   const searchParams = useSearchParams();
   const query = searchParams.toString();
 
@@ -82,7 +84,7 @@ const MyBlogs = ({ initialBlogs, total, categories = [] }: IProps & { categories
       if (!id) return;
       setDeletedIds((current) => [...current, id]);
       // The list is now one article shorter, so the next page number has to
-      // move back to match — otherwise a page falls through the gap.
+      // move back to match - otherwise a page falls through the gap.
       setList((prev) => ({
         blogs: prev.blogs.filter((blog) => blog._id !== id),
         nextPage: Math.max(2, prev.nextPage),
@@ -101,7 +103,7 @@ const MyBlogs = ({ initialBlogs, total, categories = [] }: IProps & { categories
   // Load the next page of blogs.
   //
   // `loadingRef` guards against a second click landing while the request is
-  // in flight — a double request would append the same page twice and skip the
+  // in flight - a double request would append the same page twice and skip the
   // next one.
   const loadingRef = useRef(false);
   const loadMoreBlogs = async () => {
@@ -188,9 +190,7 @@ const MyBlogs = ({ initialBlogs, total, categories = [] }: IProps & { categories
             {typeof total === "number" ? ` of ${total.toLocaleString()}` : ""}
           </span>
         </p>
-        {filtered && (
-          <ClearFilters className="text-xs" />
-        )}
+        {filtered && <ClearFilters className="text-xs" />}
       </div>
 
       <div>
@@ -231,7 +231,7 @@ const MyBlogs = ({ initialBlogs, total, categories = [] }: IProps & { categories
  * Search, category and order for the article list.
  *
  * Everything lives in the URL so a filtered view can be bookmarked, shared or
- * reached with the back button — the server renders it, and the list below
+ * reached with the back button - the server renders it, and the list below
  * simply follows.
  *
  * The filters sit behind a disclosure, closed by default, because choosing an
@@ -255,7 +255,9 @@ const Toolbar = ({
   const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const [term, setTerm] = useState(activeSearch);
-  const [open, setOpen] = useState(() => Boolean(activeSearch || activeCategory));
+  const [open, setOpen] = useState(() =>
+    Boolean(activeSearch || activeCategory),
+  );
   const panelId = useId();
 
   // The server is the source of truth for the term (back/forward, a reset from
@@ -295,7 +297,9 @@ const Toolbar = ({
   }, [term]);
 
   const activeCount =
-    (activeSearch ? 1 : 0) + (activeCategory ? 1 : 0) + (activeSort !== "newest" ? 1 : 0);
+    (activeSearch ? 1 : 0) +
+    (activeCategory ? 1 : 0) +
+    (activeSort !== "newest" ? 1 : 0);
 
   return (
     <div className={className}>
@@ -315,7 +319,9 @@ const Toolbar = ({
             </span>
           )}
         </button>
-        {isPending && <span className="text-xs text-default-600">Updating…</span>}
+        {isPending && (
+          <span className="text-xs text-default-600">Updating…</span>
+        )}
       </div>
 
       {open && (

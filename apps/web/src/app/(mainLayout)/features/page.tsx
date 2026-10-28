@@ -42,7 +42,7 @@ const community = [
 const steps = [
   {
     title: "Create a free account",
-    body: "One form, no payment details. Every account has the same abilities — there is no paid tier.",
+    body: "One form, no payment details. Every account has the same abilities - there is no paid tier.",
   },
   {
     title: "Draft in the composer",
@@ -129,15 +129,12 @@ const CommunityPage = async () => {
           className="grid gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 lg:py-20"
         >
           <div className="lg:pt-2">
-            <h2
-              id="what-you-get"
-              className="tth-label leading-6"
-            >
+            <h2 id="what-you-get" className="tth-label leading-6">
               What you get
             </h2>
             <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">
-              Free, with no sign-up funnel or gatekeeping. The platform stays out
-              of the way of the writing.
+              Free, with no sign-up funnel or gatekeeping. The platform stays
+              out of the way of the writing.
             </p>
           </div>
 
@@ -188,10 +185,7 @@ const CommunityPage = async () => {
           aria-labelledby="how-it-works"
           className="grid gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 lg:py-20"
         >
-          <h2
-            id="how-it-works"
-            className="tth-label leading-6 lg:pt-2"
-          >
+          <h2 id="how-it-works" className="tth-label leading-6 lg:pt-2">
             How it works
           </h2>
 
@@ -222,10 +216,7 @@ const CommunityPage = async () => {
             className="grid gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16"
           >
             <div className="lg:pt-2">
-              <h2
-                id="topics"
-                className="tth-label leading-6"
-              >
+              <h2 id="topics" className="tth-label leading-6">
                 What we publish
               </h2>
               <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">
@@ -240,7 +231,10 @@ const CommunityPage = async () => {
                     className="inline-flex items-center gap-1.5 rounded-full border border-default/60 px-3.5 py-1.5 text-sm text-default-700 transition-colors hover:border-primary-600/50 hover:bg-primary/5 hover:text-primary-accessible"
                   >
                     {category.name}
-                    <FiArrowUpRight aria-hidden className="size-3.5 opacity-50" />
+                    <FiArrowUpRight
+                      aria-hidden
+                      className="size-3.5 opacity-50"
+                    />
                   </Link>
                 </li>
               ))}

@@ -8,7 +8,7 @@ import type { TAppBindings } from "../interface/bindings";
 /**
  * What counts as one client.
  *
- * Behind a proxy — Vercel, or any load balancer — every request arrives from
+ * Behind a proxy - Vercel, or any load balancer - every request arrives from
  * the proxy's own address, so limiting on the socket would put the whole site
  * in one bucket and one visitor could lock everyone out. The forwarded header
  * is what the proxy adds; the leftmost entry is the original client.
@@ -46,7 +46,10 @@ const rateLimit = (options: {
   windowMinutes?: number;
   message: string;
 }) => {
-  const windowMs = (options.windowMinutes ?? config.AUTH_RATE_LIMIT_WINDOW_MINUTES) * 60 * 1000;
+  const windowMs =
+    (options.windowMinutes ?? config.AUTH_RATE_LIMIT_WINDOW_MINUTES) *
+    60 *
+    1000;
 
   return rateLimiter<TAppBindings>({
     windowMs,

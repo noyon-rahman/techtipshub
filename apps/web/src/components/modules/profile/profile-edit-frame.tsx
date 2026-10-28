@@ -18,7 +18,7 @@ interface IProps {
  * The editing frame around the profile page.
  *
  * Opening it moves the identity block into a form and adds the private fields
- * below it — the same section order the old settings page used, so the page
+ * below it - the same section order the old settings page used, so the page
  * reads as one document being edited rather than a second screen.
  *
  * The save action is pinned to the bottom of the viewport while you are in the
@@ -44,7 +44,9 @@ const ProfileEditFrame = ({
     <div className="mt-8">
       <div className="mb-5 flex flex-col gap-2 rounded-xl border border-default/60 bg-default-50/60 px-4 py-3 text-sm text-default-700 dark:bg-default-100/5 sm:flex-row sm:items-center sm:justify-between">
         <p>
-          <span className="font-semibold text-foreground">Editing profile.</span>{" "}
+          <span className="font-semibold text-foreground">
+            Editing profile.
+          </span>{" "}
           Nothing changes for readers until you save.
         </p>
         {dirtyNote && (

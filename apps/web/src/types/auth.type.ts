@@ -14,4 +14,3 @@ export type TRegister = {
   };
   image?: File;
 };
-

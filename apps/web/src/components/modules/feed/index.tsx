@@ -90,7 +90,9 @@ const FeedBlogs = ({ initialBlogs, category, searchTerm }: IProps) => {
   return (
     <div className="w-full">
       <header className="mb-6 border-b border-default/60 pb-4">
-        <h1 className="font-[family-name:var(--type-editorial)] text-3xl font-semibold leading-[1.1] tracking-[-0.01em]">{heading}</h1>
+        <h1 className="font-[family-name:var(--type-editorial)] text-3xl font-semibold leading-[1.1] tracking-[-0.01em]">
+          {heading}
+        </h1>
         <p className="mt-1 text-sm text-default-600">
           {searchTermParam || categoryParam
             ? "Articles matching your filters, newest first."

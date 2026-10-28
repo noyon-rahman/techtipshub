@@ -92,7 +92,8 @@ const SubscriberList = ({
 
     let next: number | undefined;
 
-    if (event.key === "ArrowDown") next = Math.min(buttons.length - 1, index + 1);
+    if (event.key === "ArrowDown")
+      next = Math.min(buttons.length - 1, index + 1);
     else if (event.key === "ArrowUp") next = Math.max(0, index - 1);
 
     if (next === undefined) return;
@@ -168,7 +169,11 @@ const SubscriberList = ({
             title="Nothing matches that search"
             description={`No name or address in ${status === "all" ? "the list" : `the ${SUBSCRIBER_LABEL[status].toLowerCase()} view`} contains "${searchTerm}".`}
             action={
-              <button type="button" onClick={onClearSearch} className={quietButton}>
+              <button
+                type="button"
+                onClick={onClearSearch}
+                className={quietButton}
+              >
                 Clear search
               </button>
             }
@@ -230,7 +235,8 @@ const SubscriberList = ({
         {rows.map((subscriber) => {
           const busy = removingEmail === subscriber.email;
           const reason =
-            subscriber.status === "bounced" || subscriber.status === "complained"
+            subscriber.status === "bounced" ||
+            subscriber.status === "complained"
               ? SUPPRESS_REASON[subscriber.status]
               : null;
 

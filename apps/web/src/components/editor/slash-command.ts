@@ -1,6 +1,11 @@
 "use client";
 
-import { Extension, type ChainedCommands, type Editor, type Range } from "@tiptap/core";
+import {
+  Extension,
+  type ChainedCommands,
+  type Editor,
+  type Range,
+} from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import { useEffect, useState } from "react";
@@ -45,19 +50,31 @@ export const SlashCommand = Extension.create({
 
             // Only a plain paragraph opens the menu; "/" in a heading or a
             // code block should just type a slash.
-            if (!$from.parent.isTextblock || $from.parent.type.name !== "paragraph") {
+            if (
+              !$from.parent.isTextblock ||
+              $from.parent.type.name !== "paragraph"
+            ) {
               return EMPTY;
             }
 
             // A command only starts at the beginning of the block.
             if ($from.parentOffset === 0) return EMPTY;
 
-            const text = $from.parent.textBetween(0, $from.parentOffset, undefined, "\ufffc");
+            const text = $from.parent.textBetween(
+              0,
+              $from.parentOffset,
+              undefined,
+              "\ufffc",
+            );
             const match = QUERY_RE.exec(text);
             if (!match) return EMPTY;
 
             const from = $from.start();
-            return { open: true, query: match[1], range: { from, to: $from.pos } };
+            return {
+              open: true,
+              query: match[1],
+              range: { from, to: $from.pos },
+            };
           },
         },
 

@@ -12,7 +12,10 @@ import {
 import { CommandKind, CommandTarget } from "./keys";
 import { splitByRanges } from "./match";
 
-const KIND_ICON: Record<CommandKind, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+const KIND_ICON: Record<
+  CommandKind,
+  React.ComponentType<React.SVGProps<SVGSVGElement>>
+> = {
   article: ArticleIcon,
   category: CategoryIcon,
   profile: ProfileIcon,
@@ -27,7 +30,13 @@ interface RowProps {
   onRun: () => void;
 }
 
-const Emphasis = ({ label, ranges }: { label: string; ranges?: Array<[number, number]> }) => (
+const Emphasis = ({
+  label,
+  ranges,
+}: {
+  label: string;
+  ranges?: Array<[number, number]>;
+}) => (
   <>
     {splitByRanges(label, ranges ?? []).map((part, index) =>
       part.match ? (
@@ -58,7 +67,8 @@ const Emphasis = ({ label, ranges }: { label: string; ranges?: Array<[number, nu
  * itself under a still pointer should not.
  */
 export const PaletteRow = ({ item, active, onHover, onRun }: RowProps) => {
-  const Icon = KIND_ICON[item.kind] ?? (item.kind === "action" ? ThemeIcon : PageIcon);
+  const Icon =
+    KIND_ICON[item.kind] ?? (item.kind === "action" ? ThemeIcon : PageIcon);
   const classes = `flex w-full items-start gap-3 rounded-md px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70 ${
     active ? "bg-default-100 text-foreground" : "text-default-700"
   }`;

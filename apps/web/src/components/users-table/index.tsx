@@ -1,6 +1,11 @@
 "use client";
 
-import { ListSelect, PAGE_SIZE_OPTIONS, PAGE_SIZES, useDebouncedTerm } from "@/components/admin/list-controls";
+import {
+  ListSelect,
+  PAGE_SIZE_OPTIONS,
+  PAGE_SIZES,
+  useDebouncedTerm,
+} from "@/components/admin/list-controls";
 import { formatCount, formatDate } from "@/components/admin/format";
 import ConfirmDialog from "@/components/modules/admin/kit/confirm-dialog";
 import DataTable, {
@@ -231,7 +236,9 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
       <DataToolbar
         filters={filters}
         activeFilter={tab}
-        onFilterChange={(key) => changeTab(key === "blocked" ? "blocked" : "all")}
+        onFilterChange={(key) =>
+          changeTab(key === "blocked" ? "blocked" : "all")
+        }
         query={query}
         onQueryChange={setQuery}
         searchPlaceholder="Name, username or email"

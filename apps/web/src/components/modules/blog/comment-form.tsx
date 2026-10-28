@@ -30,13 +30,13 @@ const CommentForm = ({ blogId, slug }: IProps) => {
       if (selectedFiles.length + selectedImages.length > 4) {
         toast.warning("You can only upload a maximum of 4 images.", {
           id: "max-images-warning",
-          closeButton: true
+          closeButton: true,
         });
         return;
       }
       setSelectedImages((prevImages) =>
-        [...prevImages, ...selectedFiles].slice(0, 4)
-      ); 
+        [...prevImages, ...selectedFiles].slice(0, 4),
+      );
     }
   };
 
@@ -53,18 +53,12 @@ const CommentForm = ({ blogId, slug }: IProps) => {
     setSelectedImages([]); // Reset selected images after successful submission
   };
 
-  // Authentication modal button props
-  const props = {
-    radius: "sm",
-    color: "primary",
-  };
-
   return (
     <THForm onSubmit={onSubmit} resolver={zodResolver(commentValidationSchema)}>
       <div className="space-y-4">
         <div className="relative">
           <THTextarea
-          id="comment-field"
+            id="comment-field"
             name="content"
             placeholder="Write comment here..."
             size="lg"
@@ -106,9 +100,11 @@ const CommentForm = ({ blogId, slug }: IProps) => {
             </Button>
           ) : (
             <AuthenticationModal
-              redirect={`/blogs/${slug}`}
+              redirect={`blogs/${slug}`}
               buttonContent={"Comment"}
-              {...props}
+              color="primary"
+              radius="sm"
+              variant="solid"
             />
           )}
         </div>

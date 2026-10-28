@@ -8,7 +8,7 @@ import type { IPaginationMeta } from "@/types/admin.type";
  * changes shape between endpoints (`data` as an array, `data.result`, a bare
  * array with top-level `meta`), so every reader checks each spot before giving
  * up. Second, a failed request throws with the API's own message instead of
- * resolving to the error body — a table then shows an error state, and a 404
+ * resolving to the error body - a table then shows an error state, and a 404
  * for an endpoint the API has not shipped yet cannot be mistaken for "no rows".
  */
 

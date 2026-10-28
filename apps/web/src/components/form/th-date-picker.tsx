@@ -6,11 +6,7 @@ interface IProps extends DatePickerProps {
   label?: string;
 }
 
-export default function THDatePicker({
-  label,
-  name,
-  ...props
-}: IProps) {
+export default function THDatePicker({ label, name, ...props }: IProps) {
   return (
     <Controller
       name={name}

@@ -43,7 +43,8 @@ const Progress = ({
   remaining: number;
 }) => {
   const done = sent + failed;
-  const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  const percent =
+    total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
 
   return (
     <div className="space-y-2">
@@ -105,7 +106,11 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
         <p className="mx-auto mt-1 max-w-sm text-sm text-default-600">
           {query.error?.message || "It may have been deleted."}
         </p>
-        <button type="button" onClick={onBack} className={`mt-4 ${quietButton}`}>
+        <button
+          type="button"
+          onClick={onBack}
+          className={`mt-4 ${quietButton}`}
+        >
           Back to the list
         </button>
       </div>
@@ -278,10 +283,10 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
               mailed.
             </p>
             <p className="text-sm leading-relaxed text-default-600">
-              The first batch goes out right away and cannot be undone. The
-              rest waits for you: press Continue once per batch of ten until
-              the counters reach everyone. Send yourself a test copy first if
-              you have not.
+              The first batch goes out right away and cannot be undone. The rest
+              waits for you: press Continue once per batch of ten until the
+              counters reach everyone. Send yourself a test copy first if you
+              have not.
             </p>
           </ModalBody>
           <ModalFooter className="gap-2">

@@ -11,21 +11,25 @@ import {
   GoogleAuthError,
   isGoogleOAuthConfigured,
 } from "./google-oauth";
-import { createOAuthState, verifyOAuthState } from "./oauth-state";
+import {
+  claimHandoff,
+  createHandoff,
+  createOAuthState,
+  verifyOAuthState,
+} from "./oauth-state";
 import {
   clearSessionCookies,
   readRefreshToken,
   setAccessTokenCookie,
   setSessionCookies,
 } from "./session-cookies";
-import { claimHandoff, createHandoff } from "./session-handoff";
 
 /**
  * Spend a handoff code from a Google callback and receive the session.
  *
  * The site calls this from its server, so the cookies in the answer are read by
  * a server and written for the site's own host. Nothing here trusts the caller
- * with anything a code did not already contain: the code is single use and
+ * with anything the code did not already contain: it is signed by this API and
  * short-lived, and this route sets the same cookies a password sign-in would.
  */
 const claimSession = async (c: Context<TAppBindings>) => {
@@ -104,7 +108,10 @@ const generateNewAccessToken = async (c: Context<TAppBindings>) => {
   const refreshToken = readRefreshToken(c);
 
   if (!refreshToken) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Session expired. Sign in again.");
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Session expired. Sign in again.",
+    );
   }
 
   const { accessToken, user } =
@@ -125,14 +132,19 @@ const generateNewAccessToken = async (c: Context<TAppBindings>) => {
  */
 const readSession = async (c: Context<TAppBindings>) => {
   const accessToken = c.req.header("authorization")?.split(" ")[1];
-  const session = await authService.readSession(accessToken, readRefreshToken(c));
+  const session = await authService.readSession(
+    accessToken,
+    readRefreshToken(c),
+  );
 
   if (session.signedIn && "renewed" in session && session.renewed) {
     setSessionCookies(c, session.renewed);
   }
 
   return sendResponse(c, httpStatus.OK, {
-    data: session.signedIn ? { signedIn: true, user: session.user } : { signedIn: false },
+    data: session.signedIn
+      ? { signedIn: true, user: session.user }
+      : { signedIn: false },
   });
 };
 
@@ -230,15 +242,18 @@ const googleCallback = async (c: Context<TAppBindings>) => {
   }
 
   try {
-    const outcome = await authService.googleLogin(await fetchGoogleProfile(code));
+    const outcome = await authService.googleLogin(
+      await fetchGoogleProfile(code),
+    );
 
     // The relay route lives under the site's own `/api`, not at a page path.
     const url = new URL(`${siteUrl()}/api/auth/google/callback`);
     url.searchParams.set("redirect", redirect);
 
     // The cookies are set on this response too, which serves an API on this
-    // domain. The site is somewhere else, so it is also handed a one-time code
-    // to fetch this session for itself — the URL carries a code, never a token.
+    // domain. The site is somewhere else, so it is also handed a signed code
+    // to fetch this session for itself - the URL carries a code, never a
+    // readable token.
     setSessionCookies(c, outcome);
     url.searchParams.set("handoff", await createHandoff(outcome));
 
@@ -297,7 +312,6 @@ const failedGoogleSignIn = (
 
   return c.redirect(url.toString(), httpStatus.FOUND);
 };
-
 
 export const authController = {
   register,

@@ -12,7 +12,11 @@ interface IProps {
   content: string;
 }
 
-const UpdateDeleteComment = ({ commentUserEmail, commentId, content }: IProps) => {
+const UpdateDeleteComment = ({
+  commentUserEmail,
+  commentId,
+  content,
+}: IProps) => {
   const { user } = useUser();
   const { mutate: deleteComment, isPending } = useDeleteCommentByUser();
 

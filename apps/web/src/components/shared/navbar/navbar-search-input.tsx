@@ -53,9 +53,14 @@ const NavbarSearchInput = ({ block = false, compact = false }: IProps) => {
           className="group flex w-full items-center gap-2.5 rounded-full border border-default-200 bg-default-50/70 py-2 pl-3.5 pr-2 text-left text-sm text-default-600 transition-colors hover:border-default-300 hover:bg-default-100/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70 dark:bg-default-100/10 dark:hover:bg-default-100/20"
         >
           <SearchIcon className="size-4 shrink-0 text-default-500 transition-colors group-hover:text-default-600" />
-          <span className="min-w-0 flex-1 truncate">Search articles, pages…</span>
+          <span className="min-w-0 flex-1 truncate">
+            Search articles, pages…
+          </span>
           {!block && (
-            <span className="hidden shrink-0 items-center gap-1 pr-0.5 lg:flex" aria-hidden>
+            <span
+              className="hidden shrink-0 items-center gap-1 pr-0.5 lg:flex"
+              aria-hidden
+            >
               <Kbd keys={["command"]}>K</Kbd>
             </span>
           )}
