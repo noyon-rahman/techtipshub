@@ -70,6 +70,16 @@ Things known to be wrong or unfinished, in the order they matter.
 
 ## Traps and hard-won notes
 
+- **The admin footer sits on the fold of a short page.** The admin column in
+  `(adminLayout)/layout.tsx` is `min-h-dvh` with a `flex-col` `main` that
+  grows, so the sign-off rule lands at the same height on every screen. Do not
+  wrap the admin pages in a full-height `div` or a second scroll container:
+  either one breaks the fill and the footer floats up again.
+- **Admin row menus portal to the body.** `ListFrame` clips its corners, so
+  anything absolutely positioned inside a table row is cut off at the frame's
+  edge. `users-table/row-menu.tsx` places its panel with fixed coordinates and
+  flips up when the row is near the viewport bottom. Any new in-row popover in
+  an admin list needs the same treatment.
 - **`pnpm test` is the gate.** It runs typecheck, the format and invariant
   checks, lint and both builds, and stops at the first failure. `pnpm test lint`
   runs one step. The invariants live in `scripts/test/checks/` and read the tree,
