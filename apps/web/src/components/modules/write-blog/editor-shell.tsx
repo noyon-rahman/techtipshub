@@ -6,6 +6,7 @@ import {
 } from "@/components/editor/rich-text-editor";
 import type { BlogEditor } from "@/components/editor/rich-text-editor";
 import AutoGrowTextarea from "@/components/modules/write-blog/auto-grow-textarea";
+import CategoryPicker from "@/components/modules/write-blog/category-picker";
 import TagInput from "@/components/modules/write-blog/tag-input";
 import { ICategory } from "@/types";
 import { formatBlogDate } from "@/utils";
@@ -17,8 +18,6 @@ import {
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Select,
-  SelectItem,
   Spinner,
 } from "@heroui/react";
 import Link from "next/link";
@@ -362,6 +361,18 @@ interface IPublishingDetailsProps {
   category: string;
   onCategoryChange: (category: string) => void;
   categoryError?: string;
+  /** The category list is being fetched. */
+  categoriesLoading?: boolean;
+  /** The category list could not be loaded. */
+  categoriesError?: string;
+  /** Retry the category list. */
+  onRetryCategories?: () => void;
+  /** The writer asked for a category that is not in the list. */
+  onRequestCategory?: (name: string) => void;
+  /** Categories this draft requested, so they stay selectable. */
+  requestedCategories?: { id: string; name: string; pending: boolean }[];
+  /** The name of a selected category the list does not hold yet. */
+  categorySelectedName?: string;
   tags: string[];
   onTagsChange: (tags: string[]) => void;
   tagInput: string;
@@ -397,6 +408,12 @@ export const PublishingDetails = ({
   category,
   onCategoryChange,
   categoryError,
+  categoriesLoading = false,
+  categoriesError,
+  onRetryCategories,
+  onRequestCategory,
+  requestedCategories = [],
+  categorySelectedName,
   tags,
   onTagsChange,
   tagInput,
@@ -479,29 +496,20 @@ export const PublishingDetails = ({
         >
           Category
         </label>
-        <Select
+        <CategoryPicker
           id={`${idPrefix}-category`}
-          aria-label="Category"
-          placeholder="Choose a category"
-          selectedKeys={category ? [category] : []}
-          onSelectionChange={(keys) => {
-            const [key] = Array.from(keys as Set<string>);
-            onCategoryChange(key ?? "");
-          }}
+          categories={categories}
+          value={category}
+          onChange={onCategoryChange}
+          isLoading={categoriesLoading}
+          error={categoriesError}
+          onRetry={onRetryCategories}
           isInvalid={Boolean(categoryError)}
           errorMessage={categoryError}
-          variant="bordered"
-          radius="sm"
-          size="sm"
-          classNames={{
-            trigger: "min-h-10",
-            popoverContent: "border border-default-100",
-          }}
-        >
-          {categories.map((item) => (
-            <SelectItem key={item._id}>{item.name}</SelectItem>
-          ))}
-        </Select>
+          onRequest={onRequestCategory}
+          extras={requestedCategories}
+          selectedName={categorySelectedName}
+        />
       </div>
 
       <div className="mt-5">
@@ -824,17 +832,28 @@ export const PreviewModal = ({
  *
  * The API returns the category populated on most reads, but an id on some, so
  * both are accepted: an id is resolved against the loaded list rather than
- * printed to the writer, and an unknown one shows nothing at all.
+ * printed to the writer, and an unknown one shows nothing at all. The list also
+ * holds the writer's own requests, which have no stored category of their own.
  */
 export const categoryName = (
   blog: { category?: ICategory | string | null },
-  categories: ICategory[],
+  categories: { id?: string; _id?: string; name: string }[],
 ) => {
+  const stored = (item: { id?: string; _id?: string; name: string }) => ({
+    name: item.name,
+    id: item.id ?? item._id ?? "",
+  });
+
   const value = blog.category;
   if (!value) return undefined;
   if (typeof value === "string") {
-    return categories.find((item) => item._id === value || item.name === value)
-      ?.name;
+    return (
+      categories.map(stored).find((item) => item.id === value)?.name ??
+      undefined
+    );
   }
-  return value.name || categories.find((item) => item._id === value._id)?.name;
+  return (
+    value.name ||
+    categories.map(stored).find((item) => item.id === value._id)?.name
+  );
 };

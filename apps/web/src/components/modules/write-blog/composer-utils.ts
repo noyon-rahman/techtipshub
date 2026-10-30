@@ -16,6 +16,11 @@ export interface BlogFormValues {
 export interface BlogFormData extends BlogFormValues {
   /** Optional short description, rendered as the article's subtitle. */
   description?: string;
+  /**
+   * What the chosen category is called, kept only so a restored draft can show
+   * it: a category request has no other record once the page reloads.
+   */
+  categoryName?: string;
 }
 
 export type DraftField = "title" | "content" | "category" | "tags" | "cover";
@@ -62,6 +67,7 @@ export const draftFingerprint = (values: BlogFormData) =>
     title: values.title,
     content: values.content,
     category: values.category,
+    categoryName: values.categoryName ?? "",
     tags: values.tags,
     description: values.description ?? "",
   });
