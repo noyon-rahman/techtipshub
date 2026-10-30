@@ -22,6 +22,12 @@ import {
 } from "@/hooks/admin-comments";
 import { useContactMessages } from "@/hooks/admin-messages";
 import { useGetAllBlogs } from "@/hooks/blog.hook";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
+import {
+  listHref,
+  listDefaults,
+  serializeListParams,
+} from "@/lib/admin-list-params";
 import type {
   TAdminComment,
   TAdminCommentCounts,
@@ -44,6 +50,34 @@ const RECENT_LIMIT = 20;
 const LATEST_SHOWN = 5;
 /** How many unread messages the queue lists; the inbox holds the rest. */
 const UNREAD_SHOWN = 5;
+
+/**
+ * The schema of the comment list, used for the links below: every one passes
+ * the window it is counting, and a comment's own article when it has one.
+ */
+const COMMENT_WINDOW = {
+  within: listParam({
+    values: ["all", "24h", "7d"] as const,
+    default: "all",
+    resetsPage: true,
+  }),
+  // A link from a queue comment carries the article it is on.
+  post: listParam({ default: "" }),
+} as const;
+
+/** Every link from this queue into the comment list, so none hand-builds one. */
+const commentListHref = (
+  within: (typeof COMMENT_WINDOW.within)["default"],
+  post?: string,
+) =>
+  listHref(
+    "/admin/manage-comments",
+    serializeListParams(COMMENT_WINDOW, {
+      ...listDefaults(COMMENT_WINDOW),
+      within,
+      post: post ?? "",
+    }),
+  );
 
 /**
  * `/admin/comments/latest` answers `{ data: TAdminComment[] }`, a bare array,
@@ -210,6 +244,7 @@ const QueueColumn = ({
 
 const ModerationQueue = () => {
   const [refreshing, setRefreshing] = useState(false);
+  const commentWindow = useAdminListParams(COMMENT_WINDOW).values.within;
 
   const blogsQuery = useGetAllBlogs({ limit: "6", sort: "-createdAt" });
   const commentsQuery = useLatestComments();
@@ -304,7 +339,7 @@ const ModerationQueue = () => {
 
       <div className="mb-8 grid gap-2 sm:grid-cols-3">
         <CountTile
-          href="/admin/manage-comments?within=24h"
+          href={commentListHref("24h")}
           label="Comments in 24 hours"
           detail={
             typeof today === "number"
@@ -350,7 +385,7 @@ const ModerationQueue = () => {
               : "in this view"
           }
           description={`From ${commentsWindow}, which is the most the API returns at once.`}
-          href="/admin/manage-comments?within=24h"
+          href={commentListHref("24h")}
           linkLabel="Open the comment list"
           loading={commentsQuery.isLoading}
           failed={commentsFailed}
@@ -365,7 +400,7 @@ const ModerationQueue = () => {
               description={`Nothing in ${commentsWindow} was posted in the last 24 hours. The full list still holds the older ones.`}
               action={
                 <Link
-                  href="/admin/manage-comments"
+                  href={commentListHref("all")}
                   className={`inline-flex min-h-11 items-center rounded-[6px] border border-default-300 px-3.5 text-sm font-medium hover:bg-default-100 sm:min-h-9 ${focusRing}`}
                 >
                   Open every comment
@@ -414,9 +449,12 @@ const ModerationQueue = () => {
                       </p>
 
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                        {comment.post?.slug ? (
+                        {comment.post?._id ? (
                           <Link
-                            href={`/blogs/${comment.post.slug}`}
+                            href={commentListHref(
+                              commentWindow,
+                              comment.post._id,
+                            )}
                             className={`line-clamp-1 rounded-sm text-xs font-medium text-default-700 underline-offset-4 hover:text-foreground hover:underline ${focusRing}`}
                           >
                             on {comment.post.title || "the article"}

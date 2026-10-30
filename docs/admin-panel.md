@@ -61,6 +61,9 @@ These come from `DESIGN.md` and apply to every admin page:
 - Destructive actions confirm and say what happens to related data.
 - The API is the source of truth for permissions. The UI hides what a role cannot
   do, it never decides it.
+- Every list keeps its tab, page, page size and search in the URL, through
+  `useAdminListParams`. A reload, a bookmark or a shared link returns the same
+  view, and changing a filter goes back to page 1 in the same write.
 
 ## API surface
 

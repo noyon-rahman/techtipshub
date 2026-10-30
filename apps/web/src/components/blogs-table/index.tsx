@@ -24,10 +24,11 @@ import {
   usePublishAdminBlog,
 } from "@/hooks/admin-blogs";
 import { useAdminCategories } from "@/hooks/admin-categories";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
 import { adminEditBlogPath } from "@/lib/blog-routes";
 import type { IBlog } from "@/types";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiArrowUpRight,
   FiEdit3,
@@ -47,9 +48,36 @@ const SORTS = [
 
 type SortKey = (typeof SORTS)[number]["key"];
 
-/** The two views of the table: live articles, and what is still a draft. */
-type Tab = "published" | "draft";
+/**
+ * The view lives in the URL, so a reload, a bookmark or a shared link returns
+ * the same tab, page, page size and search. The API sorts by field name, so the
+ * URL carries the sort key the select shows and the request gets `sortOf(key)`.
+ */
+const ARTICLE_LIST = {
+  status: listParam({
+    values: ["published", "draft"] as const,
+    default: "published",
+    resetsPage: true,
+  }),
+  searchTerm: listParam({ default: "", resetsPage: true }),
+  category: listParam({ default: "all", resetsPage: true }),
+  sort: listParam({
+    values: ["newest", "views", "comments"] as const,
+    default: "newest",
+    resetsPage: true,
+  }),
+  page: listParam({ default: 1 }),
+  limit: listParam({
+    default: PAGE_SIZES[0],
+    allowed: PAGE_SIZES,
+    resetsPage: true,
+  }),
+} as const;
 
+/**
+ * True for a value this screen knows. The rows themselves are literal options,
+ * not the schema's union, so the option checks stay next to them.
+ */
 const isSortKey = (value: string | null | undefined): value is SortKey =>
   SORTS.some((option) => option.key === value);
 
@@ -163,21 +191,32 @@ const ArticleCell = ({ blog }: { blog: IBlog }) => {
  * view rather than the rows on screen. Only count tabs are left to the client,
  * and they come from a second one-row request.
  *
+ * All six are in the URL, so a reload, a bookmark or a shared link returns the
+ * same view.
+ *
  * Removing an article sends it to Trash. Publishing a draft takes it live under
  * its author's byline, which is also when its author and category counts move.
  */
-const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
-  const [tab, setTab] = useState<Tab>("published");
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
-  const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("all");
-  const [sort, setSort] = useState<SortKey>(
-    isSortKey(initialSort) ? initialSort : "newest",
-  );
+const BlogsTable = () => {
+  const filters = useAdminListParams(ARTICLE_LIST);
+  const tab = filters.values.status;
+  const { page, limit, searchTerm } = filters.values;
+  const category = filters.values.category;
+  const sort = filters.values.sort;
 
-  const resetPage = useCallback(() => setPage(1), []);
-  const searchTerm = useDebouncedTerm(query, resetPage);
+  // The debounce stays here; the hook takes the settled term. Refing the setter
+  // (not the whole hook) keeps the timer from restarting on every URL change.
+  const [query, setQuery] = useState(searchTerm);
+  const filtersRef = useRef(filters.set);
+  useEffect(() => {
+    filtersRef.current = filters.set;
+  }, [filters.set]);
+  useDebouncedTerm(
+    query,
+    useCallback((term: string) => {
+      filtersRef.current({ searchTerm: term });
+    }, []),
+  );
 
   const articleSort = sortOf(sort);
 
@@ -222,7 +261,7 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
   // did not empty.
   const stepBackIfEmpty = useCallback(() => {
     if (page > 1 && rows.length <= 1)
-      setPage((current) => Math.max(1, current - 1));
+      filtersRef.current({ page: page - 1 });
   }, [page, rows.length]);
 
   const isFiltered = Boolean(searchTerm) || category !== "all";
@@ -231,11 +270,10 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
 
   const clearFilters = () => {
     setQuery("");
-    setCategory("all");
-    setPage(1);
+    filters.set({ searchTerm: "", category: "all" });
   };
 
-  const filters = [
+  const tabs = [
     {
       key: "published",
       label: "Published",
@@ -300,11 +338,10 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
   return (
     <ListFrame label={isDrafts ? "Draft articles" : "Published articles"}>
       <DataToolbar
-        filters={filters}
+        filters={tabs}
         activeFilter={tab}
         onFilterChange={(key) => {
-          setTab(key === "draft" ? "draft" : "published");
-          setPage(1);
+          filters.set({ status: key === "draft" ? "draft" : "published" });
         }}
         query={query}
         onQueryChange={setQuery}
@@ -315,10 +352,7 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
               label="Category"
               hideLabel
               value={category}
-              onChange={(value) => {
-                setCategory(value);
-                setPage(1);
-              }}
+              onChange={(value) => filters.set({ category: value })}
               options={[
                 { value: "all", label: "All categories" },
                 ...categories.map((item) => ({
@@ -332,8 +366,7 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
               hideLabel
               value={sort}
               onChange={(value) => {
-                if (isSortKey(value)) setSort(value);
-                setPage(1);
+                if (isSortKey(value)) filters.set({ sort: value });
               }}
               options={SORTS.map((option) => ({
                 value: option.key,
@@ -344,10 +377,9 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
               label="Per page"
               hideLabel
               value={limit}
-              onChange={(value) => {
-                setLimit(Number(value) || PAGE_SIZES[0]);
-                setPage(1);
-              }}
+              onChange={(value) =>
+                filters.set({ limit: Number(value) || PAGE_SIZES[0] })
+              }
               options={PAGE_SIZE_OPTIONS}
             />
           </>
@@ -554,7 +586,7 @@ const BlogsTable = ({ initialSort }: { initialSort?: string }) => {
         page={meta?.page ?? page}
         totalPages={totalPages}
         pageSize={pageSize}
-        onPageChange={setPage}
+        onPageChange={(next) => filters.set({ page: next })}
         isLoading={isLoading && !meta}
         isError={isError}
         context={

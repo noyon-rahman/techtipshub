@@ -203,6 +203,9 @@ when it started. A row opens the draft, the send in progress, or the record.
 - **Export CSV**: name, address, status, source and dates. No ids, no tokens,
   nothing that would let someone act on a subscriber's behalf.
 
+The tab, the status, the page, the page size and the search all live in the
+URL, so a reload or a bookmarked link returns the same view of the list.
+
 ## Web surface
 
 | Path                                  | Purpose                                      |

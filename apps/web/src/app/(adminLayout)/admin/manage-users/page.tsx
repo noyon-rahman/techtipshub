@@ -5,21 +5,8 @@ import AdminPageSpinner from "@/components/shared/admin-sidebar/admin-page-spinn
 import { useAdminTitle } from "@/components/shared/admin-sidebar/use-admin-title";
 import ButtonLink from "@/components/ui/button-link";
 import UsersTable from "@/components/users-table";
-import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { RiDeleteBinLine } from "react-icons/ri";
-
-/**
- * `?filter=blocked` opens the table on its blocked list, which is how the
- * dashboard's blocked-accounts link lands. Read verbatim; the table decides
- * whether the value names one of its filters.
- */
-function ManageUsersTable() {
-  const searchParams = useSearchParams();
-  const initialFilter = searchParams.get("filter") ?? undefined;
-
-  return <UsersTable initialFilter={initialFilter} />;
-}
 
 const ManageUsersPage = () => {
   useAdminTitle("Members");
@@ -41,7 +28,7 @@ const ManageUsersPage = () => {
         }
       />
       <Suspense fallback={<AdminPageSpinner label="Loading members" />}>
-        <ManageUsersTable />
+        <UsersTable />
       </Suspense>
     </div>
   );

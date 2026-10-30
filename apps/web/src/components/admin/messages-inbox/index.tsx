@@ -13,32 +13,44 @@ import {
   useContactMessages,
   useUpdateContactStatus,
 } from "@/hooks/admin-messages";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
+import { listHref } from "@/lib/admin-list-params";
 import type { TContact, TContactStatus } from "@/types/admin.type";
 import { Spinner } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { FiSearch, FiX } from "react-icons/fi";
 import { toast } from "sonner";
 
 import MessageDetail from "./message-detail";
-import MessageList, {
-  MessageFilters,
-  type Filter,
-  type InboxActions,
-} from "./message-list";
+import MessageList, { MessageFilters, type InboxActions } from "./message-list";
 
 interface IProps {
   /** `?message=<id>` from the page, so a deep link opens the right message. */
   initialMessageId?: string;
-  /** `?status=new|read|archived` from the page, so a queue tile opens that tab. */
-  initialStatus?: string;
 }
 
-const STATUS_TABS = ["all", "new", "read", "archived"] as const;
-
-const isStatus = (value?: string): value is Filter =>
-  Boolean(value) &&
-  (STATUS_TABS as readonly string[]).includes(value as string);
+const INBOX_LIST = {
+  status: listParam({
+    values: ["all", "new", "read", "archived"] as const,
+    default: "all",
+    resetsPage: true,
+  }),
+  searchTerm: listParam({ default: "", resetsPage: true }),
+  page: listParam({ default: 1 }),
+  limit: listParam({
+    default: PAGE_SIZES[0],
+    allowed: PAGE_SIZES,
+    resetsPage: true,
+  }),
+} as const;
 
 const isContact = (value: unknown): value is TContact => {
   if (!value || typeof value !== "object") return false;
@@ -56,19 +68,21 @@ const asContact = (value: unknown): TContact | undefined => {
   return isContact(nested) ? nested : undefined;
 };
 
-const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
+const MessagesInbox = ({ initialMessageId }: IProps) => {
+  const filters = useAdminListParams(INBOX_LIST);
   const router = useRouter();
   const pathname = usePathname();
+  const [, startTransition] = useTransition();
+  const filter = filters.values.status;
 
+  // The deep link is read once, the way the page hands it over: `?message=`
+  // arrives with the load, or with a send notification that remounts the
+  // inbox. Everything after that goes through `writeQuery`.
   const [selectedId, setSelectedId] = useState<string | undefined>(
     initialMessageId,
   );
-  const [filter, setFilter] = useState<Filter>(() =>
-    isStatus(initialStatus) ? initialStatus : "all",
-  );
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
-  const [query, setQuery] = useState("");
+
+  const [query, setQuery] = useState(filters.values.searchTerm);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // The status the reader picked, held until the server answer arrives, so the
@@ -82,14 +96,25 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
   const rowRefs = useRef(new Map<string, HTMLButtonElement | null>());
   const paneRef = useRef<HTMLDivElement | null>(null);
 
-  const backToFirstPage = useCallback(() => setPage(1), []);
+  // Settling a search reads the latest setter without restarting the timer.
+  const setFiltersRef = useRef(filters.set);
+  useEffect(() => {
+    setFiltersRef.current = filters.set;
+  }, [filters.set]);
   // The API matches the sender's name and the subject, not the body, so the
   // placeholder says so rather than promising a full-text search.
-  const searchTerm = useDebouncedTerm(query, backToFirstPage);
+  useDebouncedTerm(
+    query,
+    useCallback((searchTerm: string) => {
+      setFiltersRef.current({ searchTerm });
+    }, []),
+  );
+
+  const searchTerm = filters.values.searchTerm;
 
   const listQuery = useContactMessages({
-    page,
-    limit,
+    page: filters.values.page,
+    limit: filters.values.limit,
     status: filter,
     searchTerm,
   });
@@ -100,7 +125,7 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
   const messages = listQuery.rows;
   const counts = listQuery.counts;
   const meta = listQuery.meta;
-  const pageSize = meta?.limit ?? limit;
+  const pageSize = meta?.limit ?? filters.values.limit;
   const totalPages = Math.max(meta?.totalPages ?? 1, 1);
   const total = meta?.total ?? 0;
 
@@ -143,14 +168,22 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
     return held ? { ...openMessage, status: held } : openMessage;
   }, [openMessage, picked]);
 
+  // The message id is a param the schema does not declare, so the helper
+  // carries it over untouched while status, page and search change. Opening or
+  // closing the pane merges it into whatever the list currently holds.
   const writeQuery = useCallback(
     (id?: string) => {
-      router.replace(
-        id ? `${pathname}?message=${encodeURIComponent(id)}` : pathname,
-        { scroll: false },
-      );
+      const next = new URLSearchParams(window.location.search);
+      if (id) next.set("message", id);
+      else next.delete("message");
+
+      // Same replace-in-a-transition the hook uses: reading a message is a view
+      // change, not a place to return to.
+      startTransition(() => {
+        router.replace(listHref(pathname, next), { scroll: false });
+      });
     },
-    [pathname, router],
+    [router, pathname],
   );
 
   const selectMessage = useCallback(
@@ -199,14 +232,9 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
     paneRef.current?.focus({ preventScroll: true });
   }, [mobileOpen, selectedId]);
 
-  const handleFilter = useCallback((next: Filter) => {
-    setFilter(next);
-    setPage(1);
-  }, []);
-
   const actions: InboxActions = {
     clearSearch: () => setQuery(""),
-    showAll: () => handleFilter("all"),
+    showAll: () => filters.set({ status: "all" }),
   };
 
   const handleStatus = (status: TContactStatus) => {
@@ -253,7 +281,7 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
     : null;
 
   const changePage = (next: number) => {
-    setPage(Math.max(1, next));
+    filters.set({ page: Math.max(1, next) });
     // With the pane open on a phone, a page change should show the new rows.
     setMobileOpen(false);
   };
@@ -271,7 +299,7 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
             <MessageFilters
               counts={counts}
               status={filter}
-              onChange={handleFilter}
+              onChange={(status) => filters.set({ status })}
               search={searchTerm || undefined}
             />
           </div>
@@ -307,11 +335,8 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
             <ListSelect
               label="Per page"
               hideLabel
-              value={limit}
-              onChange={(value) => {
-                setLimit(Number(value) || PAGE_SIZES[0]);
-                setPage(1);
-              }}
+              value={filters.values.limit}
+              onChange={(value) => filters.set({ limit: Number(value) })}
               options={PAGE_SIZES.map((size) => ({
                 value: size,
                 label: `${size} per page`,
@@ -347,7 +372,7 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
           <div className="shrink-0 border-t border-default/60">
             {totalPages > 1 ? (
               <AdminPagination
-                page={meta?.page ?? page}
+                page={meta?.page ?? filters.values.page}
                 totalPages={totalPages}
                 total={total}
                 pageSize={pageSize}
@@ -390,7 +415,7 @@ const MessagesInbox = ({ initialMessageId, initialStatus }: IProps) => {
                 <button
                   type="button"
                   onClick={() => {
-                    handleFilter("all");
+                    filters.set({ status: "all" });
                     setQuery("");
                   }}
                   className={`rounded-[6px] px-2 py-1 font-medium text-primary-accessible underline-offset-4 hover:underline ${focusRing}`}

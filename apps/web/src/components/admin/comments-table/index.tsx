@@ -24,10 +24,11 @@ import {
   useCommentCounts,
   useDeleteAdminComment,
 } from "@/hooks/admin-comments";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
 import type { TAdminComment, TAdminCommentWindow } from "@/types/admin.type";
 import { Spinner } from "@heroui/react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiArrowDown,
   FiArrowUp,
@@ -41,7 +42,35 @@ import { PiChatCircle } from "react-icons/pi";
 /** Comment text longer than this gets a dialog of its own. */
 const FULL_READ_LENGTH = 160;
 
-type Sort = "newest" | "oldest";
+/**
+ * `within` is the API's own window (`COMMENT_WINDOW_VALUES` in
+ * `comment.service.ts`), and `sort` is the `createdAt` pair the screen offers.
+ * Changing either changes the rows a page number points at, so both go back to
+ * page 1.
+ */
+const COMMENTS_LIST = {
+  within: listParam({
+    values: ["all", "24h", "7d"] as const,
+    default: "all",
+    resetsPage: true,
+  }),
+  sort: listParam({
+    values: ["-createdAt", "createdAt"] as const,
+    default: "-createdAt",
+    resetsPage: true,
+  }),
+  searchTerm: listParam({ default: "", resetsPage: true }),
+  page: listParam({ default: 1 }),
+  limit: listParam({
+    default: PAGE_SIZES[0],
+    allowed: PAGE_SIZES,
+    resetsPage: true,
+  }),
+  // A deep link from the queue: one article's comments, never typed here.
+  post: listParam({ default: "" }),
+} as const;
+
+type TSortValue = (typeof COMMENTS_LIST.sort)["default"];
 
 const WINDOWS: { key: TAdminCommentWindow; label: string }[] = [
   { key: "all", label: "All" },
@@ -49,17 +78,14 @@ const WINDOWS: { key: TAdminCommentWindow; label: string }[] = [
   { key: "7d", label: "Last 7 days" },
 ];
 
-const SORTS: { value: Sort; label: string }[] = [
-  { value: "newest", label: "Newest first" },
-  { value: "oldest", label: "Oldest first" },
+/** `-` is newest first in the API's sort string. */
+const SORTS: { value: TSortValue; label: string }[] = [
+  { value: "-createdAt", label: "Newest first" },
+  { value: "createdAt", label: "Oldest first" },
 ];
 
 const nameOf = (comment: TAdminComment) =>
   comment.user?.fullName || comment.user?.username || "Removed member";
-
-/** `/admin/comments` sorts on `createdAt`; `-` is newest first. */
-const sortParam = (sort: Sort) =>
-  sort === "newest" ? "-createdAt" : "createdAt";
 
 const Votes = ({ comment }: { comment: TAdminComment }) => {
   const up = typeof comment.upVotes === "number" ? comment.upVotes : 0;
@@ -117,38 +143,35 @@ const DeleteComment = ({
   );
 };
 
-const isWindow = (value: string | null): value is TAdminCommentWindow =>
-  value === "24h" || value === "7d" || value === "all";
-
-interface IProps {
-  /** `?within=` from the page, so a link from the queue opens that window. */
-  initialWithin?: string;
-}
-
 /**
- * The moderation queue links here with `?within=24h`, so the window opens on
- * that view instead of landing on All and making the reader pick again.
+ * The moderation queue links here with `?within=24h`, so the hook opens the
+ * list on that window instead of All when a link asks for one.
  */
-const CommentsTable = ({ initialWithin }: IProps) => {
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
-  const [query, setQuery] = useState("");
-  const [within, setWithin] = useState<TAdminCommentWindow>(() =>
-    isWindow(initialWithin ?? null)
-      ? (initialWithin as TAdminCommentWindow)
-      : "all",
-  );
-  const [sort, setSort] = useState<Sort>("newest");
+const CommentsTable = () => {
+  const filters = useAdminListParams(COMMENTS_LIST);
+  const { within, sort, page, limit, post } = filters.values;
+  const [query, setQuery] = useState(filters.values.searchTerm);
 
-  const goToFirstPage = useCallback(() => setPage(1), []);
-  const searchTerm = useDebouncedTerm(query, goToFirstPage);
+  // Settling a search reads the latest setter without restarting the timer.
+  const setFiltersRef = useRef(filters.set);
+  useEffect(() => {
+    setFiltersRef.current = filters.set;
+  }, [filters.set]);
+  useDebouncedTerm(
+    query,
+    useCallback((searchTerm: string) => {
+      setFiltersRef.current({ searchTerm });
+    }, []),
+  );
+
+  const searchTerm = filters.values.searchTerm;
 
   const list = useAdminComments({
     page,
     limit,
     searchTerm,
     within,
-    sort: sortParam(sort),
+    sort,
   });
   const countsQuery = useCommentCounts();
   const { isPending: isDeleting } = useDeleteAdminComment();
@@ -161,19 +184,11 @@ const CommentsTable = ({ initialWithin }: IProps) => {
   // A deletion shrinks the list under the reader. Staying on a page that no
   // longer exists shows an empty table, so step back one page.
   const handleDeleted = useCallback(() => {
-    if (page > 1 && rows.length <= 1) {
-      setPage((current) => Math.max(1, current - 1));
-    }
-  }, [page, rows.length]);
-
-  const onFilter = (key: string) => {
-    const next = WINDOWS.find((item) => item.key === key)?.key ?? "all";
-    setWithin(next);
-    setPage(1);
-  };
+    if (page > 1 && rows.length <= 1) filters.set({ page: page - 1 });
+  }, [filters, page, rows.length]);
 
   // A count is shown only for the window the API counted.
-  const filters = WINDOWS.map((item) => ({
+  const windows = WINDOWS.map((item) => ({
     ...item,
     count:
       item.key === "24h"
@@ -195,6 +210,11 @@ const CommentsTable = ({ initialWithin }: IProps) => {
         ? "the last 7 days"
         : "";
 
+  const scope =
+    [windowLabel && ` from ${windowLabel}`, post && ", one article"]
+      .filter(Boolean)
+      .join("") || null;
+
   const failure = error?.message;
 
   const columns: DataTableColumn[] = [
@@ -211,9 +231,12 @@ const CommentsTable = ({ initialWithin }: IProps) => {
         searchPlaceholder="Search comments"
         query={query}
         onQueryChange={(value) => setQuery(value)}
-        filters={filters}
+        filters={windows}
         activeFilter={within}
-        onFilterChange={onFilter}
+        onFilterChange={(key) => {
+          const next = WINDOWS.find((item) => item.key === key)?.key ?? "all";
+          filters.set({ within: next });
+        }}
         right={
           <>
             <ListSelect
@@ -221,8 +244,8 @@ const CommentsTable = ({ initialWithin }: IProps) => {
               hideLabel
               value={sort}
               onChange={(value) => {
-                setSort(value === "oldest" ? "oldest" : "newest");
-                setPage(1);
+                if (value === "createdAt" || value === "-createdAt")
+                  filters.set({ sort: value });
               }}
               options={SORTS}
             />
@@ -230,10 +253,7 @@ const CommentsTable = ({ initialWithin }: IProps) => {
               label="Per page"
               hideLabel
               value={limit}
-              onChange={(value) => {
-                setLimit(Number(value) || PAGE_SIZES[0]);
-                setPage(1);
-              }}
+              onChange={(value) => filters.set({ limit: Number(value) })}
               options={PAGE_SIZE_OPTIONS}
             />
             {list.isFetching && !list.isLoading && (
@@ -251,7 +271,7 @@ const CommentsTable = ({ initialWithin }: IProps) => {
           isLoading={list.isLoading}
           skeletonRows={8}
           minWidth={880}
-          caption={`Comments${windowLabel ? ` from ${windowLabel}` : ""}, ${sort === "newest" ? "newest" : "oldest"} first`}
+          caption={`Comments${windowLabel ? ` from ${windowLabel}` : ""}, ${sort === "-createdAt" ? "newest" : "oldest"} first`}
           footer={
             <ListFooter
               total={meta?.total}
@@ -260,9 +280,9 @@ const CommentsTable = ({ initialWithin }: IProps) => {
               page={meta?.page ?? page}
               totalPages={totalPages}
               pageSize={meta?.limit ?? limit}
-              onPageChange={setPage}
+              onPageChange={(next) => filters.set({ page: Math.max(1, next) })}
               isError={isError}
-              context={windowLabel ? ` from ${windowLabel}` : null}
+              context={scope}
             />
           }
           emptyState={
@@ -319,7 +339,7 @@ const CommentsTable = ({ initialWithin }: IProps) => {
                   windowLabel ? (
                     <button
                       type="button"
-                      onClick={() => onFilter("all")}
+                      onClick={() => filters.set({ within: "all" })}
                       className={quietButton}
                     >
                       Show all comments
@@ -510,7 +530,7 @@ const CommentsTable = ({ initialWithin }: IProps) => {
                       ? list.refetch()
                       : nothingMatched
                         ? setQuery("")
-                        : onFilter("all")
+                        : filters.set({ within: "all" })
                   }
                   className={quietButton}
                 >
@@ -624,9 +644,9 @@ const CommentsTable = ({ initialWithin }: IProps) => {
             page={meta?.page ?? page}
             totalPages={totalPages}
             pageSize={meta?.limit ?? limit}
-            onPageChange={setPage}
+            onPageChange={(next) => filters.set({ page: Math.max(1, next) })}
             isError={isError}
-            context={windowLabel ? ` from ${windowLabel}` : null}
+            context={scope}
           />
         </div>
       )}
