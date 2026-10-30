@@ -29,7 +29,7 @@ export const topCategories = (
     .slice(0, limit);
 
 /** The category's own page, or the search that covers a name without a slug. */
-const browseHref = (category: ICategory) => {
+export const browseHref = (category: Pick<ICategory, "name">) => {
   const path = categoryPath(category.name);
   return path === "/" ? searchPath(category.name) : path;
 };

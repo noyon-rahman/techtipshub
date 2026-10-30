@@ -13,22 +13,22 @@ import { LuFolderTree } from "react-icons/lu";
  * phone had no way into the category list from the feed at all. It sits on the
  * same row as the feed switch and uses the same quiet treatment, so it reads
  * as navigation rather than a second action.
+ *
+ * On `/categories` itself it is left out: a shortcut to the page you are
+ * already on is the one thing that row does not need.
  */
 const CategoriesButton = () => {
   const pathname = usePathname();
   const active = pathname?.startsWith(categoriesPath) ?? false;
+
+  if (active) return null;
 
   return (
     <Button
       as={Link}
       href={categoriesPath}
       radius="full"
-      aria-current={active ? "page" : undefined}
-      className={
-        active
-          ? "bg-default-200 font-medium text-foreground"
-          : "bg-transparent font-medium text-default-600 hover:bg-default-100 hover:text-foreground"
-      }
+      className="bg-transparent font-medium text-default-600 hover:bg-default-100 hover:text-foreground"
       startContent={<LuFolderTree aria-hidden className="text-lg" />}
     >
       Categories
