@@ -1,7 +1,7 @@
 "use server";
 
 import envConfig from "@/config/env.config";
-import { legacyResponse } from "@/lib/api-contract";
+import { legacyResponse, TLegacyBody } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
 import {
   ACCESS_TOKEN_COOKIE,
@@ -11,6 +11,17 @@ import {
 import { getSession, ISessionUser } from "@/lib/session";
 import { TLoggedInUser, TLogin } from "@/types";
 import { cookies } from "next/headers";
+
+// The API's own answer, read by status rather than by guessing at the copy.
+const VALIDATION_STATUS = 400;
+const RATE_LIMITED_STATUS = 429;
+
+/** Said when a reset failed for a reason no other machine can describe. */
+const RESET_FAILED_MESSAGE =
+  "The password was not changed: the server did not answer. Try again in a moment.";
+
+const RATE_LIMITED_MESSAGE =
+  "Too many password resets from this connection. Wait a few minutes and try again.";
 
 const cookieOptions = {
   secure: envConfig.NODE_ENV === "production",
@@ -163,6 +174,47 @@ export const forgetPassword = async (payload: { email: string }) => {
   }
 };
 
+/**
+ * What a failed reset says.
+ *
+ * The API knows why it refused: a spent or expired link, a password that
+ * breaks its rule, a blocked account, too many tries. That answer is shown in
+ * the API's own words, because a user can act on it. Only the case with no
+ * answer at all is worded here, and it says the one true thing about that case:
+ * the request never landed, so nothing changed.
+ *
+ * A password that breaks the rule is kept as a sentence about the field, not
+ * as the API's general "did not pass validation" line: the form shows one line.
+ */
+const asResetFailure = (
+  status: number | undefined,
+  data: unknown,
+): TLegacyBody => {
+  const response = (
+    data && typeof data === "object" ? data : { success: false }
+  ) as TLegacyBody;
+  const message = typeof response.message === "string" ? response.message : "";
+
+  const fieldMessage = Array.isArray(response.errorSources)
+    ? response.errorSources.find((source) => typeof source?.message === "string")
+        ?.message
+    : undefined;
+
+  if (status === VALIDATION_STATUS && fieldMessage) {
+    return { ...response, success: false, message: fieldMessage };
+  }
+
+  if (status === RATE_LIMITED_STATUS) {
+    return { ...response, success: false, message: RATE_LIMITED_MESSAGE };
+  }
+
+  return {
+    ...response,
+    success: false,
+    message: message || RESET_FAILED_MESSAGE,
+  };
+};
+
 export const resetPassword = async (payload: {
   newPassword: string;
   token: string;
@@ -170,14 +222,35 @@ export const resetPassword = async (payload: {
   const { token, ...body } = payload;
 
   try {
+    const signedIn = (await getSession()).signedIn;
+
     // The token identifies the account; it is never written into the URL.
-    const res = await axiosInstance.post("/auth/reset-password", body, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    //
+    // Signed out, the call goes to the API itself. The app's proxy
+    // (`/api/v1/[...path]`) refuses anything without a session, and the reset
+    // is exactly the call someone with no session needs to make.
+    //
+    // Signed in, someone may hold an admin session in another tab of this
+    // browser, and a client-side call would leave that session token in the
+    // header no matter what it asked for. That path answers with the reset
+    // token itself, which the interceptor leaves untouched.
+    const res = await axiosInstance.post(
+      "/auth/reset-password",
+      body,
+      signedIn
+        ? {
+            baseURL: envConfig.baseApi,
+            headers: { "X-Reset-Token": token },
+          }
+        : {
+            baseURL: envConfig.baseApi,
+            headers: { Authorization: `Bearer ${token}` },
+          },
+    );
 
     return res.data;
   } catch (err: any) {
-    return err?.response?.data;
+    return asResetFailure(err?.response?.status, err?.response?.data);
   }
 };
 

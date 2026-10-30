@@ -669,6 +669,21 @@
   color: hsl(var(--heroui-primary-400));
 }
 
+/* The show/hide button inside a password field. Written here because the amber
+   split is a stylesheet rule: `outline-primary-accessible` is not a Tailwind
+   colour, so that utility silently resolved to nothing and the button showed no
+   focus ring at all. One class, both themes, like `.tth-article a`. The
+   important flags beat the control's own `outline-transparent` reset, which
+   targets the same property and is loaded after this file. */
+.tth-password-toggle:focus-visible {
+  outline: 2px solid hsl(var(--heroui-primary-800)) !important;
+  outline-offset: 2px;
+}
+
+.dark .tth-password-toggle:focus-visible {
+  outline-color: hsl(var(--heroui-primary-400)) !important;
+}
+
 .tth-article a:hover {
   color: var(--color-foreground);
 }

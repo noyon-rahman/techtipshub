@@ -159,12 +159,35 @@ Things known to be wrong or unfinished, in the order they matter.
   is the same data under the same tag, so an admin category edit invalidates both.
 - **`proxy.ts` is a filter, not a gate.** A page or action must re-check the
   session before acting; a proxy check runs on prefetches too.
+- **The interceptor attaches the session only.** `lib/AxiosInstance` returns the
+  request untouched when the caller already set `Authorization`, and the reset
+  call never goes through `/api/v1` (that proxy refuses a request with no
+  session, and a signed-out reset has none). A reset token rides in
+  `X-Reset-Token` when the browser holds a session, so a session token can never
+  take its place. Any new call carrying its own credential needs the same two
+  things.
+- **A reset link works once.** The API compares the JWT's `iat` with the user's
+  `passwordChangeAt` and answers "already been used" when the password changed
+  after the token was minted. The screen shows the API's own sentence for every
+  refusal: a spent or expired link gets "Request a new link", anything else
+  (blocked account, no answer, too many tries) gets "Back to sign in". Only a
+  password the rule rejects keeps the form, with the API's field message shown.
+- **A password is 8 characters, in the form and in the API.** `password()` in
+  `auth.validation.ts` and `newPasswordValidationSchema` must agree; the form's
+  bound was 6 for a while, so a six-character password passed the form and then
+  failed at the API with "did not pass validation".
 
 ## Changelog of state
 
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-10-30: Password reset fixed (#15). The reset call no longer picks up the
+  session's `Authorization` (or loses its own token in the browser), so links
+  stop reporting "not valid"; a failed reset that is not about the link says so
+  instead of blaming it; links are one-time. One shared `PasswordInput` (44px
+  show/hide button inside the field, amber focus ring in both themes) now serves
+  login, signup and reset.
 - 2026-10-30: Category handling fixed (#5). Searchable picker in both composers
   and the admin one, each category listed with its published count; the feed
   card shows the top eight and `/categories` is a directory of every category.

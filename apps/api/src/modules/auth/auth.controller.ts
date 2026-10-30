@@ -85,7 +85,12 @@ const forgetPassword = async (c: Context<TAppBindings>) => {
 };
 
 const resetPassword = async (c: Context<TAppBindings>) => {
-  const token = c.req.header("authorization")?.split(" ")[1];
+  // A reset token travels in its own header. `Authorization` is the session's
+  // and stays the fallback for older links and direct API clients, but a
+  // caller that sends both means the reset token, every time.
+  const token =
+    c.req.header("x-reset-token")?.trim() ||
+    c.req.header("authorization")?.split(" ")[1];
 
   if (!token) {
     throw new AppError(httpStatus.FORBIDDEN, "Access Forbidden");

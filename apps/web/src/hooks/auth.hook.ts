@@ -68,7 +68,14 @@ export const useForgetPassword = () => {
 };
 
 export const useResetPassword = () => {
-  return useMutation<any, Error, { newPassword: string; token: string }>({
+  // A reset can fail without ever reaching the API, so the result may be
+  // undefined; the return type says so, which the form needs in order to read
+  // a field-level problem off it.
+  return useMutation<
+    Awaited<ReturnType<typeof resetPassword>>,
+    Error,
+    { newPassword: string; token: string }
+  >({
     mutationKey: ["RESET_PASSWORD"],
     mutationFn: async (payload) => await resetPassword(payload),
     onSuccess: (data) => {

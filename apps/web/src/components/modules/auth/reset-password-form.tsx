@@ -1,15 +1,15 @@
 "use client";
 
+import PasswordInput from "@/components/form/password-input";
 import THForm from "@/components/form/th-from";
-import THInput from "@/components/form/th-input";
 import { useResetPassword } from "@/hooks/auth.hook";
 import { newPasswordValidationSchema } from "@/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@heroui/react";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
-import { FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiCheckCircle } from "react-icons/fi";
 
 const label = "mb-1 block tth-label-sm text-default-600";
 
@@ -59,49 +59,35 @@ const useResetToken = () => {
   };
 };
 
-const PasswordField = ({
-  name,
-  id,
-  placeholder,
-  autoComplete,
-}: {
-  name: string;
-  id: string;
-  placeholder: string;
-  autoComplete: string;
-}) => {
-  const [visible, setVisible] = useState(false);
-
-  return (
-    <div className="relative">
-      <THInput
-        name={name}
-        id={id}
-        type={visible ? "text" : "password"}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        radius="lg"
-        variant="bordered"
-        classNames={{ inputWrapper: "pr-10" }}
-      />
-      <button
-        type="button"
-        onClick={() => setVisible((value) => !value)}
-        aria-label={visible ? "Hide password" : "Show password"}
-        className="absolute right-3 top-[2.15rem] text-default-600 transition-colors hover:text-foreground"
-      >
-        {visible ? <FiEyeOff /> : <FiEye />}
-      </button>
-    </div>
-  );
-};
-
 const ResetPasswordForm = () => {
   const { token, state } = useResetToken();
   const { mutate, isPending, data, reset } = useResetPassword();
 
+  const errorMessage = data && !data.success ? data.message : undefined;
+
+  // Only one kind of failure leaves the form usable: a password the rule will
+  // take, sent down a link that turned out to be spent or expired. Every other
+  // refusal names something the form cannot fix from here - the link, the
+  // account, the server - so it replaces the form instead of sitting over it.
+  const fieldMessage = !errorMessage
+    ? undefined
+    : data?.errorSources?.find(
+        (source: { path: string | number }) => source.path === "newPassword",
+      )?.message;
+
+  const rejectedPassword =
+    !!fieldMessage &&
+    !!errorMessage &&
+    fieldMessage === errorMessage;
+
+  const terminal = !!errorMessage && !rejectedPassword;
+
+  // The two refusals whose fix is a fresh email. Everything else that stops the
+  // form points at the account or the server, where a new link would not help.
+  const linkProblem = !!errorMessage && /reset link/i.test(errorMessage);
+
   const onSubmit: SubmitHandler<FieldValues> = (values) => {
-    if (!token) return;
+    if (!token || terminal) return;
     mutate({ newPassword: values.newPassword, token });
   };
 
@@ -188,7 +174,41 @@ const ResetPasswordForm = () => {
     );
   }
 
-  const errorMessage = data && !data.success ? data.message : undefined;
+  // Every refusal reads the same way: what the API said, and the one action
+  // that answers it. The API's sentence is the message, so it is not rewritten.
+  if (terminal && errorMessage) {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-danger/30 bg-danger/10 p-5"
+      >
+        <p className="font-medium text-danger">{errorMessage}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {linkProblem && (
+            <Button
+              as={Link}
+              href="/forget-password"
+              radius="lg"
+              color="primary"
+              className="font-semibold"
+              onClick={() => reset()}
+            >
+              Request a new link
+            </Button>
+          )}
+          <Button
+            as={Link}
+            href="/login"
+            radius="lg"
+            variant="bordered"
+            className="border border-default-300 font-medium text-foreground hover:bg-default-100"
+          >
+            Back to sign in
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <THForm
@@ -200,10 +220,10 @@ const ResetPasswordForm = () => {
           <label htmlFor="newPassword" className={label}>
             New password
           </label>
-          <PasswordField
+          <PasswordInput
             name="newPassword"
             id="newPassword"
-            placeholder="At least 6 characters"
+            placeholder="At least 8 characters"
             autoComplete="new-password"
           />
         </div>
@@ -212,7 +232,7 @@ const ResetPasswordForm = () => {
           <label htmlFor="confirmPassword" className={label}>
             Confirm new password
           </label>
-          <PasswordField
+          <PasswordInput
             name="confirmPassword"
             id="confirmPassword"
             placeholder="Type it again"
@@ -221,7 +241,7 @@ const ResetPasswordForm = () => {
         </div>
 
         <p className="text-xs text-default-600">
-          Use at least 6 characters. A passphrase you don’t use anywhere else is
+          Use at least 8 characters. A passphrase you don’t use anywhere else is
           strongest.
         </p>
 
@@ -230,16 +250,7 @@ const ResetPasswordForm = () => {
             role="alert"
             className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
           >
-            <p>{errorMessage}</p>
-            {/expired|not valid/i.test(errorMessage) && (
-              <Link
-                href="/forget-password"
-                className="mt-1 inline-block font-semibold underline underline-offset-4"
-                onClick={() => reset()}
-              >
-                Request a new link
-              </Link>
-            )}
+            {errorMessage}
           </div>
         )}
 
