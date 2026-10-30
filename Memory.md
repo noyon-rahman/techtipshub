@@ -141,9 +141,17 @@ Things known to be wrong or unfinished, in the order they matter.
   (`categoryName`), because the list it would look the name up in never has that
   row. Anything that resolves a category for display has to fall back to the
   stored name (`pickerItemName`), or a restored draft reads back blank.
-- **The category list is one TanStack entry** (`useCategoryList`). The picker's
-  retry, the composer and the edit screen share it, and a request that is
-  approved lands in it on the next refetch, not by hand.
+- **A category's `blogCount` is counted from the articles, not from the stored
+  `postCount`.** The stored number only moves when an article is created,
+  published, deleted or moved, so it drifts, and a reader sent to a category
+  page would see a different total. `category.service.ts` counts both lists from
+  one aggregate; do not read the model field for a number a reader sees. The
+  model also needs `toJSON: { virtuals: true }` for `blogCount` to exist at all.
+- **The category list is cached for an hour and tagged `categories`.** The
+  browser reads it through one TanStack entry (`useCategoryList`), shared by the
+  picker's retry, the composer and the edit screen; a request approved later
+  lands in it on the next refetch, not by hand. The server list (`siteCategories`)
+  is the same data under the same tag, so an admin category edit invalidates both.
 - **`proxy.ts` is a filter, not a gate.** A page or action must re-check the
   session before acting; a proxy check runs on prefetches too.
 
