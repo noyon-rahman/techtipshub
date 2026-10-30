@@ -9,6 +9,7 @@ import {
   LuListOrdered,
   LuMinus,
   LuQuote,
+  LuTable,
   LuText,
   LuImage,
   LuLink,
@@ -37,7 +38,18 @@ export interface SlashItem {
   run?: (editor: Editor) => void;
   /** Extra check used to highlight the active block. */
   isActive?: (editor: Editor) => boolean;
+  /**
+   * Keeps the entry out of the block-style dropdown, which only changes the
+   * current block and has nothing to select for a table.
+   */
+  paletteOnly?: boolean;
 }
+
+/** Default table shape for both the menu and the toolbar. */
+export const DEFAULT_TABLE = { rows: 3, cols: 3, withHeaderRow: true };
+
+export const insertTable = (chain: ChainedCommands, size = DEFAULT_TABLE) =>
+  chain.insertTable(size);
 
 export const slashItems: SlashItem[] = [
   {
@@ -105,6 +117,15 @@ export const slashItems: SlashItem[] = [
     isActive: (editor) => editor.isActive("codeBlock"),
   },
   {
+    title: "Table",
+    hint: "Rows and columns",
+    keywords: ["table", "grid", "rows", "columns", "cells", "|"],
+    icon: LuTable,
+    chain: (chain) => insertTable(chain),
+    paletteOnly: true,
+    isActive: (editor) => editor.isActive("table"),
+  },
+  {
     title: "Divider",
     hint: "Visual separator",
     keywords: ["hr", "divider", "separator", "line", "---"],
@@ -139,3 +160,14 @@ export const filterSlashItems = (items: SlashItem[], query: string) => {
       item.keywords.some((keyword) => keyword.includes(q)),
   );
 };
+
+/**
+ * Entries the block-style dropdown offers.
+ *
+ * That menu switches the current block's type, so it keeps to the entries
+ * with an active state and leaves out inserts like Divider and Table (and the
+ * dialogs), which start something new rather than changing what is there.
+ */
+export const blockStyleItems = slashItems.filter(
+  (item) => item.isActive && !item.paletteOnly,
+);

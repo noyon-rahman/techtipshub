@@ -84,3 +84,25 @@ for (const blog of json.data) {
 
 console.log(`blogs: ${json.data.length}   preserved: ${textSame}`);
 for (const p of problems) console.log("  - " + p);
+
+// Tables: the schema gained nodes, so a stored <table> from the new editor
+// must come back as the same table rather than being flattened to text.
+const tableCase = [
+  "<table><tbody>",
+  "<tr><th><p>Name</p></th><th><p>Value</p></th></tr>",
+  "<tr><td><p>One</p></td><td><p>1</p></td></tr>",
+  "</tbody></table>",
+].join("");
+
+const tableAfter = serializeBlogHTML(
+  generateHTML(generateJSON(tableCase, schemaExtensions), schemaExtensions),
+);
+const sameTable =
+  words(tableAfter) === words(tableCase) &&
+  (tableAfter.match(/<\/table>/g) || []).length === 1 &&
+  (tableAfter.match(/<th[\s>]/g) || []).length === 2 &&
+  (tableAfter.match(/<td[\s>]/g) || []).length === 2 &&
+  (tableAfter.match(/<tr[\s>]/g) || []).length === 2;
+
+console.log(`table round-trip: ${sameTable ? "ok" : "FAILED"}`);
+if (!sameTable) console.log(`  got: ${tableAfter}`);
