@@ -18,16 +18,17 @@ import ListFrame from "@/components/modules/admin/kit/list-frame";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import StatusPill from "@/components/ui/status-pill";
 import { useAdminMembers } from "@/hooks/admin-members";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
 import {
   useBlockUser,
   useDeleteUserAccount,
   useMakeAdmin,
   useUnblockUser,
 } from "@/hooks/user.hook";
-import type { IUser, TUserRole } from "@/types";
+import type { IUser } from "@/types";
 import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiExternalLink,
   FiSearch,
@@ -38,16 +39,40 @@ import {
 import { PiUsers } from "react-icons/pi";
 import RowMenu from "./row-menu";
 
-type RoleFilter = "all" | TUserRole;
+/**
+ * The values `GET /admin/users` accepts, plus `all` for "no filter" (see
+ * `parseEnumParam` in the API's `user.service.ts`, which also normalises case).
+ * Both the status tabs and the role select send the value as stored.
+ */
+const MEMBERS_LIST = {
+  status: listParam({
+    values: ["all", "Active", "Blocked"] as const,
+    default: "all",
+    resetsPage: true,
+  }),
+  role: listParam({
+    values: ["all", "User", "Admin"] as const,
+    default: "all",
+    resetsPage: true,
+  }),
+  searchTerm: listParam({ default: "", resetsPage: true }),
+  page: listParam({ default: 1 }),
+  limit: listParam({
+    default: PAGE_SIZES[0],
+    allowed: PAGE_SIZES,
+    resetsPage: true,
+  }),
+} as const;
 
-/** The role values `GET /admin/users` accepts; anything else is a 400. */
-const ROLE_OPTIONS: { value: RoleFilter; label: string }[] = [
+const ROLE_OPTIONS: { value: string; label: string }[] = [
   { value: "all", label: "All roles" },
   { value: "User", label: "Members" },
   { value: "Admin", label: "Admins" },
 ];
 
-type Tab = "all" | "blocked";
+/** The two status tabs, which are labels for the schema's status values. */
+const isStatusTab = (value: string): value is "all" | "blocked" =>
+  value === "all" || value === "blocked";
 
 const displayName = (user: IUser) =>
   user.fullName?.trim() || user.username || "Unnamed member";
@@ -101,40 +126,42 @@ const MenuSeparator = () => (
 );
 
 /**
- * Member management. Search, role, tab, page size and page go to
+ * Member management. Search, role, status, page size and page go to
  * `GET /admin/users`, so the footer total and the pager cover every account
  * rather than the rows that were fetched.
  *
  * "Blocked" is a tab and not a status select: it is the one account state an
  * admin acts on, and the dashboard links straight to it. The status column
  * still says which accounts are active, and which are unverified.
+ *
+ * Every one of those is in the URL, so a reload or a bookmark returns the same
+ * tab, page and search.
  */
-const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
-  const [query, setQuery] = useState("");
-  // `?filter=blocked` is the dashboard's blocked-accounts link.
-  const [tab, setTab] = useState<Tab>(
-    initialFilter === "blocked" ? "blocked" : "all",
+const UsersTable = () => {
+  const filters = useAdminListParams(MEMBERS_LIST);
+  const { status, role, page, limit } = filters.values;
+  const [query, setQuery] = useState(filters.values.searchTerm);
+
+  // Settling a search reads the latest setter without restarting the timer.
+  const setFiltersRef = useRef(filters.set);
+  useEffect(() => {
+    setFiltersRef.current = filters.set;
+  }, [filters.set]);
+  useDebouncedTerm(
+    query,
+    useCallback((searchTerm: string) => {
+      setFiltersRef.current({ searchTerm });
+    }, []),
   );
-  const [role, setRole] = useState<RoleFilter>("all");
-  const [seenFilter, setSeenFilter] = useState(initialFilter);
 
-  if (seenFilter !== initialFilter) {
-    setSeenFilter(initialFilter);
-    setTab(initialFilter === "blocked" ? "blocked" : "all");
-    setPage(1);
-  }
-
-  const resetPage = useCallback(() => setPage(1), []);
-  const searchTerm = useDebouncedTerm(query, resetPage);
+  const searchTerm = filters.values.searchTerm;
 
   const list = useAdminMembers({
     page,
     limit,
     searchTerm,
     role: role === "all" ? undefined : role,
-    status: tab === "blocked" ? "Blocked" : undefined,
+    status: status === "all" ? undefined : status,
   });
 
   const { mutate: blockUser, isPending: isBlocking } = useBlockUser();
@@ -152,21 +179,20 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
     void refetch();
   };
 
+  // Emptying the last row of a page leaves the reader on a page the list no
+  // longer has, so step back one. Nothing moves on page 1.
   const onDeleted = useCallback(() => {
-    if (page > 1 && rows.length <= 1)
-      setPage((current) => Math.max(1, current - 1));
-  }, [page, rows.length]);
+    if (page > 1 && rows.length <= 1) filters.set({ page: page - 1 });
+  }, [filters, page, rows.length]);
 
-  const changeTab = (next: Tab) => {
-    setTab(next);
-    setPage(1);
-  };
+  const changeTab = (next: "all" | "blocked") =>
+    filters.set({ status: next === "blocked" ? "Blocked" : "all" });
 
-  const filters = [
+  const tabs = [
     {
       key: "all",
       label: "All members",
-      count: tab === "all" ? meta?.total : undefined,
+      count: status === "all" ? meta?.total : undefined,
     },
     { key: "blocked", label: "Blocked" },
   ];
@@ -175,8 +201,7 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
 
   const resetFilters = () => {
     setQuery("");
-    setRole("all");
-    setPage(1);
+    filters.set({ role: "all", searchTerm: "" });
   };
 
   const emptyState = isError ? (
@@ -194,7 +219,7 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
         </button>
       }
     />
-  ) : tab === "blocked" ? (
+  ) : status === "Blocked" ? (
     <EmptyState
       variant="inline"
       icon={<PiUsers className="size-5" />}
@@ -234,11 +259,12 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
   return (
     <ListFrame label="Member accounts">
       <DataToolbar
-        filters={filters}
-        activeFilter={tab}
-        onFilterChange={(key) =>
-          changeTab(key === "blocked" ? "blocked" : "all")
-        }
+        filters={tabs}
+        activeFilter={status === "Blocked" ? "blocked" : "all"}
+        onFilterChange={(key) => {
+          if (isStatusTab(key))
+            changeTab(key === "blocked" ? "blocked" : "all");
+        }}
         query={query}
         onQueryChange={setQuery}
         searchPlaceholder="Name, username or email"
@@ -249,8 +275,8 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
               hideLabel
               value={role}
               onChange={(value) => {
-                setRole(value === "User" || value === "Admin" ? value : "all");
-                setPage(1);
+                if (value === "User" || value === "Admin" || value === "all")
+                  filters.set({ role: value });
               }}
               options={ROLE_OPTIONS}
             />
@@ -258,10 +284,7 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
               label="Per page"
               hideLabel
               value={limit}
-              onChange={(value) => {
-                setLimit(Number(value) || PAGE_SIZES[0]);
-                setPage(1);
-              }}
+              onChange={(value) => filters.set({ limit: Number(value) })}
               options={PAGE_SIZE_OPTIONS}
             />
           </>
@@ -501,12 +524,12 @@ const UsersTable = ({ initialFilter }: { initialFilter?: string }) => {
         page={meta?.page ?? page}
         totalPages={totalPages}
         pageSize={pageSize}
-        onPageChange={setPage}
+        onPageChange={(next) => filters.set({ page: Math.max(1, next) })}
         isLoading={isLoading && !meta}
         isError={isError}
         context={
           [
-            tab === "blocked" ? ", blocked only" : "",
+            status === "Blocked" ? ", blocked only" : "",
             role === "all"
               ? ""
               : role === "Admin"

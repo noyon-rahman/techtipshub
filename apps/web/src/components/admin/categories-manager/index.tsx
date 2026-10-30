@@ -22,12 +22,13 @@ import {
   useDeleteCategory,
   useUpdateCategory,
 } from "@/hooks/admin-categories";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
 import type { ICategoryPayload } from "@/services/admin/categories";
 import type { IAdminCategory } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, Textarea } from "@heroui/react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { FiEdit2, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
 import { RiFolder3Line } from "react-icons/ri";
@@ -79,6 +80,21 @@ const formatDay = (value?: string) =>
 
 type Tab = "all" | "unused";
 
+const CATEGORY_LIST = {
+  tab: listParam({
+    values: ["all", "unused"] as const,
+    default: "all",
+    resetsPage: true,
+  }),
+  searchTerm: listParam({ default: "", resetsPage: true }),
+  page: listParam({ default: 1 }),
+  limit: listParam({
+    default: PAGE_SIZES[0],
+    allowed: PAGE_SIZES,
+    resetsPage: true,
+  }),
+} as const;
+
 /** The form dialog is open for a new category or for the one being renamed. */
 type FormState =
   | { mode: "closed" }
@@ -94,6 +110,9 @@ type FormState =
  * phrase finds a category whichever field it lives in. The API pages nothing
  * here, so paging and tabs are applied to the filtered set on the client and
  * the footer count describes that same set.
+ *
+ * Tab, search, page and page size are in the URL, so a reload or a bookmark
+ * returns the same view.
  */
 const CategoriesManager = ({
   createRequested,
@@ -103,10 +122,9 @@ const CategoriesManager = ({
   createRequested: boolean;
   onCreateRequestedChange: (open: boolean) => void;
 }) => {
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<Tab>("all");
+  const filters = useAdminListParams(CATEGORY_LIST);
+  const { page, limit, tab, searchTerm } = filters.values;
+  const [query, setQuery] = useState(searchTerm);
   const [form, setForm] = useState<FormState>({ mode: "closed" });
 
   // One flag, so "creating from the header" and "renaming a row" can never be
@@ -114,8 +132,17 @@ const CategoriesManager = ({
   const isFormOpen = createRequested || form.mode !== "closed";
   const editing = form.mode === "edit" ? form.category : null;
 
-  const resetPage = useCallback(() => setPage(1), []);
-  const searchTerm = useDebouncedTerm(query, resetPage);
+  // Settling a search reads the latest setter without restarting the timer.
+  const filtersRef = useRef(filters.set);
+  useEffect(() => {
+    filtersRef.current = filters.set;
+  }, [filters.set]);
+  useDebouncedTerm(
+    query,
+    useCallback((term: string) => {
+      filtersRef.current({ searchTerm: term });
+    }, []),
+  );
 
   const list = useAdminCategories({ searchTerm });
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
@@ -155,15 +182,12 @@ const CategoriesManager = ({
   );
   const pageRows = visible.slice(pageStart, pageStart + limit);
 
-  const changeTab = (next: Tab) => {
-    setTab(next);
-    setPage(1);
-  };
+  const changeTab = (next: Tab) => filters.set({ tab: next });
 
   const matchingCount = isLoading ? undefined : matching.length;
   const unusedCount = isLoading ? undefined : unused.length;
 
-  const filters = [
+  const tabs = [
     { key: "all", label: "All", count: matchingCount },
     { key: "unused", label: "Unused", count: unusedCount },
   ];
@@ -296,7 +320,7 @@ const CategoriesManager = ({
     <>
       <ListFrame label="Categories">
         <DataToolbar
-          filters={filters}
+          filters={tabs}
           activeFilter={tab}
           onFilterChange={(key) => changeTab(key === "unused" ? key : "all")}
           query={query}
@@ -307,10 +331,9 @@ const CategoriesManager = ({
               label="Per page"
               hideLabel
               value={limit}
-              onChange={(value) => {
-                setLimit(Number(value) || PAGE_SIZES[0]);
-                setPage(1);
-              }}
+              onChange={(value) =>
+                filters.set({ limit: Number(value) || PAGE_SIZES[0] })
+              }
               options={PAGE_SIZE_OPTIONS}
             />
           }
@@ -406,7 +429,7 @@ const CategoriesManager = ({
                           deleteCategory(category._id, {
                             onSuccess: () => {
                               if (page > 1 && pageRows.length <= 1) {
-                                setPage((current) => Math.max(1, current - 1));
+                                filters.set({ page: page - 1 });
                               }
                             },
                           })
@@ -429,7 +452,7 @@ const CategoriesManager = ({
           page={page}
           totalPages={totalPages}
           pageSize={limit}
-          onPageChange={setPage}
+          onPageChange={(next) => filters.set({ page: next })}
           isLoading={isLoading && pageRows.length === 0}
           isError={isError}
           context={

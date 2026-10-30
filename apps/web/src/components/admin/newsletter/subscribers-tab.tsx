@@ -13,15 +13,30 @@ import {
   useNewsletterSubscribers,
   useRemoveSubscriber,
 } from "@/hooks/admin-newsletter";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
 import type { INewsletterSubscriber } from "@/services/admin/newsletter";
 import { Spinner, useDisclosure } from "@heroui/react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiDownload, FiPlus, FiSearch, FiX } from "react-icons/fi";
 
 import AddSubscriberModal from "./add-subscriber-modal";
 import { quietButton } from "./buttons";
-import type { SubscriberFilter } from "./subscriber-filters";
 import SubscriberList from "./subscriber-list";
+
+const SUBSCRIBER_LIST = {
+  status: listParam({
+    values: ["all", "active", "unsubscribed", "bounced", "complained"] as const,
+    default: "all",
+    resetsPage: true,
+  }),
+  searchTerm: listParam({ default: "", resetsPage: true }),
+  page: listParam({ default: 1 }),
+  limit: listParam({
+    default: PAGE_SIZES[0],
+    allowed: PAGE_SIZES,
+    resetsPage: true,
+  }),
+} as const;
 
 /**
  * The list of people.
@@ -29,24 +44,35 @@ import SubscriberList from "./subscriber-list";
  * Search, status, paging and page size are all server-side, so the screen
  * never holds more than one page. The counts on the tabs come back with the
  * rows and cover the whole list, not the page.
+ *
+ * All four live in the URL: a reload, a bookmark or a shared link returns the
+ * same view, and changing a tab returns to the first page.
  */
 const SubscribersTab = () => {
-  const [status, setStatus] = useState<SubscriberFilter>("all");
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
-  const [query, setQuery] = useState("");
+  const filters = useAdminListParams(SUBSCRIBER_LIST);
+  const [query, setQuery] = useState(filters.values.searchTerm);
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<INewsletterSubscriber | null>(null);
   const confirm = useDisclosure();
 
-  const backToFirstPage = useCallback(() => setPage(1), []);
-  const searchTerm = useDebouncedTerm(query, backToFirstPage);
+  // Settling a search reads the latest setter without restarting the timer.
+  const setFiltersRef = useRef(filters.set);
+  useEffect(() => {
+    setFiltersRef.current = filters.set;
+  }, [filters.set]);
+
+  useDebouncedTerm(
+    query,
+    useCallback((searchTerm: string) => {
+      setFiltersRef.current({ searchTerm });
+    }, []),
+  );
 
   const listQuery = useNewsletterSubscribers({
-    page,
-    limit,
-    status,
-    searchTerm,
+    page: filters.values.page,
+    limit: filters.values.limit,
+    status: filters.values.status,
+    searchTerm: filters.values.searchTerm,
   });
   const remove = useRemoveSubscriber();
   const exportList = useExportSubscribers();
@@ -54,11 +80,6 @@ const SubscribersTab = () => {
   const meta = listQuery.meta;
   const totalPages = Math.max(meta?.totalPages ?? 1, 1);
   const total = meta?.total ?? 0;
-
-  const changeStatus = (next: SubscriberFilter) => {
-    setStatus(next);
-    setPage(1);
-  };
 
   const askRemove = (subscriber: INewsletterSubscriber) => {
     setRemoving(subscriber);
@@ -103,11 +124,8 @@ const SubscribersTab = () => {
           <ListSelect
             label="Per page"
             hideLabel
-            value={limit}
-            onChange={(value) => {
-              setLimit(Number(value) || PAGE_SIZES[0]);
-              setPage(1);
-            }}
+            value={filters.values.limit}
+            onChange={(value) => filters.set({ limit: Number(value) })}
             options={PAGE_SIZES.map((size) => ({
               value: size,
               label: `${size} per page`,
@@ -150,10 +168,10 @@ const SubscribersTab = () => {
           failed={listQuery.isError}
           failedMessage={listQuery.error?.message}
           onRetry={() => listQuery.refetch()}
-          status={status}
-          onStatusChange={changeStatus}
+          status={filters.values.status}
+          onStatusChange={(status) => filters.set({ status })}
           counts={listQuery.counts}
-          searchTerm={searchTerm}
+          searchTerm={filters.values.searchTerm}
           onClearSearch={() => setQuery("")}
           removingEmail={remove.isPending ? remove.variables : undefined}
           onRemove={askRemove}
@@ -163,11 +181,11 @@ const SubscribersTab = () => {
           !listQuery.isError &&
           listQuery.rows.length > 0 && (
             <AdminPagination
-              page={meta?.page ?? page}
+              page={meta?.page ?? filters.values.page}
               totalPages={totalPages}
               total={total}
-              pageSize={meta?.limit ?? limit}
-              onPageChange={setPage}
+              pageSize={meta?.limit ?? filters.values.limit}
+              onPageChange={(page) => filters.set({ page: Math.max(1, page) })}
             />
           )}
       </div>

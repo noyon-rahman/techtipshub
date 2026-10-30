@@ -14,14 +14,8 @@ function MessagesBody() {
   const searchParams = useSearchParams();
   const raw = searchParams.get("message") ?? "";
   const initialMessageId = raw.length > 0 && raw.length <= 64 ? raw : undefined;
-  const initialStatus = searchParams.get("status") ?? undefined;
 
-  return (
-    <MessagesInbox
-      initialMessageId={initialMessageId}
-      initialStatus={initialStatus}
-    />
-  );
+  return <MessagesInbox initialMessageId={initialMessageId} />;
 }
 
 const MessagesPage = () => {

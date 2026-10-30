@@ -1,6 +1,6 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
-import { QueryBuilder } from "../../builder";
+import { QueryBuilder, type TQueryBuilderOptions } from "../../builder";
 import AppError from "../../errors/AppError";
 import { adminLogService } from "../admin/admin-log.service";
 import NewsletterSubscriber from "./newsletter.model";
@@ -24,6 +24,14 @@ const SORT_FIELDS = [
   "consentAt",
   "unsubscribedAt",
 ] as const;
+
+/**
+ * The one query key whose value has been checked above and may therefore
+ * narrow the list. `isDeleted` stays stripped: the list has no use for it.
+ */
+const LIST_OPTIONS: TQueryBuilderOptions = {
+  allowVisibilityFilters: ["status"],
+};
 
 /**
  * The list screen. Every query key is whitelisted before it reaches Mongo, for
@@ -88,6 +96,7 @@ const getAll = async (query: Record<string, unknown>) => {
   const listQuery = new QueryBuilder(
     NewsletterSubscriber.find({}),
     parsed,
+    LIST_OPTIONS,
   ).search(["name", "email"], ["status", "source"]);
 
   await listQuery.filter();

@@ -2,9 +2,10 @@
 
 import CategoriesManager from "@/components/admin/categories-manager";
 import AdminPageHeader from "@/components/modules/admin/kit/page-header";
+import AdminPageSpinner from "@/components/shared/admin-sidebar/admin-page-spinner";
 import { useAdminTitle } from "@/components/shared/admin-sidebar/use-admin-title";
 import ButtonLink from "@/components/ui/button-link";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 
 const CategoriesPage = () => {
@@ -35,10 +36,12 @@ const CategoriesPage = () => {
           </ButtonLink>
         }
       />
-      <CategoriesManager
-        createRequested={createRequested}
-        onCreateRequestedChange={setCreateRequested}
-      />
+      <Suspense fallback={<AdminPageSpinner label="Loading categories" />}>
+        <CategoriesManager
+          createRequested={createRequested}
+          onCreateRequestedChange={setCreateRequested}
+        />
+      </Suspense>
     </div>
   );
 };

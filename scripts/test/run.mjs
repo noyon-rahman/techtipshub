@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
  * There is no browser test suite, and a unit runner that only covered pure
  * helpers would give a green light that meant nothing. So the gate is the set
  * of checks that catch real breakage: typecheck, the formatting and repository
- * invariants, lint, and a production build of both apps.
+ * invariants, the filter contract of the list queries, lint, and a production
+ * build of both apps.
  *
  * A step passes only when it exits 0. The first step to fail stops the run,
  * because lint output after a failed typecheck is noise; the exit code is 1.
@@ -48,6 +49,7 @@ const steps = [
   },
   { name: "format", argv: ["node", "scripts/test/checks/format.mjs"] },
   { name: "invariants", argv: ["node", "scripts/test/checks/invariants.mjs"] },
+  { name: "query-filter", argv: ["node", "scripts/test/checks/query-filter.mjs"] },
   { name: "lint", argv: ["pnpm", "run", "-r", "--if-present", "lint"] },
   { name: "build", argv: ["pnpm", "run", "-r", "--if-present", "build"] },
 ];

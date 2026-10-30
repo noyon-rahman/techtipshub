@@ -5,18 +5,9 @@ import AdminPageHeader from "@/components/modules/admin/kit/page-header";
 import AdminPageSpinner from "@/components/shared/admin-sidebar/admin-page-spinner";
 import { useAdminTitle } from "@/components/shared/admin-sidebar/use-admin-title";
 import ButtonLink from "@/components/ui/button-link";
-import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { FiPlus } from "react-icons/fi";
 import { adminNewBlogPath } from "@/lib/blog-routes";
-
-/** `?sort=` seeds the table's starting tab, read verbatim. */
-function ManageBlogsTable() {
-  const searchParams = useSearchParams();
-  const initialSort = searchParams.get("sort") ?? undefined;
-
-  return <BlogsTable initialSort={initialSort} />;
-}
 
 const ManageBlogsPage = () => {
   useAdminTitle("Articles");
@@ -37,7 +28,7 @@ const ManageBlogsPage = () => {
         }
       />
       <Suspense fallback={<AdminPageSpinner label="Loading articles" />}>
-        <ManageBlogsTable />
+        <BlogsTable />
       </Suspense>
     </div>
   );
