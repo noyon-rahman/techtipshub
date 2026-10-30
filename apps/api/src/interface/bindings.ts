@@ -22,7 +22,11 @@ export type TAppBindings = {
      * this object instead.
      */
     uploadedBody: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-    /** Cookie output of `validate`, on the routes whose schema reads them. */
+    /**
+     * Cookie output of `validate`, on the routes whose schema reads them.
+     */
     validatedCookies: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    /** Query output of `validate`, on the list routes whose schema reads it. */
+    validatedQuery: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   };
 };

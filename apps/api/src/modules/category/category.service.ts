@@ -236,4 +236,5 @@ export const categoryService = {
   deleteSingleCategory,
   update,
   getAdminList,
+  findByName,
 };
