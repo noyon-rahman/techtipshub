@@ -78,14 +78,40 @@ export const buildSearchFilter = (
   return { $or: conditions };
 };
 
+export type TQueryBuilderOptions = {
+  /**
+   * Query keys whose value is kept in the filter instead of being discarded.
+   * Only a list that has already whitelisted the value itself may name its key
+   * here, because whatever is listed reaches Mongo as the caller asked for it.
+   */
+  allowVisibilityFilters?: readonly string[];
+};
+
+/** Query keys discarded unless the caller opts in, see `filter()`. */
+const VISIBILITY_KEYS = ["status", "isDeleted"] as const;
+
 class QueryBuilder<T> {
   public modelQuery: Query<T[], T>;
   public query: Record<string, unknown>;
 
-  constructor(modelQuery: Query<T[], T>, query: Record<string, unknown>) {
+  constructor(
+    modelQuery: Query<T[], T>,
+    query: Record<string, unknown>,
+    options: TQueryBuilderOptions = {},
+  ) {
     this.modelQuery = modelQuery;
     this.query = query;
+    this.allowedVisibilityFilters = new Set(
+      options.allowVisibilityFilters ?? [],
+    );
   }
+
+  /**
+   * Keys this builder passes through instead of stripping in `filter()`. Only
+   * `VISIBILITY_KEYS` members are consulted, so a stray entry cannot stop some
+   * other key from being filtered.
+   */
+  private readonly allowedVisibilityFilters: ReadonlySet<string>;
 
   search(searchableFields: string[], valueFields: string[] = []) {
     const searchTerm = this?.query?.searchTerm;
@@ -139,8 +165,14 @@ class QueryBuilder<T> {
     // Visibility columns are decided by the route, never by the caller: with
     // them spliced into the filter, `?status=draft` (or `?isDeleted=true`)
     // would put unpublished or removed rows on a public list.
-    delete queryObj.status;
-    delete queryObj.isDeleted;
+    //
+    // The guard denies by default, because most callers hand over the raw
+    // request query. An admin list that has already checked the value against
+    // its own list of allowed statuses opts in for that one key, so its tabs
+    // narrow the rows and `countTotal()` sees the same filter.
+    for (const key of VISIBILITY_KEYS) {
+      if (!this.allowedVisibilityFilters.has(key)) delete queryObj[key];
+    }
 
     if (queryObj.category) {
       const foundCat = await this.getCategoryIdByName(
