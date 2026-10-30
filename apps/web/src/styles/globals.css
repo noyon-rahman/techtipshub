@@ -390,6 +390,47 @@
   line-height: 1.6;
 }
 
+/* Tables in the composer mirror `.tth-article table`: a bordered grid with the
+   caret's cell shaded, so it is obvious where typing lands. Not
+   `display: block` like the published one - a block table cannot be edited. */
+.tth-editor-content .tth-prose table {
+  display: table;
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.tth-editor-content .tth-prose th,
+.tth-editor-content .tth-prose td {
+  position: relative;
+  min-width: 4rem;
+  border: 1px solid var(--color-default-200);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.tth-editor-content .tth-prose th {
+  background-color: var(--color-content-2);
+  font-weight: 600;
+}
+
+/* Tiptap puts `selectedCell` on the cells the selection covers. */
+.tth-editor-content .tth-prose .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.tth-editor-content .tth-prose table p {
+  margin: 0;
+}
+
 .tth-editor-content .tth-prose a {
   color: hsl(var(--heroui-primary-800));
   text-decoration: underline;
@@ -478,6 +519,17 @@
   box-shadow: inset 2px 0 0 var(--color-danger);
   padding-left: 1rem !important;
   border-radius: 2px;
+}
+
+/* The table row is its own line even though the toolbar does not wrap. */
+.tth-toolbar > .tth-toolbar-row {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tth-toolbar > .tth-toolbar-row::-webkit-scrollbar {
+  display: none;
 }
 
 /* On the composer the toolbar is compact: no divider, tight controls, and it
@@ -615,6 +667,21 @@
 
 .dark .tth-article a {
   color: hsl(var(--heroui-primary-400));
+}
+
+/* The show/hide button inside a password field. Written here because the amber
+   split is a stylesheet rule: `outline-primary-accessible` is not a Tailwind
+   colour, so that utility silently resolved to nothing and the button showed no
+   focus ring at all. One class, both themes, like `.tth-article a`. The
+   important flags beat the control's own `outline-transparent` reset, which
+   targets the same property and is loaded after this file. */
+.tth-password-toggle:focus-visible {
+  outline: 2px solid hsl(var(--heroui-primary-800)) !important;
+  outline-offset: 2px;
+}
+
+.dark .tth-password-toggle:focus-visible {
+  outline-color: hsl(var(--heroui-primary-400)) !important;
 }
 
 .tth-article a:hover {

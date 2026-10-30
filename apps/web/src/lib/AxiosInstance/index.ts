@@ -36,11 +36,19 @@ const isServer = typeof window === "undefined";
 
 // Add a request interceptor
 //
-// The token is already valid by the time a request leaves the app: the proxy
-// renews an expired access token at the request boundary, where cookies can be
-// written. This only reads it.
+// This attaches the *session*, and nothing else. The token is already valid by
+// the time a request leaves the app: the proxy renews an expired access token
+// at the request boundary, where cookies can be written. This only reads it.
+//
+// A caller that set its own `Authorization` wins. A password reset carries a
+// one-time reset token in that header, and it is not a session: replacing it
+// with one (or with nothing, in the browser) is the request going out with the
+// wrong credential. It also stays on its own base, because the admin handler
+// exists to attach a session token and would do the very overwrite refused here.
 axiosInstance.interceptors.request.use(
   async function (config) {
+    if (config.headers?.has?.("Authorization")) return config;
+
     if (!isServer) {
       const path = config.url?.split("?")[0] ?? "";
       if (path === ADMIN_MARKER || path.startsWith(`${ADMIN_MARKER}/`)) {

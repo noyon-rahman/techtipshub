@@ -1,15 +1,15 @@
 "use client";
 
+import PasswordInput from "@/components/form/password-input";
 import THForm from "@/components/form/th-from";
-import THInput from "@/components/form/th-input";
 import { useResetPassword } from "@/hooks/auth.hook";
 import { newPasswordValidationSchema } from "@/schemas";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@heroui/react";
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
-import { FiCheckCircle, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiCheckCircle } from "react-icons/fi";
 
 const label = "mb-1 block tth-label-sm text-default-600";
 
@@ -59,49 +59,19 @@ const useResetToken = () => {
   };
 };
 
-const PasswordField = ({
-  name,
-  id,
-  placeholder,
-  autoComplete,
-}: {
-  name: string;
-  id: string;
-  placeholder: string;
-  autoComplete: string;
-}) => {
-  const [visible, setVisible] = useState(false);
-
-  return (
-    <div className="relative">
-      <THInput
-        name={name}
-        id={id}
-        type={visible ? "text" : "password"}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        radius="lg"
-        variant="bordered"
-        classNames={{ inputWrapper: "pr-10" }}
-      />
-      <button
-        type="button"
-        onClick={() => setVisible((value) => !value)}
-        aria-label={visible ? "Hide password" : "Show password"}
-        className="absolute right-3 top-[2.15rem] text-default-600 transition-colors hover:text-foreground"
-      >
-        {visible ? <FiEyeOff /> : <FiEye />}
-      </button>
-    </div>
-  );
-};
-
 const ResetPasswordForm = () => {
   const { token, state } = useResetToken();
   const { mutate, isPending, data, reset } = useResetPassword();
 
+  const errorMessage = data && !data.success ? data.message : undefined;
+
+  // A sentence about the link itself is one the form cannot fix: it expired,
+  // it was used, or the API will not take it. Any other failure (the API did
+  // not answer, the password was refused) leaves the form usable to try again.
+  const linkGone = !!errorMessage && /reset link/i.test(errorMessage);
+
   const onSubmit: SubmitHandler<FieldValues> = (values) => {
-    if (!token) return;
+    if (!token || linkGone) return;
     mutate({ newPassword: values.newPassword, token });
   };
 
@@ -188,8 +158,6 @@ const ResetPasswordForm = () => {
     );
   }
 
-  const errorMessage = data && !data.success ? data.message : undefined;
-
   return (
     <THForm
       onSubmit={onSubmit}
@@ -200,7 +168,7 @@ const ResetPasswordForm = () => {
           <label htmlFor="newPassword" className={label}>
             New password
           </label>
-          <PasswordField
+          <PasswordInput
             name="newPassword"
             id="newPassword"
             placeholder="At least 6 characters"
@@ -212,7 +180,7 @@ const ResetPasswordForm = () => {
           <label htmlFor="confirmPassword" className={label}>
             Confirm new password
           </label>
-          <PasswordField
+          <PasswordInput
             name="confirmPassword"
             id="confirmPassword"
             placeholder="Type it again"
@@ -231,7 +199,7 @@ const ResetPasswordForm = () => {
             className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
           >
             <p>{errorMessage}</p>
-            {/expired|not valid/i.test(errorMessage) && (
+            {linkGone && (
               <Link
                 href="/forget-password"
                 className="mt-1 inline-block font-semibold underline underline-offset-4"
@@ -243,15 +211,17 @@ const ResetPasswordForm = () => {
           </div>
         )}
 
-        <Button
-          isLoading={isPending}
-          type="submit"
-          color="primary"
-          radius="lg"
-          className="w-full font-semibold"
-        >
-          {isPending ? "Updating…" : "Set new password"}
-        </Button>
+        {!linkGone && (
+          <Button
+            isLoading={isPending}
+            type="submit"
+            color="primary"
+            radius="lg"
+            className="w-full font-semibold"
+          >
+            {isPending ? "Updating…" : "Set new password"}
+          </Button>
+        )}
       </div>
     </THForm>
   );

@@ -1,7 +1,7 @@
 "use server";
 
 import envConfig from "@/config/env.config";
-import { legacyResponse } from "@/lib/api-contract";
+import { legacyResponse, TLegacyBody } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
 import {
   ACCESS_TOKEN_COOKIE,
@@ -11,6 +11,10 @@ import {
 import { getSession, ISessionUser } from "@/lib/session";
 import { TLoggedInUser, TLogin } from "@/types";
 import { cookies } from "next/headers";
+
+/** Said when a reset failed for a reason that is not the link itself. */
+const RESET_FAILED_MESSAGE =
+  "We could not set the new password. Nothing was changed. Try again, or request a new link.";
 
 const cookieOptions = {
   secure: envConfig.NODE_ENV === "production",
@@ -163,6 +167,31 @@ export const forgetPassword = async (payload: { email: string }) => {
   }
 };
 
+/**
+ * What a failed reset says.
+ *
+ * The API answers "This reset link has expired." when the token was real but
+ * ran out, "This reset link is not valid." for any other bad token, and "already
+ * been used" for a link that worked once; the screen shows that sentence as the
+ * API wrote it. A failure with no answer at all says nothing about the link, so
+ * it gets the one sentence that helps: nothing was changed, and trying again is
+ * the way out.
+ */
+const asResetFailure = (data: unknown): TLegacyBody | undefined => {
+  if (!data || typeof data !== "object") return undefined;
+
+  const response = data as TLegacyBody;
+  const message = typeof response.message === "string" ? response.message : "";
+
+  return /reset link/i.test(message)
+    ? response
+    : {
+        ...response,
+        success: false,
+        message: RESET_FAILED_MESSAGE,
+      };
+};
+
 export const resetPassword = async (payload: {
   newPassword: string;
   token: string;
@@ -170,14 +199,35 @@ export const resetPassword = async (payload: {
   const { token, ...body } = payload;
 
   try {
+    const signedIn = (await getSession()).signedIn;
+
     // The token identifies the account; it is never written into the URL.
-    const res = await axiosInstance.post("/auth/reset-password", body, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    //
+    // Signed out, the call goes to the API itself. The app's proxy
+    // (`/api/v1/[...path]`) refuses anything without a session, and the reset
+    // is exactly the call someone with no session needs to make.
+    //
+    // Signed in, someone may hold an admin session in another tab of this
+    // browser, and a client-side call would leave that session token in the
+    // header no matter what it asked for. That path answers with the reset
+    // token itself, which the interceptor leaves untouched.
+    const res = await axiosInstance.post(
+      "/auth/reset-password",
+      body,
+      signedIn
+        ? {
+            baseURL: envConfig.baseApi,
+            headers: { "X-Reset-Token": token },
+          }
+        : {
+            baseURL: envConfig.baseApi,
+            headers: { Authorization: `Bearer ${token}` },
+          },
+    );
 
     return res.data;
   } catch (err: any) {
-    return err?.response?.data;
+    return asResetFailure(err?.response?.data);
   }
 };
 

@@ -2,6 +2,7 @@
 
 import THForm from "@/components/form/th-from";
 import THInput from "@/components/form/th-input";
+import PasswordInput from "@/components/form/password-input";
 import { useUser } from "@/context/user.provider";
 import { useUserLogin } from "@/hooks/auth.hook";
 import { safeRedirectPath } from "@/lib/blog-routes";
@@ -12,15 +13,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@heroui/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect } from "react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
-import { PiEyeLight, PiEyeSlashLight } from "react-icons/pi";
 
 const label = "mb-1 block tth-label-sm text-default-600";
 
 const LoginForm = () => {
   const searchParams = useSearchParams();
-  const [isPassword, setIsPassword] = useState(true);
 
   const { setIsLoading: setUserLoading } = useUser();
   const {
@@ -97,28 +96,12 @@ const LoginForm = () => {
                 Forgot password?
               </Link>
             </div>
-            <div className="relative">
-              <THInput
-                variant="bordered"
-                radius="lg"
-                name="password"
-                id="password"
-                placeholder="Your password"
-                type={isPassword ? "password" : "text"}
-              />
-              <Button
-                variant="light"
-                size="sm"
-                radius="full"
-                isIconOnly
-                onClick={() => setIsPassword(!isPassword)}
-                type="button"
-                aria-label={isPassword ? "Show password" : "Hide password"}
-                className="absolute right-1 top-1/2 -translate-y-1/2 text-lg"
-              >
-                {isPassword ? <PiEyeLight /> : <PiEyeSlashLight />}
-              </Button>
-            </div>
+            <PasswordInput
+              name="password"
+              id="password"
+              placeholder="Your password"
+              autoComplete="current-password"
+            />
           </div>
 
           {errorMessage && (

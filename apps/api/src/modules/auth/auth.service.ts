@@ -12,6 +12,10 @@ import { IUser } from "../user/user.interface";
 import type { IGoogleProfile } from "./google-oauth";
 import User from "../user/user.model";
 
+/** Said when a reset token arrives after the password it belongs to changed. */
+const RESET_USED_MESSAGE =
+  "This reset link has already been used. Request a new one if you still need to change the password.";
+
 const register = async (payload: IUser) => {
   const existedEmail = await User.findOne({
     email: payload.email,
@@ -422,6 +426,17 @@ const resetPassword = async (
   const user = await User.findOne({ email: decoded.email });
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  // The page promises the link works once. A reset written after this token
+  // was issued means it has already been used, so it is spent. `iat` is whole
+  // seconds and `passwordChangeAt` has milliseconds, so the comparison allows
+  // for the second the token was minted in: the reset that consumes this link
+  // is written later than that.
+  const changedAt = user.passwordChangeAt?.getTime();
+  const issuedAt = typeof decoded.iat === "number" ? decoded.iat * 1000 : 0;
+  if (changedAt && issuedAt && changedAt > issuedAt + 999) {
+    throw new AppError(httpStatus.FORBIDDEN, RESET_USED_MESSAGE);
   }
 
   if (user.isDeleted) {
