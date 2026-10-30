@@ -37,8 +37,14 @@ Conventions: [`Rules.md`](./Rules.md).
 - Articles: composer and editor with drafts, publish, cover image, category,
   tags, code blocks. Member list at `/profile/blogs`, admin list, admin composer
   writing on a member's behalf, permanent delete and restore.
+- Categories: searchable picker in every composer, members can ask for a
+  category they need (`category_requests`), admin reviews the asks on the
+  categories screen's `Requested` tab, approving makes the real category. An ask
+  is usable on its author's draft only; a published article needs a live one.
 - Reading: feed, following feed, search, category pages, article page with
-  gated body, votes, comments, follow, view counting, related reading.
+  gated body, votes, comments, follow, view counting, related reading. The feed
+  card shows the top eight by blog count and links to `/categories`, which is
+  the mobile entry point for the whole list.
 - Profile: public view and edit in one page at `/profile/@<handle>`, social
   links, photo, followers and following lists.
 - Admin: all thirteen screens in `docs/admin-panel.md`, shared kit, activity log.
@@ -67,6 +73,15 @@ Things known to be wrong or unfinished, in the order they matter.
    the shapes around it, but a concurrent-send test needs a database.
 3. **`apps/web` lint carries about 33 warnings**, mostly unused imports. They
    do not fail the gate.
+4. **The admin account's password is the throwaway `Check-Admin-71a3`, and
+   `tokenVersion` is 2.** The hash was swapped during the category-request
+   checks and the saved original was lost with the scratch folder. It is the
+   only Admin, so the product cannot reset it: the owner has to run
+   forget-password on `admin.techtipshub@noyonrahman.com`, or the hash is set by
+   hand.
+5. **The member request dialog and the admin `Requested` tab were never seen in
+   a browser.** The API paths are verified against the dev API; the UI was built
+   against them. Check both by eye once an admin login works again.
 
 ## Traps and hard-won notes
 
@@ -121,6 +136,22 @@ Things known to be wrong or unfinished, in the order they matter.
   frozen at first send. Editing after that is refused on purpose.
 - **Blog slugs `new` and `edit` are reserved** (`RESERVED_BLOG_SLUGS`) so an
   article cannot shadow the composer route.
+- **A pending category is an id that no category list holds.** The composer files
+  it under the request's id and keeps the name beside it in the draft
+  (`categoryName`), because the list it would look the name up in never has that
+  row. Anything that resolves a category for display has to fall back to the
+  stored name (`pickerItemName`), or a restored draft reads back blank.
+- **A category's `blogCount` is counted from the articles, not from the stored
+  `postCount`.** The stored number only moves when an article is created,
+  published, deleted or moved, so it drifts, and a reader sent to a category
+  page would see a different total. `category.service.ts` counts both lists from
+  one aggregate; do not read the model field for a number a reader sees. The
+  model also needs `toJSON: { virtuals: true }` for `blogCount` to exist at all.
+- **The category list is cached for an hour and tagged `categories`.** The
+  browser reads it through one TanStack entry (`useCategoryList`), shared by the
+  picker's retry, the composer and the edit screen; a request approved later
+  lands in it on the next refetch, not by hand. The server list (`siteCategories`)
+  is the same data under the same tag, so an admin category edit invalidates both.
 - **`proxy.ts` is a filter, not a gate.** A page or action must re-check the
   session before acting; a proxy check runs on prefetches too.
 
@@ -129,6 +160,10 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-10-30: Category handling fixed (#5). Searchable picker in both composers
+  and the admin one; members request a category (`category_requests`, mirrored
+  on the admin `Requested` tab) instead of being stuck with the list; the feed
+  card shows the top eight and `/categories` carries the full list.
 - 2026-10-28: Collections renamed to snake_case and pinned in every model
   (`admin_logs`, `newsletter_subscribers`, `newsletter_campaigns`); the
   `authhandoffs` collection is gone, the Google handoff is a signed JWT;

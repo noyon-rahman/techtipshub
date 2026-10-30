@@ -6,6 +6,7 @@ import { Bold } from "@tiptap/extension-bold";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import TextAlign from "@tiptap/extension-text-align";
+import { TableKit } from "@tiptap/extension-table";
 import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 import { common, createLowlight } from "lowlight";
@@ -229,6 +230,22 @@ const LegacyBoldSpan = Bold.extend({
 });
 
 /**
+ * Tables.
+ *
+ * Column resizing is off on purpose: the saved HTML has to stay a plain
+ * `<table>` the article CSS can lay out, not a `<colgroup>` with pixel widths
+ * that would fight the phone layout. `renderWrapper` is off for the same
+ * reason - a wrapper `<div>` would land inside the stored blog HTML.
+ */
+const BlogTable = TableKit.configure({
+  table: {
+    resizable: false,
+    renderWrapper: false,
+    allowTableNodeSelection: true,
+  },
+});
+
+/**
  * Everything that defines the document schema and its HTML representation.
  *
  * Kept separate from the interactive extensions below so this list can be used
@@ -255,6 +272,7 @@ export const schemaExtensions = [
     HTMLAttributes: { rel: "noopener noreferrer nofollow" },
   }),
   ImageWithAlt.configure({ inline: false, allowBase64: true }),
+  BlogTable,
   AlignWithLegacyClasses,
   Placeholder.configure({
     placeholder: ({ node }) =>

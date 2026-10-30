@@ -1,4 +1,7 @@
-import { FeedButtonsForSmallDevice } from "@/components/modules/feed/feed-buttons";
+import {
+  CategoriesButton,
+  FeedButtonsForSmallDevice,
+} from "@/components/modules/feed/feed-buttons";
 import LeftSideBar from "@/components/modules/feed/left-sidebar";
 import RightSideBar from "@/components/modules/feed/right-sidebar";
 import { Navbar } from "@/components/shared/navbar";
@@ -21,6 +24,7 @@ const FeedLayout = ({ children }: IProps) => {
         <main className="min-w-0 flex-1 px-0 py-6 lg:px-8">
           <div className="mb-5 flex items-center gap-3 lg:hidden">
             <FeedButtonsForSmallDevice />
+            <CategoriesButton />
           </div>
           <div className="mx-auto w-full max-w-read">{children}</div>
         </main>

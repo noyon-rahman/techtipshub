@@ -262,4 +262,22 @@ export interface IAdminCategoriesParams {
   limit?: number;
 }
 
+/**
+ * A category a member asked for from the composer. `category` is the live
+ * category's id and is only set once the request was approved.
+ */
+export interface IAdminCategoryRequest {
+  _id: string;
+  name: string;
+  description?: string;
+  status: "pending" | "approved" | "declined";
+  requestedByEmail?: string;
+  reviewedByEmail?: string;
+  reviewedAt?: string;
+  declineReason?: string;
+  category?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export type TAdminLogsWindow = "24h" | "7d" | "30d" | "90d" | "all";

@@ -2,6 +2,7 @@ import Container from "@/components/ui/container";
 import { Logo } from "@/components/shared/logo";
 import NewsletterSignup from "@/components/modules/newsletter/newsletter-signup";
 import { legalConfig, legalPages } from "@/config/legal";
+import { categoriesPath } from "@/lib/feed-routes";
 import FollowingLink from "./following-link";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -96,6 +97,7 @@ const ContactItem = ({
  */
 const readLinks = [
   { label: "The feed", href: "/" },
+  { label: "Categories", href: categoriesPath },
   { label: "Write here", href: "/features" },
   { label: "About the publication", href: "/about" },
 ];

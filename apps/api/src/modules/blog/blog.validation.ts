@@ -10,11 +10,12 @@ const create = z
     }),
     content: z.string({ error: "Content must be a string" }),
     coverImage: z.string({ error: "Cover Image must be a string" }),
+    // A live category id, or the name of a request the writer has pending. The
+    // service decides which, because only it can read the writer's requests.
     category: z
       .string({ error: "Category Id must be a string" })
-      .refine((val) => mongoose.Types.ObjectId.isValid(val), {
-        message: "Invalid Category Id",
-      }),
+      .trim()
+      .min(1, "Choose a category"),
     images: z
       .array(z.string({ error: "Image must be a string" }), {
         error: "Images must be an array string",
@@ -37,11 +38,12 @@ const update = z
       .optional(),
     content: z.string({ error: "Content must be a string" }).optional(),
     coverImage: z.string({ error: "Cover Image must be a string" }).optional(),
+    // Same as `create`: an id or a pending request's name, checked in the
+    // service where the writer's own requests are visible.
     category: z
       .string({ error: "Category Id must be a string" })
-      .refine((val) => mongoose.Types.ObjectId.isValid(val), {
-        message: "Invalid Category Id",
-      })
+      .trim()
+      .min(1, "Choose a category")
       .optional(),
     tags: z
       .array(z.string({ error: "Tag must be a string" }), {

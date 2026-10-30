@@ -27,6 +27,9 @@ export const categoryPath = (name: string) => {
   return isPlainName(slug) && slug ? `/categories/${slug}` : "/";
 };
 
+/** Every category in one place, reachable from the feed's cards and links. */
+export const categoriesPath = "/categories";
+
 /** `/search?q=...`, or the feed when there is nothing to search for. */
 export const searchPath = (term?: string | null) => {
   const trimmed = term?.trim();

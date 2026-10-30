@@ -25,8 +25,8 @@ type TContext = Parameters<MiddlewareHandler<TAppBindings>>[0];
  * `form`, `query`, `param`, `cookie` and `header`.
  *
  * The parsed output (defaults applied, unknown keys stripped) is stored on the
- * context as `validatedBody` or `validatedCookies`, which is what a handler in
- * this app reads.
+ * context as `validatedBody`, `validatedQuery` or `validatedCookies`, which is
+ * what a handler in this app reads.
  *
  * A failure is thrown as the Zod error rather than answered here, so the app's
  * single error handler answers `{ error: { message, code, details } }` like
@@ -63,6 +63,7 @@ const buildStep = (target: TTarget, schema: ZodType) => async (c: TContext) => {
   if (!parsed.success) throw parsed.error;
 
   if (target === "cookie") c.set("validatedCookies", parsed.data);
+  else if (target === "query") c.set("validatedQuery", parsed.data);
   else c.set("validatedBody", parsed.data);
 };
 

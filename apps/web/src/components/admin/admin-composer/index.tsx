@@ -5,12 +5,12 @@ import { focusRing } from "@/components/modules/admin/kit/tau";
 import { useCreateAdminBlog } from "@/hooks/admin-blogs";
 import { useAdminMembers } from "@/hooks/admin-members";
 import type { IAdminList, IAdminListResult } from "@/hooks/admin-list";
+import { useCategoryList } from "@/hooks/category.hook";
 import { adminManageBlogsPath } from "@/lib/blog-routes";
-import { getAllCategories } from "@/services/category";
-import { ICategory, IUser } from "@/types";
+import { IUser } from "@/types";
 import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { FiCheck } from "react-icons/fi";
 import { LuEye, LuTriangleAlert } from "react-icons/lu";
 import { RiArrowDownSLine } from "react-icons/ri";
@@ -73,7 +73,6 @@ const AdminComposer = () => {
   // has had a chance to pick one.
   const [authorTried, setAuthorTried] = useState(false);
 
-  const [categories, setCategories] = useState<ICategory[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Partial<Record<DraftField, string>>>({});
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -89,11 +88,9 @@ const AdminComposer = () => {
     status: "Active",
   });
 
-  useEffect(() => {
-    getAllCategories()
-      .then((data) => setCategories((data?.data as ICategory[]) ?? []))
-      .catch(() => setCategories([]));
-  }, []);
+  // An admin makes categories in the admin panel, so this field offers the list
+  // with its loading and failure states and no way to ask for one.
+  const categoryList = useCategoryList();
 
   const update = <K extends keyof BlogFormData>(
     key: K,
@@ -324,10 +321,17 @@ const AdminComposer = () => {
 
           <PublishingDetails
             idPrefix="admin"
-            categories={categories}
+            categories={categoryList.categories}
             category={values.category}
             onCategoryChange={(value) => update("category", value)}
             categoryError={errors.category}
+            categoriesLoading={categoryList.isLoading}
+            categoriesError={
+              categoryList.isError
+                ? categoryList.error?.message || "Categories did not load."
+                : undefined
+            }
+            onRetryCategories={() => void categoryList.refetch()}
             tags={values.tags}
             onTagsChange={(next) => update("tags", next)}
             tagInput={tagInput}
@@ -432,8 +436,9 @@ const AdminComposer = () => {
           title: values.title,
           content: values.content,
           tags: values.tags,
-          category: categories.find((item) => item._id === values.category)
-            ?.name,
+          category: categoryList.categories.find(
+            (item) => item._id === values.category,
+          )?.name,
           coverUrl,
           authorName: chosenAuthor ? displayName(chosenAuthor) : undefined,
         }}

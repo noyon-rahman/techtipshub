@@ -43,6 +43,16 @@ so the rail, the breadcrumb and the quick links cannot drift apart.
 | Trash         | `/admin/trash`             | What did we remove, and does it need to come back?          |
 | Activity log  | `/admin/activity-log`      | What have admins changed, and who did it?                   |
 
+## Categories
+
+`/admin/categories` lists every category with the number of published articles
+filed under it, and splits out the unused ones, which are the only rows that can
+be deleted. Members can ask for a category from the composer; a pending request
+appears under **Requested** in the Categories manager, which only shows that tab
+while something is waiting. Approving a request creates the live category
+immediately and writes the decision to the activity log. Declining keeps the
+request on record with an optional reason that only admins see.
+
 ## Shared kit
 
 `src/components/modules/admin/kit/` holds the primitives every admin screen uses:

@@ -1,23 +1,31 @@
 "use client";
 
 import { useComposerEditor } from "@/components/editor/rich-text-editor";
+import { useUser } from "@/context/user.provider";
 import {
   useUpdateBlogByAdmin,
   useUpdateBlogByUserUsingId,
 } from "@/hooks/blog.hook";
+import { useCategoryList, useMyCategoryRequests } from "@/hooks/category.hook";
 import {
   adminManageBlogsPath,
   editBlogPath,
   manageBlogsPath,
 } from "@/lib/blog-routes";
-import { getAllCategories } from "@/services/category";
-import { ICategory, IBlog } from "@/types";
+import type { IRequestedCategory } from "@/services/category/browser";
+import { IBlog } from "@/types";
 import { Button } from "@heroui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuEye, LuRotateCcw, LuTriangleAlert } from "react-icons/lu";
 import { toast } from "sonner";
+import {
+  categoryPickerItems,
+  isLiveCategory,
+  pickerItemName,
+} from "../write-blog/category-options";
+import CategoryRequestDialog from "../write-blog/category-request-dialog";
 import {
   BlogFormData,
   DraftField,
@@ -84,6 +92,9 @@ const EditBlog = ({
 }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { user } = useUser();
+  const categoryList = useCategoryList();
+  const myRequests = useMyCategoryRequests();
   // An admin edits other writers' articles, which only the admin endpoint
   // accepts, so both mutations exist here and one is picked per save.
   const memberUpdate = useUpdateBlogByUserUsingId();
@@ -112,10 +123,16 @@ const EditBlog = ({
   const savedRef = useRef(false);
   // The mutation owns both toasts; the slug error below the address is this
   // screen's own. It clears itself once the field is edited.
-  const [categories, setCategories] = useState<ICategory[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Partial<Record<DraftField, string>>>({});
   const [previewOpen, setPreviewOpen] = useState(false);
+  // Asks this session made, so a request chosen here stays in the picker until
+  // the saved article carries its category id.
+  const [requestedCategories, setRequestedCategories] = useState<
+    IRequestedCategory[]
+  >([]);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestName, setRequestName] = useState("");
   // The public address. Only the admin editor exposes it; the member editor
   // keeps deriving it from the title.
   const [slug, setSlug] = useState(blog.slug ?? "");
@@ -173,12 +190,6 @@ const EditBlog = ({
   });
 
   /* ---------------------------------------------------------------- effects */
-
-  useEffect(() => {
-    getAllCategories()
-      .then((data) => setCategories((data?.data as ICategory[]) ?? []))
-      .catch(() => setCategories([]));
-  }, []);
 
   const slugChanged = adminMode && slug.trim() !== savedSlug;
 
@@ -239,6 +250,28 @@ const EditBlog = ({
     input?.focus();
   };
 
+  // A request only helps while the article is a draft: its id can be filed but
+  // not published. On a live article, or in the admin editor where admins make
+  // categories themselves, the field shows the list and nothing more.
+  const categoryItems = categoryPickerItems(
+    categoryList.categories,
+    requestedCategories,
+    myRequests.data ?? [],
+  );
+  const isDraft = (blog.status ?? "published") === "draft";
+  const canRequest = Boolean(user) && isDraft && !adminMode;
+  const requestActionProps = canRequest
+    ? {
+        onRequestCategory: (name: string) => {
+          setRequestName(name);
+          setRequestOpen(true);
+        },
+        requestedCategories: categoryItems.filter(
+          (item) => !isLiveCategory(item.id, categoryList.categories),
+        ),
+      }
+    : {};
+
   const save = () => {
     // An existing blog already has a cover, so only a newly chosen file has to
     // be there for the update payload.
@@ -251,6 +284,17 @@ const EditBlog = ({
     if (first) {
       focusField(first);
       toast.error(found[first], { id: "edit-check" });
+      return;
+    }
+
+    // A category that exists only as a request cannot be filed under a saved
+    // article. The draft is the only place a request id means anything.
+    if (!isDraft && !isLiveCategory(values.category, categoryList.categories)) {
+      const message =
+        "This category is still a request. Choose one from the list to save.";
+      setErrors((current) => ({ ...current, category: message }));
+      focusField("category");
+      toast.error(message, { id: "edit-check" });
       return;
     }
 
@@ -491,10 +535,19 @@ const EditBlog = ({
               ? "The link readers get. Changing it breaks links to the old one, so update anywhere you have shared it."
               : undefined
           }
-          categories={categories}
+          categories={categoryList.categories}
           category={values.category}
           onCategoryChange={(value) => update("category", value)}
           categoryError={errors.category}
+          categoriesLoading={categoryList.isLoading}
+          categoriesError={
+            categoryList.isError
+              ? categoryList.error?.message || "Categories did not load."
+              : undefined
+          }
+          onRetryCategories={() => void categoryList.refetch()}
+          {...requestActionProps}
+          categorySelectedName={pickerItemName(categoryItems, values.category)}
           tags={values.tags}
           onTagsChange={(next) => update("tags", next)}
           tagInput={tagInput}
@@ -624,7 +677,7 @@ const EditBlog = ({
           title: values.title,
           content: values.content,
           tags: values.tags,
-          category: categoryName(blog, categories),
+          category: categoryName(blog, categoryItems),
           coverUrl: displayedCover,
           authorName: blog.author?.fullName,
           createdAt: blog.createdAt,
@@ -634,6 +687,22 @@ const EditBlog = ({
       />
 
       {isPending && <SavingOverlay label="Saving your changes…" />}
+
+      {canRequest && (
+        <CategoryRequestDialog
+          isOpen={requestOpen}
+          onClose={() => setRequestOpen(false)}
+          suggestedName={requestName}
+          onRequested={(request) => {
+            setRequestedCategories((current) => [...current, request]);
+            update("category", request.id);
+            toast.success("Request sent. You can use it on this draft now.", {
+              id: "category-request",
+            });
+          }}
+        />
+      )}
+
       {prompt}
     </EditorShell>
   );

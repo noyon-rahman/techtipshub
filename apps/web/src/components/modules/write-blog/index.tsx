@@ -3,18 +3,25 @@
 import { useComposerEditor } from "@/components/editor/rich-text-editor";
 import { useUser } from "@/context/user.provider";
 import { useCreateBlog } from "@/hooks/blog.hook";
+import { useCategoryList, useMyCategoryRequests } from "@/hooks/category.hook";
 import {
   editBlogPath,
   manageBlogsPath,
   writeBlogPath,
 } from "@/lib/blog-routes";
-import { getAllCategories } from "@/services/category";
-import { ICategory } from "@/types";
+import type { IRequestedCategory } from "@/services/category/browser";
 import { Button, Spinner } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuClock, LuEye, LuTrash2 } from "react-icons/lu";
 import { toast } from "sonner";
+import {
+  categoryPickerItems,
+  isLiveCategory,
+  pickerItemName,
+} from "./category-options";
+
+import CategoryRequestDialog from "./category-request-dialog";
 import {
   BlogFormData,
   DraftField,
@@ -98,6 +105,8 @@ const WriteBlog = () => {
   const { mutate: createBlog, isPending } = useCreateBlog();
   // Writing is open to guests; only publishing needs an account.
   const { user, isLoading: userLoading } = useUser();
+  const categoryList = useCategoryList();
+  const myRequests = useMyCategoryRequests();
 
   const [values, setValues] = useState<BlogFormData>(EMPTY_DRAFT);
   // The cover is kept with the draft, so a reload does not lose it.
@@ -108,10 +117,16 @@ const WriteBlog = () => {
   } = useStoredUpload(DRAFT_COVER_KEY);
   const coverUrl = useObjectUrl(coverImage);
 
-  const [categories, setCategories] = useState<ICategory[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Partial<Record<DraftField, string>>>({});
   const [previewOpen, setPreviewOpen] = useState(false);
+  // The categories this writer has asked for, kept for the rest of this session:
+  // the request id they chose has to stay in the picker after the list reloads.
+  const [requestedCategories, setRequestedCategories] = useState<
+    IRequestedCategory[]
+  >([]);
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestName, setRequestName] = useState("");
   // Reading a draft happens during the first client render only; the server
   // render has no storage, so both start empty and the banner appears on mount.
   const [recovered, setRecovered] = useState(() => Boolean(readPendingDraft()));
@@ -155,12 +170,6 @@ const WriteBlog = () => {
   const editor = useComposerEditor({ value: values.content, onChange });
 
   /* ---------------------------------------------------------------- effects */
-
-  useEffect(() => {
-    getAllCategories()
-      .then((data) => setCategories((data?.data as ICategory[]) ?? []))
-      .catch(() => setCategories([]));
-  }, []);
 
   // Autosave. The stored draft is only written once the writer has answered the
   // restore banner, so an empty page cannot overwrite a recoverable draft.
@@ -362,6 +371,28 @@ const WriteBlog = () => {
       "Your unfinished draft is kept in this browser, so you can pick it up where you left off.",
   });
 
+  // A request is only offered to a member: a guest cannot ask for anything, and
+  // the list they see is the public one. Everything on this screen is a draft
+  // until it is published, so a request is always usable here.
+  const categoryItems = categoryPickerItems(
+    categoryList.categories,
+    requestedCategories,
+    myRequests.data ?? [],
+  );
+  const requestExtras = categoryItems.filter(
+    (item) => !isLiveCategory(item.id, categoryList.categories),
+  );
+  const canRequest = Boolean(user);
+  const requestActionProps = canRequest
+    ? {
+        onRequestCategory: (name: string) => {
+          setRequestName(name);
+          setRequestOpen(true);
+        },
+        requestedCategories: requestExtras,
+      }
+    : {};
+
   /* ---------------------------------------------------------------- render */
 
   const tagSuggestions = useMemo(
@@ -472,10 +503,30 @@ const WriteBlog = () => {
       sidebar={
         <PublishingDetails
           idPrefix="composer"
-          categories={categories}
+          categories={categoryList.categories}
           category={values.category}
-          onCategoryChange={(value) => update("category", value)}
+          onCategoryChange={(value) =>
+            setValues((current) => ({
+              ...current,
+              category: value,
+              // The picker hands back an id, so the name is looked up from the
+              // options in front of the writer at this moment. A restored draft
+              // has no list to look in and keeps what it stored.
+              categoryName: pickerItemName(categoryItems, value),
+            }))
+          }
           categoryError={errors.category}
+          categoriesLoading={categoryList.isLoading}
+          categoriesError={
+            categoryList.isError
+              ? categoryList.error?.message || "Categories did not load."
+              : undefined
+          }
+          onRetryCategories={() => void categoryList.refetch()}
+          {...requestActionProps}
+          categorySelectedName={
+            pickerItemName(categoryItems, values.category) ?? values.categoryName
+          }
           tags={values.tags}
           onTagsChange={(next) => update("tags", next)}
           tagInput={tagInput}
@@ -566,12 +617,29 @@ const WriteBlog = () => {
           title: values.title,
           content: values.content,
           tags: values.tags,
-          category: categories.find((item) => item._id === values.category)
-            ?.name,
+          category: pickerItemName(categoryItems, values.category) ?? values.categoryName,
           coverUrl: showCover ? coverUrl : null,
           authorName: user?.name,
         }}
       />
+
+      {canRequest && (
+        <CategoryRequestDialog
+          isOpen={requestOpen}
+          onClose={() => setRequestOpen(false)}
+          suggestedName={requestName}
+          onRequested={(request) => {
+            setRequestedCategories((current) => [...current, request]);
+            // Filing the draft under the request now is what makes it usable
+            // before an admin has reviewed it.
+            update("category", request.id);
+            setValues((current) => ({ ...current, categoryName: request.name }));
+            toast.success("Request sent. You can use it on this draft now.", {
+              id: "category-request",
+            });
+          }}
+        />
+      )}
 
       {prompt}
     </EditorShell>

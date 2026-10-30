@@ -17,7 +17,8 @@ import {
   LuUnderline,
   LuUndo,
 } from "react-icons/lu";
-import { slashItems } from "./slash-items";
+import { blockStyleItems, slashItems } from "./slash-items";
+import { InsertTableButton, TableControls } from "./table-controls";
 
 interface IProps {
   editor: Editor | null;
@@ -141,7 +142,7 @@ const BlockStyleMenu = ({ editor }: { editor: Editor | null }) => {
     };
   }, [open, close]);
 
-  const active = slashItems.find((item) => item.isActive?.(editor!));
+  const active = blockStyleItems.find((item) => item.isActive?.(editor!));
   const ActiveIcon = active?.icon ?? LuPilcrow;
 
   return (
@@ -168,7 +169,7 @@ const BlockStyleMenu = ({ editor }: { editor: Editor | null }) => {
             style={position}
             className="fixed z-[60] max-h-[70vh] w-56 overflow-y-auto rounded-lg border border-default-200 bg-content1 p-1 shadow-xl"
           >
-            {slashItems.map((item) => {
+            {blockStyleItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.isActive?.(editor!) ?? false;
               return (
@@ -277,6 +278,7 @@ const Toolbar = ({ editor, onOpenMenu, children }: IProps) => {
       >
         <LuMinus className="size-4" />
       </ToolbarButton>
+      <InsertTableButton editor={editor} />
 
       <span className="ml-auto hidden items-center gap-1 sm:flex">
         {children}
@@ -295,6 +297,12 @@ const Toolbar = ({ editor, onOpenMenu, children }: IProps) => {
           <LuRedo className="size-4" />
         </ToolbarButton>
       </span>
+
+      {editor.isActive("table") && (
+        <div className="mt-1 w-full shrink-0 border-t border-default-200 pt-1">
+          <TableControls editor={editor} />
+        </div>
+      )}
     </div>
   );
 };

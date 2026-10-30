@@ -29,6 +29,16 @@ const ALLOWED: { method: string; pattern: RegExp }[] = [
   // Follow and unfollow.
   { method: "PUT", pattern: /^users\/[^/]+\/follow$/ },
   { method: "DELETE", pattern: /^users\/[^/]+\/unfollow$/ },
+  // The composer's category step: a member asks for a category that does not
+  // exist yet, from an editor that is already open in the browser. Both calls
+  // need the session, so they cannot be signed server-side. The admin list and
+  // the approve/decline route are deliberately absent: those are admin screens.
+  { method: "POST", pattern: /^categories\/requests$/ },
+  { method: "GET", pattern: /^categories\/requests\/mine$/ },
+  // The public category list, for the composer's picker: the writer has to be
+  // able to retry a list that failed to load without losing the draft. It is
+  // the same list the pages already render, and this answer is never cached.
+  { method: "GET", pattern: /^categories$/ },
 ];
 
 const UNSAFE = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -106,5 +116,6 @@ const handler = async (
 };
 
 export const GET = handler;
+export const POST = handler;
 export const PUT = handler;
 export const DELETE = handler;

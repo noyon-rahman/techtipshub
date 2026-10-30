@@ -51,6 +51,32 @@ const create = async (payload: ICategory, adminEmail?: string) => {
   return category;
 };
 
+/**
+ * How many published articles each category holds, by category id.
+ *
+ * Counted from the articles rather than read from the stored `postCount`: the
+ * counter only moves when an article is created, published, deleted or moved,
+ * so a row written before that bookkeeping (or by a direct edit) drifts, and a
+ * reader would be sent to a category page that lists a different number.
+ */
+const countBlogsByCategory = async () => {
+  // Deleted blogs and drafts are excluded so the count matches what readers see.
+  const counts = await Blog.aggregate<{
+    _id: mongoose.Types.ObjectId;
+    count: number;
+  }>([
+    {
+      $match: {
+        isDeleted: { $ne: true },
+        status: { $ne: "draft" },
+      },
+    },
+    { $group: { _id: "$category", count: { $sum: 1 } } },
+  ]);
+
+  return new Map(counts.map((row) => [String(row._id), row.count]));
+};
+
 const getAll = async (query: Record<string, unknown>) => {
   const categoryQuery = new QueryBuilder(Category.find({}), query).search(
     categorySearchableFields,
@@ -60,10 +86,19 @@ const getAll = async (query: Record<string, unknown>) => {
 
   categoryQuery.sort().paginate().fields();
 
-  const result = await categoryQuery.modelQuery;
-  const meta = await categoryQuery.countTotal();
+  const [result, meta, countByCategory] = await Promise.all([
+    categoryQuery.modelQuery,
+    categoryQuery.countTotal(),
+    countBlogsByCategory(),
+  ]);
 
-  return { result, meta };
+  return {
+    result: result.map((category) => ({
+      ...category.toJSON(),
+      blogCount: countByCategory.get(String(category._id)) ?? 0,
+    })),
+    meta,
+  };
 };
 
 const getSingleCategory = async (id: string) => {
@@ -173,24 +208,7 @@ const getAdminList = async (query: Record<string, unknown> = {}) => {
     : {};
 
   const categories = await Category.find(search).sort({ name: 1 });
-
-  // Deleted blogs and drafts are excluded so the count matches what readers see.
-  const counts = await Blog.aggregate<{
-    _id: mongoose.Types.ObjectId;
-    count: number;
-  }>([
-    {
-      $match: {
-        isDeleted: { $ne: true },
-        status: { $ne: "draft" },
-      },
-    },
-    { $group: { _id: "$category", count: { $sum: 1 } } },
-  ]);
-
-  const countByCategory = new Map(
-    counts.map((row) => [String(row._id), row.count]),
-  );
+  const countByCategory = await countBlogsByCategory();
 
   const rows = categories
     .map((category) => ({
@@ -236,4 +254,5 @@ export const categoryService = {
   deleteSingleCategory,
   update,
   getAdminList,
+  findByName,
 };

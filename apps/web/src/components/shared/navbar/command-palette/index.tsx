@@ -13,7 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { writeBlogPath } from "@/lib/blog-routes";
-import { searchPath } from "@/lib/feed-routes";
+import { searchPath, categoriesPath } from "@/lib/feed-routes";
 import { useUser } from "@/context/user.provider";
 import { SearchIcon } from "@/components/icons";
 import {
@@ -252,6 +252,14 @@ const CommandPalette = ({ open, onClose }: IProps) => {
         detail: user ? "Your drafts and new blogs" : "Sign in when you publish",
         href: writeBlogPath,
         keywords: "compose create blog new",
+      },
+      {
+        id: "action:categories",
+        kind: "action",
+        label: "All categories",
+        detail: "Every topic on the site",
+        href: categoriesPath,
+        keywords: "topics browse",
       },
       {
         // `theme` is undefined until next-themes reads the stored choice, so
