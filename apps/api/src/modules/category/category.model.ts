@@ -26,6 +26,10 @@ const categorySchema = new Schema<ICategory>(
   },
   {
     timestamps: true,
+    // Without this the virtual below never reaches the JSON, and every caller
+    // that reads `blogCount` sees `undefined` from a category that has articles.
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   },
 );
 
