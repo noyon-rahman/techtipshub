@@ -12,7 +12,7 @@ import {
   manageBlogsPath,
   writeBlogPath,
 } from "@/lib/blog-routes";
-import { Button, Spinner } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuClock, LuEye, LuTrash2 } from "react-icons/lu";
@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import {
   BlogFormData,
   DraftField,
-  buildBlogPayload,
+  buildBlogJson,
   clearDraft,
   describeFailure,
   draftFingerprint,
@@ -30,6 +30,7 @@ import {
   loadDraft,
   saveDraft,
   validateDraft,
+  validateUploadSize,
   wordCount,
 } from "./composer-utils";
 import CoverUpload from "./cover-upload";
@@ -46,6 +47,7 @@ import {
   categoryName,
 } from "./editor-shell";
 import { useObjectUrl, useStoredUpload } from "./use-stored-upload";
+import { useCoverAsset } from "./use-cover-asset";
 import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
 
 const AUTOSAVE_DELAY = 1200;
@@ -107,13 +109,19 @@ const WriteBlog = () => {
   const createCategory = useCreateCategoryForComposer();
 
   const [values, setValues] = useState<BlogFormData>(EMPTY_DRAFT);
-  // The cover is kept with the draft, so a reload does not lose it.
+  // The file is kept with the draft so a reload can show it and upload it
+  // again. Only the file is stored: an uploaded URL belongs to the asset that
+  // will be deleted if the draft is, so a reload must never treat one as a
+  // cover it can publish.
   const {
-    file: coverImage,
-    setFile: setCoverImage,
+    file: pickedFile,
+    setFile: setPickedFile,
     sync: syncCover,
   } = useStoredUpload(DRAFT_COVER_KEY);
-  const coverUrl = useObjectUrl(coverImage);
+  // The file as it was picked is what the strip previews, before and after its
+  // upload, so replacing never blanks the image the writer is looking at.
+  const previewFile = pickedFile;
+  const previewUrl = useObjectUrl(previewFile);
 
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Partial<Record<DraftField, string>>>({});
@@ -126,6 +134,12 @@ const WriteBlog = () => {
   );
   // Set while a publish is in flight so the autosave cannot race the request.
   const publishedRef = useRef(false);
+  // A cover restored from storage was uploaded and deleted when the last visit
+  // ended, so it has to go out again if the writer keeps this draft.
+  const coverReuploadedRef = useRef(false);
+  // Set by the writer's own pick, which must never be sent a second time by the
+  // restore above.
+  const pickedByWriter = useRef(false);
 
   const recoveredRef = useRef(false);
   const titleRef = useRef<HTMLTextAreaElement>(null);
@@ -160,6 +174,24 @@ const WriteBlog = () => {
 
   const editor = useComposerEditor({ value: values.content, onChange });
 
+  // Picking a cover uploads it at once; the asset is what publish sends, and
+  // the file is only the preview from here on.
+  const pickCover = (file: File) => {
+    pickedByWriter.current = true;
+    setPickedFile(file);
+    setErrors((current) => ({ ...current, cover: undefined }));
+    void pickAsset(file);
+  };
+
+  // Removing the current cover deletes the asset; nothing on this screen is
+  // saved yet, so there is no stored cover to protect.
+  const removeCover = () => {
+    pickedByWriter.current = true;
+    dropAsset();
+    setPickedFile(null);
+    void syncCover(null);
+  };
+
   /* ---------------------------------------------------------------- effects */
 
   // Autosave. The stored draft is only written once the writer has answered the
@@ -185,7 +217,7 @@ const WriteBlog = () => {
   const [coverClearedFor, setCoverClearedFor] = useState<string | null>(null);
   const liveFingerprint = draftFingerprint(values);
   if (
-    coverImage &&
+    pickedFile &&
     storedDraftFingerprint &&
     liveFingerprint !== storedDraftFingerprint &&
     coverClearedFor === null
@@ -193,15 +225,58 @@ const WriteBlog = () => {
     setCoverClearedFor(liveFingerprint);
   }
   const showCover = coverClearedFor === null;
+  const coverFile = showCover ? pickedFile : null;
 
   // The cover follows the draft. There is one draft at a time, so one key; an
   // effect writes the chosen file back and clears it when it is removed.
   useEffect(() => {
     if (publishedRef.current) return;
-    void syncCover(coverImage);
-    // `syncCover` is stable; `coverImage` is the input.
+    void syncCover(coverFile);
+    // `syncCover` is stable; `coverFile` is the input.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coverImage]);
+  }, [coverFile]);
+
+  // A cover can only be uploaded for a member: the API refuses the upload for
+  // a guest, and losing the whole article over a blocked one is the worse
+  // trade. `userLoading` keeps the picker shut until that is known, so a
+  // member's file is never thrown away by the opening render.
+  const canUploadCover = Boolean(user) || userLoading;
+  const {
+    asset: coverAsset,
+    status: coverStatus,
+    progress: coverProgress,
+    failedMessage: coverFailure,
+    pick: pickAsset,
+    drop: dropAsset,
+    keep: keepAsset,
+  } = useCoverAsset();
+
+  // The restored file has no asset behind it, because the asset was deleted
+  // when the last visit ended, so it goes up again once the writer moves on
+  // with the draft. The strip shows the file while it waits, which keeps the
+  // cover check reading it the same way.
+  useEffect(() => {
+    if (!coverFile || !canUploadCover || !user) return;
+    if (coverAsset || coverStatus === "uploading") return;
+    if (!coverReuploadedRef.current) {
+      coverReuploadedRef.current = true;
+      void pickAsset(coverFile);
+      return;
+    }
+    // The writer answered the restore banner by keeping the draft. A cover the
+    // writer just picked is not the restored one, so it waits for none.
+    if (recoveredRef.current && !pickedByWriter.current) {
+      void pickAsset(coverFile);
+    }
+  }, [
+    coverFile,
+    canUploadCover,
+    user,
+    recovered,
+    coverAsset,
+    coverStatus,
+    pickAsset,
+  ]);
 
   // "Saved just now" should age while the page stays open.
   useEffect(() => {
@@ -238,6 +313,9 @@ const WriteBlog = () => {
     recoveredRef.current = true;
     clearDraft();
     void syncCover(null);
+    setPickedFile(null);
+    // The restored file was uploaded again; nobody will publish it now.
+    dropAsset();
     setRecovered(false);
     setSavedAt(null);
     toast.success("Local draft removed");
@@ -249,7 +327,10 @@ const WriteBlog = () => {
     clearDraft();
     void syncCover(null);
     setValues(EMPTY_DRAFT);
-    setCoverImage(null);
+    setPickedFile(null);
+    // A fresh draft starts with no cover; the one that was here goes.
+    dropAsset();
+    pickedByWriter.current = false;
     setTagInput("");
     setSavedAt(null);
     setRecovered(false);
@@ -293,8 +374,16 @@ const WriteBlog = () => {
     tags?.focus();
   };
 
-  const publish = () => {
-    const found = validateDraft(values, Boolean(showCover && coverImage));
+  const publish = async () => {
+    if (coverStatus === "uploading" || isPending) return;
+
+    // Only an uploaded asset counts as a cover. A file whose upload failed, or
+    // one still waiting to be sent again, is not a cover yet, so it must not
+    // pass this check and let a publish go out without one.
+    const found = validateDraft(values, Boolean(coverAsset));
+    // A failed upload has its own sentence; "add a cover image" would hide the
+    // reason the writer already has on screen under the strip.
+    if (found.cover && coverFile && coverFailure) found.cover = coverFailure;
     setErrors(found);
 
     const first = (
@@ -315,8 +404,29 @@ const WriteBlog = () => {
       return;
     }
 
+    // Checked before the request: the server's answer to an oversized article
+    // is a bare 413 with no field to point at, and the draft must not be lost
+    // to it while the writer is still looking at the screen.
+    const tooBig = validateUploadSize(values);
+    if (tooBig) {
+      toast.error(tooBig, { id: "publish-check" });
+      return;
+    }
+
+    // The cover went up when it was picked, so publish only names it. A file
+    // without an asset here means the strip promised one the upload never
+    // delivered, which is the same failure the check above describes.
+    if (!coverAsset) {
+      toast.error("Wait for the cover to finish uploading, or pick it again.", {
+        id: "cover-upload-failed",
+        description: coverFailure ?? undefined,
+      });
+      focusField("cover");
+      return;
+    }
+
     publishedRef.current = true;
-    createBlog(buildBlogPayload(values, coverImage), {
+    createBlog(buildBlogJson(values, coverAsset.url), {
       onSuccess: (data) => {
         // A failed publish keeps the draft and the cover, so the writer can
         // fix the problem instead of losing the work.
@@ -328,6 +438,8 @@ const WriteBlog = () => {
           });
           return;
         }
+        // The cover is the article's now, so this screen must not delete it.
+        keepAsset();
         resetEverything();
         const slug = data?.data?.slug as string | undefined;
         // Straight to the editor where the new blog lives, or the feed.
@@ -352,9 +464,14 @@ const WriteBlog = () => {
 
   const { prompt, askToLeave } = useUnsavedChangesGuard({
     dirty: isDirty(values),
+    // "Leave" throws the draft away, so the cover that was uploaded for it has
+    // nobody left to publish it. The unmount cleanup is the backstop for the
+    // other ways out; this is the one that can run before it.
     discard: () => {
       clearDraft();
       void syncCover(null);
+      setPickedFile(null);
+      dropAsset();
     },
     onLeave: () => router.push(manageBlogsPath),
     title: "Leave this draft?",
@@ -395,17 +512,12 @@ const WriteBlog = () => {
   const savedLabel = savedAt ? formatSavedAt(savedAt) : "Saved as you type";
   const errorsPresent = Object.values(errors).filter(Boolean).length;
 
-  if (isPending) {
-    return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-3">
-        <Spinner size="lg" />
-        <p className="text-sm text-default-600">Publishing your blog…</p>
-        <p className="text-xs text-default-600">
-          Keep this tab open. It takes a moment.
-        </p>
-      </div>
-    );
-  }
+  // The cover that publish will send, if the strip is showing one.
+  const addedCover = showCover && Boolean(coverFile || coverAsset);
+
+  // The strip owns the cover's progress, so only publish is held back while it
+  // runs: a publish sent mid-upload would go out without the cover's URL.
+  const busy = isPending || coverStatus === "uploading";
 
   const status =
     errorsPresent > 0 ? (
@@ -459,7 +571,13 @@ const WriteBlog = () => {
           >
             Preview
           </Button>
-          <Button size="sm" color="primary" onPress={publish}>
+          <Button
+            size="sm"
+            color="primary"
+            isDisabled={busy}
+            isLoading={isPending}
+            onPress={publish}
+          >
             Publish
           </Button>
         </>
@@ -551,7 +669,12 @@ const WriteBlog = () => {
           note="Publishing makes it live for everyone."
           onPreview={() => setPreviewOpen(true)}
           primary={
-            <Button color="primary" onPress={publish}>
+            <Button
+              color="primary"
+              isDisabled={busy}
+              isLoading={isPending}
+              onPress={publish}
+            >
               Publish
             </Button>
           }
@@ -567,16 +690,18 @@ const WriteBlog = () => {
         onTitleChange={(value) => update("title", value)}
         titleError={errors.title}
         onTitleEnter={() => editor?.chain().focus("start").run()}
-        coverLabel={showCover && coverImage ? "Cover image" : undefined}
+        coverLabel={addedCover ? "Cover image" : undefined}
         cover={
           <CoverUpload
-            file={showCover ? coverImage : null}
+            file={coverFile}
+            progress={coverStatus === "uploading" ? coverProgress : null}
+            failedMessage={coverFailure}
             onChange={(file) => {
-              setCoverImage(file);
-              if (file) {
-                setErrors((current) => ({ ...current, cover: undefined }));
-              }
+              if (file) pickCover(file);
+              else removeCover();
             }}
+            onRemoveExisting={removeCover}
+            canPick={canUploadCover}
             invalid={Boolean(errors.cover)}
           />
         }
@@ -620,7 +745,7 @@ const WriteBlog = () => {
               { category: values.category },
               categoryList.categories,
             ) ?? values.categoryName,
-          coverUrl: showCover ? coverUrl : null,
+          coverUrl: showCover ? (coverAsset?.url ?? previewUrl) : null,
           authorName: user?.name,
         }}
       />

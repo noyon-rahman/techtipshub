@@ -185,7 +185,9 @@ const UpdateBlogModal = ({ blog, refetchBlogs }: IProps) => {
                     onOpenChange={(open) => setIsOpen(open)}
                   >
                     {categories.map((cate) => (
-                      <SelectItem key={cate.key}>{cate.label}</SelectItem>
+                      <SelectItem key={cate.key} textValue={cate.label}>
+                        {cate.label}
+                      </SelectItem>
                     ))}
                   </Select>
                 </div>

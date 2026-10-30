@@ -1,6 +1,21 @@
 import mongoose from "mongoose";
 import { z } from "zod";
+import config from "../../config";
 import { BlogContentType } from "./blog.constant";
+
+/**
+ * A cover is set by the client now (a signed direct upload), so only a URL on
+ * our own Cloudinary account is accepted.
+ */
+const coverImageUrl = z
+  .string({ error: "Cover Image must be a string" })
+  .refine(
+    (value) =>
+      value.startsWith(
+        `https://res.cloudinary.com/${config.CLOUDINARY_CLOUD_NAME}/`,
+      ),
+    { message: "Cover Image must be an image uploaded from this site" },
+  );
 
 const create = z
   .object({
@@ -9,7 +24,7 @@ const create = z
       error: "Content Type must be a string",
     }),
     content: z.string({ error: "Content must be a string" }),
-    coverImage: z.string({ error: "Cover Image must be a string" }),
+    coverImage: coverImageUrl,
     // A live category's id. A member who needs one makes it from the composer
     // first, so there is nothing else this field can hold.
     category: z
@@ -37,7 +52,7 @@ const update = z
       })
       .optional(),
     content: z.string({ error: "Content must be a string" }).optional(),
-    coverImage: z.string({ error: "Cover Image must be a string" }).optional(),
+    coverImage: coverImageUrl.optional(),
     // Same as `create`: a live category's id.
     category: z
       .string({ error: "Category Id must be a string" })
@@ -76,7 +91,7 @@ const updateByAdmin = z
       })
       .optional(),
     content: z.string({ error: "Content must be a string" }).optional(),
-    coverImage: z.string({ error: "Cover Image must be a string" }).optional(),
+    coverImage: coverImageUrl.optional(),
     category: z
       .string({ error: "Category Id must be a string" })
       .refine((val) => mongoose.Types.ObjectId.isValid(val), {

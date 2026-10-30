@@ -7,6 +7,7 @@ import contactRoutes from "../modules/contact/contact.routes";
 import metricsRoutes from "../modules/metrics/metrics.routes";
 import newsletterRoutes from "../modules/newsletter/newsletter.routes";
 import blogRoutes from "../modules/blog/blog.routes";
+import uploadRoutes from "../modules/upload/upload.routes";
 import userRoutes from "../modules/user/user.routes";
 import viewRoutes from "../modules/view/view.routes";
 import type { TAppBindings } from "../interface/bindings";
@@ -25,6 +26,9 @@ const moduleRoutes = [
   { path: "/newsletter", routes: newsletterRoutes },
   // Unique-reader view counting for guests and signed-in readers alike.
   { path: "/views", routes: viewRoutes },
+  // Covers go through the API and are deleted from here; the signature stays
+  // for browser-to-Cloudinary direct uploads.
+  { path: "/uploads", routes: uploadRoutes },
 ];
 
 for (const { path, routes } of moduleRoutes) {

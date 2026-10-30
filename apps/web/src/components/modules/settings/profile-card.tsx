@@ -1,6 +1,7 @@
 "use client";
 
 import UserAvatar from "@/components/ui/user-avatar";
+import { imageTooLargeMessage, IMAGE_MAX_BYTES } from "@/lib/upload-limits";
 import { Button } from "@heroui/react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -21,8 +22,7 @@ interface IProps {
   onRemoveExisting?: () => void;
 }
 
-const MAX_BYTES = 5 * 1024 * 1024;
-
+/**
 /**
  * The member's identity, shown the way readers see it - avatar, name,
  * designation, bio - with the photo controls beside it.
@@ -70,8 +70,8 @@ const ProfileCard = ({
       return;
     }
 
-    if (file.size > MAX_BYTES) {
-      toast.error("That image is over 5 MB. Try a smaller one.", {
+    if (file.size > IMAGE_MAX_BYTES) {
+      toast.error(imageTooLargeMessage("profile photo"), {
         id: "profile-image-size",
       });
       return;
@@ -143,7 +143,7 @@ const ProfileCard = ({
         </div>
 
         <p className="mt-2 text-xs text-default-600">
-          Square image, at least 500 × 500 px, up to 5 MB.
+          Square image, at least 500 × 500 px, up to 4 MB.
           {selectedImage ? " Save changes to apply it." : ""}
         </p>
       </div>

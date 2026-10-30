@@ -6,6 +6,8 @@
  * reload does not throw the draft away.
  */
 
+import { ARTICLE_TOO_LARGE, COVER_MAX_BYTES } from "@/lib/upload-limits";
+
 export interface BlogFormValues {
   title: string;
   content: string;
@@ -119,6 +121,14 @@ const CANCELLED = /cancelled|canceled|err_cancel/i;
  * way.
  */
 export const describeFailure = (error: unknown, fallback: string) => {
+  // The proxy and the host answer an oversized body with a 413 whose text is
+  // either empty or the platform's own wording. Saying it in words the writer
+  // can use is the whole point of catching it here. The cover is uploaded
+  // before this point, so what was too big is the article itself.
+  const status = (error as { response?: { status?: number } } | null)?.response
+    ?.status;
+  if (status === 413) return ARTICLE_TOO_LARGE;
+
   const raw =
     error instanceof Error
       ? error.message
@@ -129,10 +139,66 @@ export const describeFailure = (error: unknown, fallback: string) => {
 };
 
 /**
- * Builds the multipart body for `POST /blogs` and `POST /admin/blogs`.
+ * What the article sent as JSON will weigh, in bytes, before it is sent.
  *
- * `extra` carries the fields only the admin create accepts: whose byline the
- * article has and whether it goes live. Member callers leave it out.
+ * The cover is no longer part of this body (it is already a URL), so the cap
+ * only has to hold the article itself; a long piece is what gets near it.
+ */
+export const payloadSizeBytes = (values: BlogFormData) => {
+  const article = JSON.stringify({
+    title: values.title,
+    content: values.content,
+    category: values.category,
+    tags: values.tags,
+    description: values.description ?? "",
+  });
+  return new TextEncoder().encode(article).byteLength;
+};
+
+/**
+ * The message to show when a publish would carry too much, or null.
+ *
+ * Only the article is measured now: the cover is uploaded on its own and costs
+ * the article body a URL, so a large cover can no longer be the reason a
+ * publish is refused.
+ */
+export const validateUploadSize = (values: BlogFormData): string | null => {
+  if (payloadSizeBytes(values) > COVER_MAX_BYTES) {
+    return ARTICLE_TOO_LARGE;
+  }
+  return null;
+};
+
+/**
+ * The `data` object `POST /blogs` and `PUT /blogs/:id` accept, as JSON.
+ *
+ * The schema is `.strict()` and the Post model has no `description` field, so
+ * any extra key fails validation with a 400. The composer's description stays
+ * a local draft field rather than a stored column.
+ *
+ * `coverImage` is the Cloudinary URL from the signed upload, and it may be left
+ * out: on an update that means "keep the one stored now".
+ */
+export const buildBlogJson = (
+  values: BlogFormData,
+  coverImageUrl?: string | null,
+  extra?: Record<string, unknown>,
+): Record<string, unknown> => ({
+  title: values.title.trim(),
+  content: values.content,
+  category: values.category,
+  tags: values.tags,
+  contentType: "html",
+  ...(coverImageUrl ? { coverImage: coverImageUrl } : {}),
+  ...extra,
+});
+
+/**
+ * Builds the multipart body for `POST /admin/blogs`.
+ *
+ * The admin composer still sends the cover as a file, because the admin
+ * endpoints keep the multipart upload. `extra` carries the fields only the
+ * admin create accepts: whose byline the article has and whether it goes live.
  */
 export const buildBlogPayload = (
   values: BlogFormData,
@@ -142,30 +208,27 @@ export const buildBlogPayload = (
   const formData = new FormData();
   if (coverImage) formData.append("image", coverImage);
 
-  /**
-   * The API's create schema is `.strict()` and the Post model has no
-   * `description` field, so any extra key fails validation with a 400. The
-   * composer's description stays a local draft field that becomes the
-   * article's excerpt/meta description rather than a stored column.
-   */
-  const blogData = {
-    title: values.title.trim(),
-    content: values.content,
-    category: values.category,
-    tags: values.tags,
-    contentType: "html",
-    ...extra,
-  };
-
-  formData.append("data", JSON.stringify(blogData));
+  formData.append("data", JSON.stringify(buildBlogJson(values, null, extra)));
   return formData;
 };
 
 /**
- * Builds the multipart body for `PUT /blogs/:id` and `PUT /admin/blogs/:id`.
+ * Builds the JSON body for `PUT /blogs/:id`.
  *
- * `extra` carries the fields only the admin update accepts, such as `userId`;
- * member callers leave it out.
+ * An update that carries no URL leaves `coverImage` out, which is how the API
+ * is told to keep the stored cover rather than to clear it.
+ */
+export const buildUpdateJson = (
+  values: BlogFormData,
+  coverImageUrl?: string | null,
+  extra?: Record<string, unknown>,
+) => buildBlogJson(values, coverImageUrl, extra);
+
+/**
+ * Builds the multipart body for `PUT /admin/blogs/:id`.
+ *
+ * Only the fields the update schema accepts: it is `.strict()`, so any other
+ * key (an `id`, a `description`) fails the whole request with a 400.
  */
 export const buildUpdatePayload = (
   values: BlogFormData,
@@ -174,19 +237,7 @@ export const buildUpdatePayload = (
 ) => {
   const formData = new FormData();
 
-  // Only the fields the update schema accepts: it is `.strict()`, so any other
-  // key (an `id`, a `description`) fails the whole request with a 400.
-  formData.append(
-    "data",
-    JSON.stringify({
-      title: values.title.trim(),
-      content: values.content,
-      category: values.category,
-      tags: values.tags,
-      contentType: "html",
-      ...extra,
-    }),
-  );
+  formData.append("data", JSON.stringify(buildBlogJson(values, null, extra)));
 
   // Appending the file is what tells the API to replace the stored cover;
   // omitting it leaves the current one alone.

@@ -16,6 +16,8 @@ import {
   manageBlogsPath,
 } from "@/lib/blog-routes";
 import { IBlog } from "@/types";
+import { deleteCoverAsset } from "@/services/upload";
+import type { ICoverAsset } from "@/services/upload";
 import { Button } from "@heroui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -25,8 +27,10 @@ import { toast } from "sonner";
 import {
   BlogFormData,
   DraftField,
+  buildUpdateJson,
   buildUpdatePayload,
   validateDraft,
+  validateUploadSize,
   wordCount,
 } from "../write-blog/composer-utils";
 import CoverUpload from "../write-blog/cover-upload";
@@ -43,7 +47,7 @@ import {
   WritingPane,
   categoryName,
 } from "../write-blog/editor-shell";
-import { useObjectUrl, useStoredUpload } from "../write-blog/use-stored-upload";
+import { useCoverAsset } from "../write-blog/use-cover-asset";
 import { useUnsavedChangesGuard } from "../write-blog/use-unsaved-changes-guard";
 
 /**
@@ -60,6 +64,15 @@ const initialValues = (blog: IBlog): BlogFormData => ({
   tags: blog.tags ?? [],
   description: "",
 });
+
+/** A replacement cover on its way to the API, kept until the answer is in. */
+interface ISentCover {
+  asset: ICoverAsset;
+  /** The object URL the strip shows, owned by `savedPreviewUrls` once accepted. */
+  preview: string;
+  /** What the screen showed before, so a failed save can show it again. */
+  previousCover: string | null;
+}
 
 /** The fields a save actually writes, for the "unsaved" check. */
 const editableFingerprint = (values: BlogFormData) =>
@@ -95,9 +108,9 @@ const EditBlog = ({
   // accepts, so both mutations exist here and one is picked per save.
   const memberUpdate = useUpdateBlogByUserUsingId();
   const adminUpdate = useUpdateBlogByAdmin();
-  const { mutate: updateBlog, isPending } = adminMode
-    ? adminUpdate
-    : memberUpdate;
+  // Admin mode renders the same component with a different flag, never both,
+  // so this still points at the hook this screen saves through.
+  const { isPending } = adminMode ? adminUpdate : memberUpdate;
 
   const authorId =
     typeof blog.author === "object" && blog.author
@@ -128,23 +141,33 @@ const EditBlog = ({
   const [savedSlug, setSavedSlug] = useState(blog.slug ?? "");
   const [slugError, setSlugError] = useState<string | undefined>();
 
-  // A cover picked here is only stored once the save succeeds, so abandoning an
-  // edit cannot leave a replacement image behind.
+  // A cover picked here uploads at once, and its asset is deleted if the edit
+  // is abandoned before the update is accepted.
   const {
-    file: coverImage,
-    setFile: setCoverImage,
-    sync: syncCover,
-  } = useStoredUpload(`blog:${blog._id}`, { remember: false });
-  const pickedCoverUrl = useObjectUrl(coverImage);
-
+    asset: coverAsset,
+    file,
+    fileUrl,
+    status: coverStatus,
+    progress: coverProgress,
+    failedMessage: coverFailure,
+    pick: pickCover,
+    setAsset: setCoverAsset,
+    drop: dropCover,
+    keep: keepCover,
+  } = useCoverAsset();
   // The blog's cover as the server has it, or as this session just saved it.
   const [savedCover, setSavedCover] = useState<string | null>(
     typeof blog.coverImage === "string" ? blog.coverImage : null,
   );
   // The API cannot delete a stored cover, so "remove" only hides it on screen.
   const [coverRemoved, setCoverRemoved] = useState(false);
+  // The replacement handed to a save, kept until the answer is in: a failed
+  // save brings it back with the rest of the edits.
+  const sentCover = useRef<ISentCover | null>(null);
 
-  const displayedCover = coverRemoved ? null : (pickedCoverUrl ?? savedCover);
+  // The strip previews the file the writer picked, whether or not it uploaded
+  // yet, so the image does not blank while the upload runs or fails.
+  const displayedCover = coverRemoved ? null : (fileUrl ?? savedCover);
 
   const titleRef = useRef<HTMLTextAreaElement>(null);
   // Object URLs made for a just-saved cover; released when the page unmounts.
@@ -184,7 +207,8 @@ const EditBlog = ({
 
   const dirty =
     editableFingerprint(values) !== savedFingerprint ||
-    Boolean(coverImage) ||
+    Boolean(file) ||
+    coverStatus === "uploading" ||
     slugChanged;
 
   const dirtyLabels = useMemo(() => {
@@ -193,10 +217,13 @@ const EditBlog = ({
     if (values.content !== initial.content) labels.push("body");
     if (values.category !== initial.category) labels.push("category");
     if (values.tags.join(",") !== initial.tags.join(",")) labels.push("tags");
-    if (coverImage) labels.push("cover image");
+    if (file) labels.push("cover image");
+    // `dirty` also counts an upload that has no file left to show, so the
+    // label list follows it rather than leaving it unexplained.
+    else if (coverStatus === "uploading") labels.push("cover image");
     if (slugChanged) labels.push("address");
     return labels;
-  }, [values, initial, coverImage, slugChanged]);
+  }, [values, initial, file, coverStatus, slugChanged]);
 
   /* ---------------------------------------------------------------- actions */
 
@@ -262,9 +289,15 @@ const EditBlog = ({
   };
 
   const save = () => {
+    if (coverStatus === "uploading" || isPending) return;
+
     // An existing blog already has a cover, so only a newly chosen file has to
-    // be there for the update payload.
-    const found = validateDraft(values, Boolean(coverImage || savedCover));
+    // be there for the update payload. The admin editor still sends the file in
+    // its multipart body; the member editor sends the asset it uploaded.
+    const hasCover = adminMode
+      ? Boolean(file || savedCover)
+      : Boolean(coverAsset || savedCover);
+    const found = validateDraft(values, hasCover);
     setErrors(found);
 
     const first = (
@@ -290,78 +323,145 @@ const EditBlog = ({
       setSlugError(undefined);
     }
 
-    updateBlog(
-      {
-        blogId: blog._id,
-        payload: buildUpdatePayload(
-          values,
-          coverImage,
-          adminMode
-            ? {
-                ...(authorId ? { userId: authorId } : {}),
-                slug: nextAddress,
-              }
-            : undefined,
-        ),
-      },
-      {
-        onSuccess: (data) => {
-          if (data?.success) {
-            // The admin table and the trash counts cache this article
-            // separately, so an admin save has to refresh them.
-            if (adminMode) {
-              void queryClient.invalidateQueries({ queryKey: ["ADMIN_BLOGS"] });
-              void queryClient.invalidateQueries({
-                queryKey: ["TRASHED_BLOGS"],
-              });
-              void queryClient.invalidateQueries({
-                queryKey: ["ADMIN_TRASH_COUNTS"],
-              });
-            }
+    const adminExtra = {
+      ...(authorId ? { userId: authorId } : {}),
+      slug: nextAddress,
+    };
 
-            // The text fields are the baseline; the cover is tracked by whether
-            // a file is still pending. A saved cover keeps its own preview URL,
-            // so it survives `coverImage` being cleared and stays on screen
-            // until the refreshed page delivers the stored image.
-            if (coverImage) {
-              const savedPreview = URL.createObjectURL(coverImage);
-              setSavedCover(savedPreview);
-              savedPreviewUrls.current.push(savedPreview);
-              setCoverImage(null);
-              setCoverRemoved(false);
-              void syncCover(null);
-            }
-            setSavedFingerprint(editableFingerprint(values));
+    // The admin endpoints still take the cover as a file, so that editor keeps
+    // its multipart body. The member's save is JSON, and its cover was already
+    // uploaded when it was picked.
+    //
+    // The two mutations carry different payload types and `updateBlog` is one
+    // of them by reference, so each branch calls only its own hook: handing
+    // either of them a value of the other's type will not compile, on purpose.
+    // The member branch is handed a cover URL, or null for "keep the stored
+    // one", and builds its own JSON.
+    const settle = (data: any, sent: ISentCover | null) => {
+      if (!data?.success) return;
 
-            // The API writes a new slug from the title, so the member editor's
-            // address changes with it. The admin editor sends its own address
-            // and is keyed by id, so it stays put across a retitle.
-            const nextSlug = data?.data?.slug as string | undefined;
-            if (adminMode) {
-              if (nextSlug) {
-                setSlug(nextSlug);
-                setSavedSlug(nextSlug);
-              }
-              setSlugError(undefined);
-            } else if (nextSlug && nextSlug !== blog.slug) {
-              // The editor is remounted at the new address, so the toast has to
-              // be shown by the hook here rather than by the screen.
-              router.replace(editBlogPath(nextSlug));
-              return;
-            }
+      // The admin table and the trash counts cache this article separately, so
+      // an admin save has to refresh them.
+      if (adminMode) {
+        void queryClient.invalidateQueries({ queryKey: ["ADMIN_BLOGS"] });
+        void queryClient.invalidateQueries({ queryKey: ["TRASHED_BLOGS"] });
+        void queryClient.invalidateQueries({
+          queryKey: ["ADMIN_TRASH_COUNTS"],
+        });
+      }
 
-            // A long article leaves the writer at the bottom; show them the top,
-            // where the state line now says the change is live.
-            window.scrollTo({ top: 0, behavior: "smooth" });
-            router.refresh();
-            savedRef.current = true;
-          }
+      // The text fields are the baseline; the cover is tracked by whether a
+      // file is still pending. The file sent keeps its own preview URL, so the
+      // image stays on screen until the refreshed page delivers the stored one.
+      if (sent) {
+        sentCover.current = null;
+        savedPreviewUrls.current.push(sent.preview);
+        setSavedCover(sent.preview);
+        setCoverAsset(null);
+        setCoverRemoved(false);
+      }
+      // Whatever was sent is the article's from here, so abandoning this screen
+      // must not delete it.
+      keepCover();
+      setSavedFingerprint(editableFingerprint(values));
+
+      // The API writes a new slug from the title, so the member editor's
+      // address changes with it. The admin editor sends its own address and is
+      // keyed by id, so it stays put across a retitle.
+      const nextSlug = data?.data?.slug as string | undefined;
+      if (adminMode) {
+        if (nextSlug) {
+          setSlug(nextSlug);
+          setSavedSlug(nextSlug);
+        }
+        setSlugError(undefined);
+      } else if (nextSlug && nextSlug !== blog.slug) {
+        // The editor is remounted at the new address, so the toast has to be
+        // shown by the hook here rather than by the screen.
+        router.replace(editBlogPath(nextSlug));
+        return;
+      }
+
+      // A long article leaves the writer at the bottom; show them the top,
+      // where the state line now says the change is live.
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      router.refresh();
+      savedRef.current = true;
+    };
+
+    // The mutation owns the failure toast; the replacement above is this
+    // screen's own, so it does not wait on the hook's own handling.
+    const ignoreError = (sent: ISentCover | null) => {
+      // Asked before any other edit can land, so the strip shows the cover the
+      // article actually keeps.
+      setSavedCover(sent?.previousCover ?? null);
+    };
+
+    const send = (coverUrl: string | null, sent: ISentCover | null) => {
+      if (adminMode) {
+        adminUpdate.mutate(
+          {
+            blogId: blog._id,
+            payload: buildUpdatePayload(values, file, adminExtra),
+          },
+          {
+            onSuccess: (data) => settle(data, sent),
+            onError: () => ignoreError(sent),
+          },
+        );
+        return;
+      }
+
+      memberUpdate.mutate(
+        { blogId: blog._id, payload: buildUpdateJson(values, coverUrl) },
+        {
+          onSuccess: (data) => settle(data, sent),
+          onError: () => ignoreError(sent),
         },
-        onError: () => {
-          // Already reported by the update hook.
-        },
-      },
-    );
+      );
+    };
+
+    if (adminMode) {
+      send(null, null);
+      return;
+    }
+
+    const tooBig = validateUploadSize(values);
+    if (tooBig) {
+      toast.error(tooBig, { id: "edit-check" });
+      return;
+    }
+
+    // A replacement went up when it was picked, so the update only names it.
+    if (!coverAsset) {
+      if (file) {
+        // The strip is showing a file the upload never delivered. Saving now
+        // would quietly keep the stored cover and lose the writer's choice, so
+        // the strip is asked for a picture it can actually send.
+        toast.error(
+          "Wait for the cover to finish uploading, or pick it again.",
+          {
+            id: "cover-upload-failed",
+            description: coverFailure ?? undefined,
+          },
+        );
+        return;
+      }
+
+      // No new cover, so the stored URL goes back unchanged.
+      send(savedCover, null);
+      return;
+    }
+
+    // The asset leaves this screen's keeping only once the API has it, so a
+    // failed save cannot leave it deleted or forgotten.
+    const sent: ISentCover = {
+      asset: coverAsset,
+      preview: fileUrl ?? savedCover ?? "",
+      previousCover: savedCover,
+    };
+    sentCover.current = sent;
+    send(coverAsset.url, sent);
   };
 
   // The mutation owns the failure toast; this screen owns the success one.
@@ -372,11 +472,20 @@ const EditBlog = ({
   }, [savedFingerprint]);
 
   const discard = () => {
+    // A replacement sent by a save that has not been answered yet would be
+    // forgotten by the reset below, and a later failure answer would put its
+    // cover back over a reverted screen. It is dropped now instead.
+    if (sentCover.current) {
+      URL.revokeObjectURL(sentCover.current.preview);
+      void deleteCoverAsset(sentCover.current.asset.publicId);
+      sentCover.current = null;
+    }
     setValues(initial);
     setErrors({});
     setSlug(savedSlug);
     setSlugError(undefined);
-    setCoverImage(null);
+    // A replacement that was never saved belongs to nobody now.
+    dropCover();
     setCoverRemoved(false);
     setSavedCover(typeof blog.coverImage === "string" ? blog.coverImage : null);
     setTagInput("");
@@ -384,9 +493,25 @@ const EditBlog = ({
     toast("Reverted to the published version", { id: "edit-discard" });
   };
 
+  // A replacement is only the article's once a save accepts it. A closed tab
+  // may beat this request; one orphaned image is cheaper than a cron job.
+  useEffect(
+    () => () => {
+      if (sentCover.current) {
+        URL.revokeObjectURL(sentCover.current.preview);
+        void deleteCoverAsset(sentCover.current.asset.publicId);
+      }
+    },
+    [],
+  );
+
+  // A save that did not land leaves its replacement with this screen, so it is
+  // deleted with the other unsaved changes rather than left for the unmount.
+  const discardAll = () => discard();
+
   const { prompt, askToLeave } = useUnsavedChangesGuard({
     dirty,
-    discard,
+    discard: discardAll,
     onLeave: () => router.push(manageHref),
     title: "Leave without saving?",
     description:
@@ -487,7 +612,8 @@ const EditBlog = ({
           <Button
             size="sm"
             color="primary"
-            isDisabled={isPending || !dirty}
+            isDisabled={isPending || coverStatus === "uploading" || !dirty}
+            isLoading={isPending}
             onPress={() => save()}
           >
             Save
@@ -574,7 +700,8 @@ const EditBlog = ({
           primary={
             <Button
               color="primary"
-              isDisabled={isPending || !dirty}
+              isDisabled={isPending || coverStatus === "uploading" || !dirty}
+              isLoading={isPending}
               onPress={() => save()}
             >
               Save changes
@@ -599,17 +726,45 @@ const EditBlog = ({
         coverLabel={displayedCover ? "Cover image" : undefined}
         cover={
           <CoverUpload
-            file={coverImage}
-            onChange={(file) => {
-              setCoverImage(file);
-              // Choosing a replacement clears a pending removal; clearing it
-              // again re-adds the reminder below.
-              if (file) setCoverRemoved(false);
+            file={file}
+            progress={coverStatus === "uploading" ? coverProgress : null}
+            failedMessage={coverFailure}
+            onChange={(next) => {
+              // Remove sends null, which goes through the same path: only this
+              // session's replacement is deleted, never the saved cover.
+              if (!next) {
+                if (sentCover.current) {
+                  URL.revokeObjectURL(sentCover.current.preview);
+                  sentCover.current = null;
+                }
+                dropCover();
+                setCoverRemoved(false);
+                return;
+              }
+              setCoverRemoved(false);
+              const previous = sentCover.current;
+              void pickCover(next, (asset) => {
+                // The saved cover is the article's current image and is not
+                // this session's to delete, so only a previous replacement of
+                // this session's goes when a newer one lands.
+                if (previous && previous.asset.publicId !== asset.publicId) {
+                  URL.revokeObjectURL(previous.preview);
+                  sentCover.current = null;
+                }
+                void deleteCoverAsset(asset.publicId);
+              });
             }}
             onRemoveExisting={() => {
-              setCoverImage(null);
+              // Remove on a saved cover only hides it: the API keeps the
+              // stored image, and the reminder below says so.
               setCoverRemoved(true);
             }}
+            // Nothing is uploaded while a save is in flight: the body already
+            // names one cover, and a second one would be orphaned by the save.
+            canPick={!isPending}
+            // A stored cover only goes through the handler below; a replacement
+            // of this session's can be cleared while its upload is in flight,
+            // because `drop` discards a ticket that is still open.
             existing={coverRemoved ? null : savedCover}
           />
         }

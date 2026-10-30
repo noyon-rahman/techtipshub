@@ -164,6 +164,10 @@ const NavarDropdown: React.FC = () => {
             key="identity"
             isReadOnly
             hideSelectedIcon
+            // The row is a name and an address, not a string, and the menu's
+            // type-to-select needs something to type against. Without one the
+            // list logs a missing-label warning on every page.
+            textValue={`${displayName} ${user.email}`}
             className="cursor-default opacity-100 data-[hover=true]:bg-transparent"
             startContent={
               <UserAvatar

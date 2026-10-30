@@ -61,6 +61,7 @@ const BlogShareDropdown = () => {
       >
         <DropdownItem
           key="permalink"
+          textValue={isCopied ? "Link copied" : "Permalink"}
           startContent={<PiLink />}
           onClick={handleCopyLink}
         >
