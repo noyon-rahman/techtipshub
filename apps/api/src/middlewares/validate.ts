@@ -90,12 +90,20 @@ const readPart = async (target: TTarget, c: TContext) => {
   }
 };
 
+/**
+ * The body a schema judges.
+ *
+ * A multipart request has already been turned into an object by
+ * `withUploads`, and that object is the one to read. A JSON request has not,
+ * so it is read here; the empty placeholder `withUploads` can leave behind is
+ * not a body, and trusting it silently drops every field the client sent.
+ */
 const readBody = async (c: TContext) => {
   const uploaded = c.get("uploadedBody");
-  if (uploaded) return uploaded;
+  if (uploaded && Object.keys(uploaded).length > 0) return uploaded;
 
   if (!(c.req.header("content-type") ?? "").includes("application/json")) {
-    return {};
+    return uploaded ?? {};
   }
 
   return (await c.req.json().catch(() => ({}))) as unknown;

@@ -135,7 +135,13 @@ export const getFollowingUsersBlogs = async (
   }
 };
 
-export const createBlog = async (payload: FormData) => {
+/**
+ * `POST /blogs`: create an article.
+ *
+ * JSON, not multipart: the cover was already uploaded to Cloudinary from the
+ * browser and arrives here as its `secure_url`, so the body is only the text.
+ */
+export const createBlog = async (payload: Record<string, unknown>) => {
   try {
     const res = await axiosInstance.post("/blogs", payload);
 
@@ -342,9 +348,10 @@ export const deleteBlogByUserUsingId = async (blogId: string) => {
   }
 };
 
+/** `PUT /blogs/:id`: save an edit. JSON, for the same reason as the create. */
 export const updateBlogByUserUsingId = async (
   blogId: string,
-  payload: FormData,
+  payload: Record<string, unknown>,
 ) => {
   try {
     const res = await axiosInstance.put(`/blogs/${blogId}`, payload);

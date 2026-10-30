@@ -66,6 +66,7 @@ const ProfileShareDropdown = ({}: IProps) => {
       >
         <DropdownItem
           key="profile-permalink"
+          textValue={isCopied ? "Link copied" : "Permalink"}
           startContent={<PiLink />}
           onClick={handleCopyLink}
         >

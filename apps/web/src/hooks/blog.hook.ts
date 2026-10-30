@@ -18,7 +18,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 export const useCreateBlog = () => {
-  return useMutation<any, Error, FormData>({
+  return useMutation<any, Error, Record<string, unknown>>({
     mutationKey: ["CREATE_BLOG"],
     mutationFn: async (payload) => await createBlog(payload),
     onSuccess: (data) => {
@@ -454,7 +454,11 @@ export const useDeleteBlogByUserUsingId = () => {
 };
 
 export const useUpdateBlogByUserUsingId = () => {
-  return useMutation<any, Error, { blogId: string; payload: FormData }>({
+  return useMutation<
+    any,
+    Error,
+    { blogId: string; payload: Record<string, unknown> }
+  >({
     mutationKey: ["UPDATE_BLOG_BY_USER"],
     mutationFn: async ({ blogId, payload }) =>
       await updateBlogByUserUsingId(blogId, payload),

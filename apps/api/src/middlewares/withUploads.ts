@@ -3,6 +3,7 @@ import type { Context, MiddlewareHandler } from "hono";
 import { AppError } from "../errors";
 import {
   filesFrom,
+  MAX_UPLOAD_BYTES,
   uploadToCloudinary,
   type TUploadedFile,
 } from "../config/upload.config";
@@ -35,6 +36,15 @@ export const withUploads = (
 ): MiddlewareHandler<TAppBindings> => {
   return async (c, next) => {
     const { body, files } = await readMultipart(c, options.field);
+
+    // Refused here, before Cloudinary: the upload only fails there after the
+    // whole file has been encoded and sent.
+    if (files.some((file) => file.size > MAX_UPLOAD_BYTES)) {
+      throw new AppError(
+        httpStatus.REQUEST_ENTITY_TOO_LARGE,
+        "That file is too large. Use an image under 4 MB.",
+      );
+    }
 
     if (files.length > 0) {
       const uploaded = await Promise.all(

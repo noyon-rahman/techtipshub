@@ -26,10 +26,11 @@ blogRouter.get(
 
 blogRouter.get("/users/:userId", blogController.getAllBlogsByUserId);
 
+// The member composer publishes JSON: its cover is already an asset, uploaded
+// the moment it was picked. Only the admin routes below still take a file.
 blogRouter.post(
   "/",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
-  withUploads({ field: "image", target: "coverImage" }),
   validate({ json: blogValidationSchema.create }),
   blogController.create,
 );
@@ -46,7 +47,6 @@ blogRouter.delete(
 blogRouter.put(
   "/:id",
   auth(USER_ROLE.USER, USER_ROLE.ADMIN),
-  withUploads({ field: "image", target: "coverImage" }),
   validate({ json: blogValidationSchema.update }),
   blogController.updateBlogByUserUsingId,
 );

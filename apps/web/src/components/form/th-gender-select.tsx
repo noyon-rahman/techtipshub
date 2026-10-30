@@ -48,7 +48,9 @@ export default function THGenderSelect({
           errorMessage={fieldState.error?.message}
         >
           {GENDER_OPTIONS.map((gender) => (
-            <SelectItem key={gender}>{gender}</SelectItem>
+            <SelectItem key={gender} textValue={gender}>
+              {gender}
+            </SelectItem>
           ))}
         </Select>
       )}

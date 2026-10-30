@@ -51,7 +51,9 @@ const THSelect: React.FC<IProps> = ({
       classNames={{ popoverContent: "border border-default-100" }}
     >
       {options?.map((option) => (
-        <SelectItem key={option.key}>{option.label}</SelectItem>
+        <SelectItem key={option.key} textValue={option.label}>
+          {option.label}
+        </SelectItem>
       ))}
     </Select>
   );

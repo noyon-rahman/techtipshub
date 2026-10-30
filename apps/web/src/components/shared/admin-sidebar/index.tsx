@@ -273,6 +273,7 @@ const AdminSidebar = () => {
             key="profile"
             as={Link}
             href={ownProfilePath(user?.username ?? "")}
+            textValue="Your profile"
             startContent={
               <HiOutlineUserCircle aria-hidden className="size-4" />
             }
@@ -283,6 +284,7 @@ const AdminSidebar = () => {
             key="articles"
             as={Link}
             href={manageBlogsPath}
+            textValue="Your articles"
             startContent={
               <HiOutlinePencilSquare aria-hidden className="size-4" />
             }
@@ -293,6 +295,7 @@ const AdminSidebar = () => {
             key="site"
             as={Link}
             href="/"
+            textValue="Back to the site"
             startContent={<FiExternalLink aria-hidden className="size-4" />}
           >
             Back to the site
@@ -300,6 +303,7 @@ const AdminSidebar = () => {
           <DropdownItem
             key="logout"
             color="danger"
+            textValue="Log out"
             onPress={handleLogout}
             startContent={<FiLogOut aria-hidden className="size-4" />}
           >

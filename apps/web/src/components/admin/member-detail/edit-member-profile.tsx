@@ -254,7 +254,9 @@ const EditMemberProfile = ({ member, onSaved }: IProps) => {
                   description="Optional."
                 >
                   {GENDERS.map((option) => (
-                    <SelectItem key={option}>{option}</SelectItem>
+                    <SelectItem key={option} textValue={option}>
+                      {option}
+                    </SelectItem>
                   ))}
                 </Select>
 

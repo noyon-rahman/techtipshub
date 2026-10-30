@@ -129,7 +129,48 @@ Things known to be wrong or unfinished, in the order they matter.
   query that returns "nothing" is usually a missing option, not a missing row.
 - **The browser API proxy is an allowlist.** A route that works from the server
   component fails from the browser until it is added to
-  `app/api/v1/[...path]/route.ts`. That is on purpose.
+  `app/api/v1/[...path]/route.ts`. That is on purpose. `POST /uploads/cover` and
+  `DELETE /uploads/asset` are on it so the browser can upload and delete a cover.
+- **A cover is an asset from the moment it is picked.** The picker uploads it
+  through `POST /uploads/cover` (downscaled to 1600 px first) and the composer
+  holds its `{ url, publicId }`; publish and edit send only the URL as JSON. A
+  replacement, a removal, a discarded draft and leaving the composer delete an
+  asset with `DELETE /uploads/asset`, best effort. Only assets this screen
+  uploaded are ever deleted: a saved cover on the edit screen is the article's
+  and survives a new pick until the update is accepted. `use-cover-asset.ts`
+  owns that rule. Draft storage keeps the `File` only, never a URL, because a
+  reloaded asset was deleted when the last visit ended; a restored file uploads
+  again. The admin composer still sends multipart through `/admin/blogs`. A
+  closed tab can leave one orphaned asset; do not add a cron for it.
+  `POST /uploads/signature` still exists in the API but nothing in the web app
+  calls it, so it is off the proxy allow list.
+- **A delete is authorised by folder, not by owner.** `DELETE /uploads/asset`
+  trusts a `publicId` from the browser, so it refuses anything outside
+  `techtipshub/{covers,avatars,images}/`. Without that check any signed-in member
+  could delete any asset on the Cloudinary account, the logo included. Note it
+  does not check *whose* asset it is; a member can delete another member's cover
+  if they learn its id. Ids are random hex, so it is not guessable, but an
+  owner column would be the next step if that matters.
+- **One upload limit, `apps/web/src/lib/upload-limits.ts`.** 4 MB for covers,
+  for profile photos and for avatars. `next.config.js` reads the same number for
+  `experimental.serverActions.bodySizeLimit`, and the API refuses the same 4 MB
+  in `withUploads`. Article JSON is checked separately by `validateUploadSize`.
+- **A JSON route must not also run `withUploads`.** `POST /blogs` and
+  `PUT /blogs/:id` take JSON now; `withUploads` reads a JSON body as "no form"
+  and stores `{}` as `uploadedBody`, which silently satisfied the schema with
+  nothing and produced "Title must be a string" on every publish. `readBody`
+  also ignores an empty `uploadedBody` for the same reason. Only the admin
+  routes still upload a file.
+- **Every `DropdownItem`/`SelectItem`/`AutocompleteItem` whose label is not one
+  plain string needs `textValue`.** `react-stately` warns once per item at mount
+  ("`<Item>` with non-plain text contents…"), so a composer-only check misses it:
+  the account menu in the navbar renders on every page, signed in. Element
+  children, a ternary on `isCopied`, or an icon plus text all count as
+  non-plain.
+- **`next dev` allows one server per app directory.** A second one on another
+  port refuses to start, and the first keeps serving the code it compiled. If a
+  source change does not show up in the browser, the server is stale: restart
+  it (`taskkill /PID <pid> /F`) instead of testing against a second port.
 - **Hono adds no `sameSite` default.** The session cookies set it explicitly in
   `session-cookies.ts`.
 - **The API validates env on import.** On Vercel a bad value throws inside the
@@ -217,6 +258,18 @@ the only history section here.
   admin list keeps its filters in the URL (`useAdminListParams`). The gate
   gained `query-filter`, a database-free check on the builder's visibility
   guard.
+- 2026-10-30: A picked cover uploads at once through `POST /uploads/cover`
+  (downscaled to 1600 px first) and its asset is deleted through
+  `DELETE /uploads/asset` when it is replaced, removed, discarded or left
+  behind, best effort; publish and edit send only the URL as JSON. The browser
+  no longer calls `POST /uploads/signature`, so it is off the proxy allow list.
+  Admin composer keeps the multipart path. Fixes issue #4 (the 1 MB Server
+  Action "Body exceeded" toast).
+- 2026-10-31: The cover strip's Remove always clears, with no `canRemove` gate:
+  after a failed upload the writer was stuck on "upload failed" with nothing to
+  remove. `textValue` added to the account menu's identity row and to the other
+  items whose labels are not one plain string, which silences react-stately's
+  `<Item>` warning on load.
 - 2026-10-28: Collections renamed to snake_case and pinned in every model
   (`admin_logs`, `newsletter_subscribers`, `newsletter_campaigns`); the
   `authhandoffs` collection is gone, the Google handoff is a signed JWT;

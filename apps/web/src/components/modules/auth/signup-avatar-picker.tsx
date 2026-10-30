@@ -3,8 +3,10 @@
 import { useFormContext } from "react-hook-form";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuImagePlus, LuTrash2 } from "react-icons/lu";
-
-const MAX_BYTES = 5 * 1024 * 1024;
+import {
+  imageTooLargeMessage,
+  IMAGE_MAX_BYTES,
+} from "@/lib/upload-limits";
 
 /**
  * Profile-photo picker for the sign-up form.
@@ -37,8 +39,8 @@ const SignupAvatarPicker = () => {
       setError("That file is not an image.");
       return;
     }
-    if (candidate.size > MAX_BYTES) {
-      setError("Images must be smaller than 5 MB.");
+    if (candidate.size > IMAGE_MAX_BYTES) {
+      setError(imageTooLargeMessage("avatar"));
       return;
     }
     setError(null);
