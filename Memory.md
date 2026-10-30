@@ -51,7 +51,7 @@ Conventions: [`Rules.md`](./Rules.md).
 ### Not built
 
 - Unit and browser tests. `pnpm test` is a repository gate (typecheck, format,
-  invariants, lint, build), not a spec suite.
+  invariants, the list filter check, lint, build), not a spec suite.
 - Email verification gate (intentional, see `PRD.md`).
 - Self-serve account deletion (members ask through the contact form).
 - Scheduled or resumable-without-a-press newsletter sends (blocked by the plan).
@@ -81,9 +81,12 @@ Things known to be wrong or unfinished, in the order they matter.
   flips up when the row is near the viewport bottom. Any new in-row popover in
   an admin list needs the same treatment.
 - **`pnpm test` is the gate.** It runs typecheck, the format and invariant
-  checks, lint and both builds, and stops at the first failure. `pnpm test lint`
-  runs one step. The invariants live in `scripts/test/checks/` and read the tree,
-  so they catch a placeholder or an unlisted env key that types cannot.
+  checks, the list filter check, lint and both builds, and stops at the first
+  failure. `pnpm test lint` runs one step. The invariants live in
+  `scripts/test/checks/` and read the tree, so they catch a placeholder or an
+  unlisted env key that types cannot. `query-filter.mjs` runs the real
+  `QueryBuilder` through the app's own tsx and needs no database: `.find()`
+  builds a query and `getFilter()` reads it back without connecting.
 - **The legal pages name a person, not a company.** `config/legal.ts` says
   `Novon Rahman, publishing as TechTipsHub` and gives the contact address as the
   address of record. Do not add a registered company or a street address that
@@ -94,6 +97,19 @@ Things known to be wrong or unfinished, in the order they matter.
   unset (the key derives from the JWT secrets), invalidates every unsubscribe
   link already in a mailbox.** Set the dedicated secret before the first real
   send.
+- **`QueryBuilder` drops `status` and `isDeleted` unless a list opts in.** The
+  default is deny because most callers hand over the raw request query; only a
+  list that has already whitelisted the value passes
+  `{ allowVisibilityFilters: ["status"] }` (subscribers, inbox, members). A new
+  admin list with a status tab needs that option, or the tab highlights and the
+  rows never change.
+- **Admin list filters live in the URL.** Every admin list reads and writes its
+  tab, page, page size and search through `useAdminListParams`
+  (`hooks/use-admin-list-params.ts`, pure half in `lib/admin-list-params.ts`),
+  so a reload, a bookmark or a shared link returns the same view. Setters use
+  `router.replace`, not `push`. Params the schema does not declare (a
+  `?message=` deep link) are preserved. A screen using it must sit under a
+  `<Suspense>` boundary or the production build fails.
 - **Mongo filters live in model middleware.** `find`/`findOne` hide trashed rows
   and drafts unless the call passes `bypassMiddleware` / `includeDrafts`. A
   query that returns "nothing" is usually a missing option, not a missing row.
@@ -129,6 +145,12 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-10-30: #11 fixed. `QueryBuilder` keeps a validated `status` for the three
+  admin lists that opt in (newsletter subscribers, contact inbox, members);
+  draft and deleted rows still cannot be asked for on a public list. Every
+  admin list keeps its filters in the URL (`useAdminListParams`). The gate
+  gained `query-filter`, a database-free check on the builder's visibility
+  guard.
 - 2026-10-28: Collections renamed to snake_case and pinned in every model
   (`admin_logs`, `newsletter_subscribers`, `newsletter_campaigns`); the
   `authhandoffs` collection is gone, the Google handoff is a signed JWT;
