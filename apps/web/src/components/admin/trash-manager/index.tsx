@@ -25,13 +25,33 @@ import {
   useDeleteAdminBlogPermanently,
   useTrashCounts,
 } from "@/hooks/admin-blogs";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
 import type { IUser, ITrashedUser } from "@/types";
 import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
-import { useCallback, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { MdOutlineArticle } from "react-icons/md";
 import { PiUsers } from "react-icons/pi";
 import { RiArrowGoBackLine, RiDeleteBinLine } from "react-icons/ri";
+
+/**
+ * Both tabs page the same row count, so one `page` serves whichever tab is
+ * open and a tab switch starts that tab at its first page.
+ */
+const TRASH_LIST = {
+  tab: listParam({
+    values: ["articles", "members"] as const,
+    default: "articles",
+    resetsPage: true,
+  }),
+  searchTerm: listParam({ default: "", resetsPage: true }),
+  page: listParam({ default: 1 }),
+  limit: listParam({
+    default: PAGE_SIZES[0],
+    allowed: PAGE_SIZES,
+    resetsPage: true,
+  }),
+} as const;
 
 type Tab = "articles" | "members";
 
@@ -79,34 +99,32 @@ interface ITrashedArticle {
  *
  * A restore leaves a row behind so the reader can open what came back. The
  * API stores no deletion time, so the date column is the last change.
+ *
+ * The tab, search, page and page size are in the URL, so a reload or a shared
+ * link lands back on the same list.
  */
 const TrashManager = () => {
-  const [tab, setTab] = useState<Tab>("articles");
-  const [page, setPage] = useState({ articles: 1, members: 1 });
-  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
-  const [query, setQuery] = useState("");
+  const filters = useAdminListParams(TRASH_LIST);
+  const { tab, page, limit, searchTerm } = filters.values;
+  const [query, setQuery] = useState(searchTerm);
   const [restored, setRestored] = useState<IRestored | null>(null);
   const [removed, setRemoved] = useState<string | null>(null);
   const panelId = useId();
 
-  const resetPage = useCallback(
-    () => setPage((current) => ({ ...current, [tab]: 1 })),
-    [tab],
+  // Settling a search reads the latest setter without restarting the timer.
+  const filtersRef = useRef(filters.set);
+  useEffect(() => {
+    filtersRef.current = filters.set;
+  }, [filters.set]);
+  useDebouncedTerm(
+    query,
+    useCallback((term: string) => {
+      filtersRef.current({ searchTerm: term });
+    }, []),
   );
-  // Both endpoints search the whole trash, so one settled phrase is one request
-  // per tab and the page counter goes back to the first result.
-  const searchTerm = useDebouncedTerm(query, resetPage);
 
-  const blogsQuery = useTrashedBlogs({
-    page: page.articles,
-    limit,
-    searchTerm,
-  });
-  const usersQuery = useTrashedUsers({
-    page: page.members,
-    limit,
-    searchTerm,
-  });
+  const blogsQuery = useTrashedBlogs({ page, limit, searchTerm });
+  const usersQuery = useTrashedUsers({ page, limit, searchTerm });
   const countsQuery = useTrashCounts();
 
   const { mutate: restoreBlog, isPending: isRestoringBlog } = useRestoreBlog();
@@ -117,19 +135,21 @@ const TrashManager = () => {
   const articleCount = countsQuery.data?.blogs;
   const memberCount = countsQuery.data?.users;
 
-  const filters = [
+  const tabs = [
     { key: "articles", label: "Articles", count: articleCount },
     { key: "members", label: "Members", count: memberCount },
   ];
 
   const changeTab = (next: Tab) => {
-    setTab(next);
     setQuery("");
+    filters.set({ tab: next, searchTerm: "" });
     void countsQuery.refetch();
   };
 
-  const setTabPage = (next: number) =>
-    setPage((current) => ({ ...current, [tab]: next }));
+  // A restore or a delete can empty the last page of the open tab.
+  const stepBackIfEmpty = (shown: number) => {
+    if (page > 1 && shown <= 1) filters.set({ page: page - 1 });
+  };
 
   const onRestoreBlog = (blog: ITrashedArticle) => {
     restoreBlog(blog._id, {
@@ -143,12 +163,7 @@ const TrashManager = () => {
           href: result?.slug ? `/blogs/${result.slug}` : undefined,
           what: "article",
         });
-        if (page.articles > 1 && blogsQuery.rows.length <= 1) {
-          setPage((current) => ({
-            ...current,
-            articles: Math.max(1, current.articles - 1),
-          }));
-        }
+        stepBackIfEmpty(blogsQuery.rows.length);
       },
     });
   };
@@ -159,12 +174,7 @@ const TrashManager = () => {
       onDeleted: () => {
         setRestored(null);
         setRemoved(blog.title || "The article");
-        if (page.articles > 1 && blogsQuery.rows.length <= 1) {
-          setPage((current) => ({
-            ...current,
-            articles: Math.max(1, current.articles - 1),
-          }));
-        }
+        stepBackIfEmpty(blogsQuery.rows.length);
       },
     });
   };
@@ -178,12 +188,7 @@ const TrashManager = () => {
           href: `/admin/manage-users/${user._id}`,
           what: "account",
         });
-        if (page.members > 1 && usersQuery.rows.length <= 1) {
-          setPage((current) => ({
-            ...current,
-            members: Math.max(1, current.members - 1),
-          }));
-        }
+        stepBackIfEmpty(usersQuery.rows.length);
       },
     });
   };
@@ -347,10 +352,10 @@ const TrashManager = () => {
             total={meta?.total}
             shown={rows.length}
             noun="removed article"
-            page={meta?.page ?? page.articles}
+            page={meta?.page ?? page}
             totalPages={totalPages}
             pageSize={meta?.limit ?? limit}
-            onPageChange={setTabPage}
+            onPageChange={(next) => filters.set({ page: next })}
             isLoading={blogsQuery.isLoading && !meta}
             isError={blogsQuery.isError}
             context={searchTerm ? `, matching "${searchTerm}"` : null}
@@ -508,10 +513,10 @@ const TrashManager = () => {
             total={meta?.total}
             shown={usersQuery.rows.length}
             noun="deleted account"
-            page={meta?.page ?? page.members}
+            page={meta?.page ?? page}
             totalPages={totalPages}
             pageSize={meta?.limit ?? limit}
-            onPageChange={setTabPage}
+            onPageChange={(next) => filters.set({ page: next })}
             isLoading={usersQuery.isLoading && !meta}
             isError={usersQuery.isError}
             context={searchTerm ? `, matching "${searchTerm}"` : null}
@@ -525,7 +530,7 @@ const TrashManager = () => {
     <div className="space-y-4">
       <ListFrame label="Removed articles and accounts">
         <DataToolbar
-          filters={filters}
+          filters={tabs}
           activeFilter={tab}
           onFilterChange={(key) =>
             changeTab(key === "members" ? "members" : "articles")
@@ -540,10 +545,9 @@ const TrashManager = () => {
               label="Per page"
               hideLabel
               value={limit}
-              onChange={(value) => {
-                setLimit(Number(value) || PAGE_SIZES[0]);
-                setTabPage(1);
-              }}
+              onChange={(value) =>
+                filters.set({ limit: Number(value) || PAGE_SIZES[0] })
+              }
               options={PAGE_SIZE_OPTIONS}
             />
           }

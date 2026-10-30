@@ -2,8 +2,10 @@
 
 import TrashManager from "@/components/admin/trash-manager";
 import AdminPageHeader from "@/components/modules/admin/kit/page-header";
+import AdminPageSpinner from "@/components/shared/admin-sidebar/admin-page-spinner";
 import { useAdminTitle } from "@/components/shared/admin-sidebar/use-admin-title";
 import ButtonLink from "@/components/ui/button-link";
+import { Suspense } from "react";
 import { RiArrowLeftLine } from "react-icons/ri";
 
 const TrashPage = () => {
@@ -25,7 +27,9 @@ const TrashPage = () => {
           </ButtonLink>
         }
       />
-      <TrashManager />
+      <Suspense fallback={<AdminPageSpinner label="Loading the trash" />}>
+        <TrashManager />
+      </Suspense>
     </div>
   );
 };

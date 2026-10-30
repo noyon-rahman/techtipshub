@@ -1,6 +1,6 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
-import { QueryBuilder } from "../../builder";
+import { QueryBuilder, type TQueryBuilderOptions } from "../../builder";
 import { CONTACT_INBOX } from "../../config/mail";
 import { contactNotificationMessage } from "../../emails";
 import AppError from "../../errors/AppError";
@@ -20,6 +20,15 @@ const CONTACT_SORT_FIELDS = [
   "status",
   "handledAt",
 ] as const;
+
+/**
+ * `status` is checked against CONTACT_STATUSES in `getAll` before the builder
+ * sees it, so the inbox tells the builder to keep that one key;
+ * `QueryBuilder.filter()` strips it for every list that has not done the same.
+ */
+const INBOX_OPTIONS: TQueryBuilderOptions = {
+  allowVisibilityFilters: ["status"],
+};
 
 export type TContactPayload = {
   firstName: string;
@@ -167,6 +176,7 @@ const getAll = async (query: Record<string, unknown>) => {
       select: "fullName username profilePicture",
     }),
     parsed,
+    INBOX_OPTIONS,
   ).search(["firstName", "lastName", "email", "subject"]);
 
   await contactQuery.filter();

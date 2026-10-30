@@ -1,7 +1,8 @@
 "use client";
 
 import { focusRing } from "@/components/modules/admin/kit/tau";
-import { useRef, useState, type KeyboardEvent } from "react";
+import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
+import { useRef, type KeyboardEvent } from "react";
 
 import CampaignsTab from "./campaigns-tab";
 import SubscribersTab from "./subscribers-tab";
@@ -11,7 +12,12 @@ const TABS = [
   { id: "subscribers", label: "Subscribers" },
 ] as const;
 
-type TabId = (typeof TABS)[number]["id"];
+const NEWSLETTER_TAB = {
+  tab: listParam({
+    values: ["issues", "subscribers"] as const,
+    default: "issues",
+  }),
+} as const;
 
 /**
  * The newsletter screen.
@@ -19,9 +25,13 @@ type TabId = (typeof TABS)[number]["id"];
  * Two subjects with a shared job: an issue goes to the list. They sit in one
  * place because the first question about any send is "who is on the list", and
  * the second is "what went out last month".
+ *
+ * The chosen tab is in the URL, so a reload or a bookmark lands back on the
+ * list the reader was reading.
  */
 const NewsletterManager = () => {
-  const [tab, setTab] = useState<TabId>("issues");
+  const filters = useAdminListParams(NEWSLETTER_TAB);
+  const tab = filters.values.tab;
   const tabRef = useRef<HTMLDivElement>(null);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -36,7 +46,7 @@ const NewsletterManager = () => {
 
     if (next === undefined) return;
     event.preventDefault();
-    setTab(TABS[next].id);
+    filters.set({ tab: TABS[next].id });
     tabRef.current
       ?.querySelectorAll<HTMLElement>('[role="tab"]')
       [next]?.focus();
@@ -63,7 +73,7 @@ const NewsletterManager = () => {
               aria-selected={selected}
               aria-controls={`newsletter-panel-${entry.id}`}
               tabIndex={selected ? 0 : -1}
-              onClick={() => setTab(entry.id)}
+              onClick={() => filters.set({ tab: entry.id })}
               className={`-mb-px inline-flex min-h-11 items-center border-b-2 px-3 text-sm font-medium transition-colors ${focusRing} ${
                 selected
                   ? "border-primary text-foreground"

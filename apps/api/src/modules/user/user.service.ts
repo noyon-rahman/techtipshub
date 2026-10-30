@@ -1,7 +1,11 @@
 import httpStatus from "http-status";
 import { JwtPayload } from "jsonwebtoken";
 import mongoose, { FilterQuery } from "mongoose";
-import { buildSearchFilter, QueryBuilder } from "../../builder";
+import {
+  buildSearchFilter,
+  QueryBuilder,
+  type TQueryBuilderOptions,
+} from "../../builder";
 import { USER_ROLE, USER_STATUS } from "../../constant";
 import { AppError } from "../../errors";
 import { adminLogService } from "../admin/admin-log.service";
@@ -103,6 +107,16 @@ const parseEnumParam = (
 const USER_ROLE_VALUES = [USER_ROLE.ADMIN, USER_ROLE.USER] as const;
 const USER_STATUS_VALUES = [USER_STATUS.ACTIVE, USER_STATUS.BLOCKED] as const;
 
+/**
+ * `status` is checked against USER_STATUS_VALUES by `parseEnumParam` before the
+ * builder sees it, so this list keeps it; `QueryBuilder.filter()` strips it for
+ * every list that has not done the same. `isDeleted` stays stripped: trashed
+ * members have their own endpoint.
+ */
+const MEMBER_LIST_OPTIONS: TQueryBuilderOptions = {
+  allowVisibilityFilters: ["status"],
+};
+
 const getAllUsers = async (query: Record<string, unknown>) => {
   // Whitelisted keys only: QueryBuilder.filter() splices the query object into
   // the Mongo filter, so unvetted keys could carry operators.
@@ -127,10 +141,11 @@ const getAllUsers = async (query: Record<string, unknown>) => {
 
   // `searchTerm` filters the fields below and also matches on the stored
   // role/status values, so searching "Blocked" or "Admin" narrows the list.
-  const userQuery = new QueryBuilder(User.find({}), parsed).search(
-    ["fullName", "email", "username"],
-    ["status", "role"],
-  );
+  const userQuery = new QueryBuilder(
+    User.find({}),
+    parsed,
+    MEMBER_LIST_OPTIONS,
+  ).search(["fullName", "email", "username"], ["status", "role"]);
 
   await userQuery.filter();
 
