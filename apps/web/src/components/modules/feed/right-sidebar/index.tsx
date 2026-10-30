@@ -1,25 +1,21 @@
 import MiniFooter from "@/components/shared/mini-footer";
 import NewsletterSignup from "@/components/modules/newsletter/newsletter-signup";
-import Categories from "./categories";
-import { siteCategories } from "@/lib/site-settings";
+import CategoriesCard from "./categories";
 import { AdSlot } from "@/components/adsense";
 
 /**
  * The feed's right rail.
  *
- * A server component: the category list is the same for every reader, so it is
- * fetched once (and cached by tag) and shipped as markup instead of being
- * requested again in the browser after hydration. The ad unit, the footer
- * inside it and the newsletter signup are the client parts.
+ * Every card here fetches its own data on the server, so nothing waits on
+ * anything else and a slow category list cannot hold up the signup form. The ad
+ * unit, the footer inside it and the newsletter signup are the client parts.
  */
-const RightSideBar = async () => {
-  const categories = await siteCategories();
-
+const RightSideBar = () => {
   return (
     <aside className="tth-rail hidden w-72 shrink-0 border-l border-default/60 xl:block">
       <div className="tth-rail-inner flex flex-col gap-5 px-4 py-5">
         <div className="shrink-0">
-          <Categories categories={categories} />
+          <CategoriesCard />
         </div>
 
         <div className="shrink-0">

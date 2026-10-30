@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { categoriesPath } from "@/lib/feed-routes";
 
 // Only real destinations. Inactive profiles are omitted rather than rendered
 // as dead `href="#"` links or links to generic platform homepages.
 const links = [
   { label: "Feed", href: "/" },
+  { label: "Categories", href: categoriesPath },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
