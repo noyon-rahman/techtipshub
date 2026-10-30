@@ -3,7 +3,6 @@ import type { Context } from "hono";
 import type { TAppBindings } from "../../interface/bindings";
 import type { TRouteParams } from "../../interface/params";
 import sendResponse from "../../utils/sendResponse";
-import { categoryRequestService } from "./category-request.service";
 import { categoryService } from "./category.service";
 
 const create = async (c: Context<TAppBindings>) => {
@@ -12,6 +11,14 @@ const create = async (c: Context<TAppBindings>) => {
     c.get("user")?.email,
   );
 
+  return sendResponse(c, httpStatus.CREATED, { data: result });
+};
+
+const createByAuthor = async (c: Context<TAppBindings>) => {
+  const result = await categoryService.createByAuthor(c.get("validatedBody"));
+
+  // With the article counts the list shows, so the composer can put the new
+  // category into its picker without asking for the whole list again.
   return sendResponse(c, httpStatus.CREATED, { data: result });
 };
 
@@ -60,54 +67,12 @@ const getAdminList = async (c: Context<TAppBindings>) => {
   });
 };
 
-const requestCategory = async (c: Context<TAppBindings>) => {
-  const result = await categoryRequestService.requestCategory(
-    c.get("validatedBody"),
-    { email: c.get("user").email },
-  );
-
-  return sendResponse(c, httpStatus.CREATED, { data: result });
-};
-
-const getMyRequests = async (c: Context<TAppBindings>) => {
-  const result = await categoryRequestService.getApprovedForMember(
-    c.get("user").email,
-  );
-
-  return sendResponse(c, httpStatus.OK, { data: result });
-};
-
-const getRequestList = async (c: Context<TAppBindings>) => {
-  const { result, total, meta } = await categoryRequestService.getRequestList(
-    c.get("validatedQuery"),
-  );
-
-  return sendResponse(c, httpStatus.OK, {
-    data: { result, total },
-    meta,
-  });
-};
-
-const decideRequest = async (c: Context<TAppBindings, string>) => {
-  const { id } = c.req.param() as TRouteParams;
-  const result = await categoryRequestService.decideRequest(
-    id,
-    c.get("validatedBody"),
-    c.get("user").email,
-  );
-
-  return sendResponse(c, httpStatus.OK, { data: result });
-};
-
 export const categoryController = {
   create,
+  createByAuthor,
   getAll,
   getSingleCategory,
   deleteSingleCategory,
   update,
   getAdminList,
-  requestCategory,
-  getMyRequests,
-  getRequestList,
-  decideRequest,
 };

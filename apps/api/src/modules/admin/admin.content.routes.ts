@@ -54,19 +54,6 @@ adminCategoryRouter.post(
   categoryController.create,
 );
 
-// Literal paths stay above "/:id", or "requests" is read as a category id.
-adminCategoryRouter.get(
-  "/requests",
-  validate({ query: categoryValidationSchema.requestList }),
-  categoryController.getRequestList,
-);
-
-adminCategoryRouter.patch(
-  "/requests/:id",
-  validate({ json: categoryValidationSchema.decideRequest }),
-  categoryController.decideRequest,
-);
-
 adminCategoryRouter.patch(
   "/:id",
   validate({ json: categoryValidationSchema.update }),

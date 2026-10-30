@@ -18,14 +18,12 @@ import ListFrame from "@/components/modules/admin/kit/list-frame";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import {
   useAdminCategories,
-  useAdminCategoryRequests,
   useCreateCategory,
-  useDecideCategoryRequest,
   useDeleteCategory,
   useUpdateCategory,
 } from "@/hooks/admin-categories";
 import type { ICategoryPayload } from "@/services/admin/categories";
-import type { IAdminCategory, IAdminCategoryRequest } from "@/types";
+import type { IAdminCategory } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input, Textarea } from "@heroui/react";
 import Link from "next/link";
@@ -34,7 +32,6 @@ import { useForm } from "react-hook-form";
 import { FiEdit2, FiPlus, FiSearch, FiTrash2 } from "react-icons/fi";
 import { RiFolder3Line } from "react-icons/ri";
 import { categoryValidationSchema, type TCategoryForm } from "./schema";
-import RequestsTab from "./requests-tab";
 
 const COLUMNS = [
   { key: "name", header: "Category", className: "min-w-[16rem]" },
@@ -80,7 +77,7 @@ const formatDay = (value?: string) =>
       })
     : "Not recorded";
 
-type Tab = "all" | "unused" | "pending";
+type Tab = "all" | "unused";
 
 /** The form dialog is open for a new category or for the one being renamed. */
 type FormState =
@@ -97,12 +94,6 @@ type FormState =
  * phrase finds a category whichever field it lives in. The API pages nothing
  * here, so paging and tabs are applied to the filtered set on the client and
  * the footer count describes that same set.
- *
- * The Requested tab lists what members asked for from the composer. It only
- * exists while something is waiting, so a site with no requests shows the two
- * tabs it always had; once it is on screen it stays, and its list says it is
- * empty, rather than the tab vanishing from under the reader's focus when the
- * last request is answered.
  */
 const CategoriesManager = ({
   createRequested,
@@ -117,8 +108,6 @@ const CategoriesManager = ({
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<Tab>("all");
   const [form, setForm] = useState<FormState>({ mode: "closed" });
-  const [requestPage, setRequestPage] = useState(1);
-  const [requestTabOpened, setRequestTabOpened] = useState(false);
 
   // One flag, so "creating from the header" and "renaming a row" can never be
   // true at once: when either opens, it takes the dialog over.
@@ -132,32 +121,6 @@ const CategoriesManager = ({
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
   const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategory();
   const { mutate: deleteCategory, isPending: isDeleting } = useDeleteCategory();
-
-  // The tab's visibility needs the count, so one request on mount answers both
-  // questions; once the tab has been opened its rows are kept, so switching
-  // back and forth does not fetch again.
-  const requests = useAdminCategoryRequests({ status: "pending" });
-  const requestRows = requests.rows;
-  const requestCount = requestRows.length;
-  const showRequested = requestCount > 0 || requestTabOpened;
-
-  const {
-    mutate: decideRequest,
-    isPending: isDeciding,
-    variables: deciding,
-  } = useDecideCategoryRequest();
-  const busyRequestId = isDeciding ? deciding?.id : undefined;
-
-  const decide = (
-    request: IAdminCategoryRequest,
-    status: "approved" | "declined",
-    declineReason?: string,
-  ) =>
-    decideRequest({
-      id: request._id,
-      status,
-      ...(declineReason ? { declineReason } : {}),
-    });
 
   const {
     register,
@@ -182,12 +145,8 @@ const CategoriesManager = ({
       )
     : rows;
 
-  // Deciding the last visible row can take the tab away while it is open. The
-  // list then has no tab to sit under, so the screen falls back to All.
-  const activeTab: Tab = tab === "pending" && !showRequested ? "all" : tab;
-
   const unused = matching.filter((category) => countOf(category) === 0);
-  const visible = activeTab === "unused" ? unused : matching;
+  const visible = tab === "unused" ? unused : matching;
 
   const totalPages = Math.max(Math.ceil(visible.length / limit), 1);
   const pageStart = Math.min(
@@ -199,10 +158,6 @@ const CategoriesManager = ({
   const changeTab = (next: Tab) => {
     setTab(next);
     setPage(1);
-    if (next === "pending") {
-      setRequestTabOpened(true);
-      setRequestPage(1);
-    }
   };
 
   const matchingCount = isLoading ? undefined : matching.length;
@@ -211,9 +166,6 @@ const CategoriesManager = ({
   const filters = [
     { key: "all", label: "All", count: matchingCount },
     { key: "unused", label: "Unused", count: unusedCount },
-    ...(showRequested
-      ? [{ key: "pending", label: "Requested", count: requestCount }]
-      : []),
   ];
 
   const openCreate = () => {
@@ -309,7 +261,7 @@ const CategoriesManager = ({
         </button>
       }
     />
-  ) : activeTab === "unused" ? (
+  ) : tab === "unused" ? (
     <EmptyState
       variant="inline"
       icon={<RiFolder3Line className="size-5" />}
@@ -343,173 +295,151 @@ const CategoriesManager = ({
   return (
     <>
       <ListFrame label="Categories">
-        {activeTab === "pending" ? (
-          <RequestsTab
-            rows={requestRows}
-            isLoading={requests.isLoading}
-            isFetching={requests.isFetching}
-            isError={requests.isError}
-            errorMessage={requests.error?.message}
-            onRetry={() => void requests.refetch()}
-            page={requestPage}
-            onPageChange={setRequestPage}
-            busyId={busyRequestId}
-            onApprove={(request) => decide(request, "approved")}
-            onDecline={(request, reason) => decide(request, "declined", reason)}
-          />
-        ) : (
-          <>
-            <DataToolbar
-              filters={filters}
-              activeFilter={activeTab}
-              onFilterChange={(key) =>
-                changeTab(key === "unused" || key === "pending" ? key : "all")
-              }
-              query={query}
-              onQueryChange={setQuery}
-              searchPlaceholder="Name or description"
-              right={
-                <ListSelect
-                  label="Per page"
-                  hideLabel
-                  value={limit}
-                  onChange={(value) => {
-                    setLimit(Number(value) || PAGE_SIZES[0]);
-                    setPage(1);
-                  }}
-                  options={PAGE_SIZE_OPTIONS}
-                />
-              }
+        <DataToolbar
+          filters={filters}
+          activeFilter={tab}
+          onFilterChange={(key) => changeTab(key === "unused" ? key : "all")}
+          query={query}
+          onQueryChange={setQuery}
+          searchPlaceholder="Name or description"
+          right={
+            <ListSelect
+              label="Per page"
+              hideLabel
+              value={limit}
+              onChange={(value) => {
+                setLimit(Number(value) || PAGE_SIZES[0]);
+                setPage(1);
+              }}
+              options={PAGE_SIZE_OPTIONS}
             />
+          }
+        />
 
-            <DataTable
-              columns={COLUMNS}
-              rows={pageRows}
-              getRowKey={(row) => row._id}
-              isLoading={isLoading}
-              skeletonRows={Math.min(limit, 10)}
-              minWidth="40rem"
-              caption="Categories, how many published articles use each, and when each was added"
-              emptyState={emptyState}
-              renderCell={(category, columnKey) => {
-                const used = countOf(category);
+        <DataTable
+          columns={COLUMNS}
+          rows={pageRows}
+          getRowKey={(row) => row._id}
+          isLoading={isLoading}
+          skeletonRows={Math.min(limit, 10)}
+          minWidth="40rem"
+          caption="Categories, how many published articles use each, and when each was added"
+          emptyState={emptyState}
+          renderCell={(category, columnKey) => {
+            const used = countOf(category);
 
-                switch (columnKey) {
-                  case "name":
-                    return (
-                      <div className="max-w-[28rem]">
-                        <Link
-                          href={`/?category=${encodeURIComponent(category.name)}`}
-                          className={linkClass}
-                        >
-                          {category.name}
-                        </Link>
-                        <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-default-600">
-                          {descriptionOf(category) || "No description"}
-                        </p>
-                      </div>
-                    );
+            switch (columnKey) {
+              case "name":
+                return (
+                  <div className="max-w-[28rem]">
+                    <Link
+                      href={`/?category=${encodeURIComponent(category.name)}`}
+                      className={linkClass}
+                    >
+                      {category.name}
+                    </Link>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-default-600">
+                      {descriptionOf(category) || "No description"}
+                    </p>
+                  </div>
+                );
 
-                  case "count":
-                    return (
-                      <span>
-                        {used > 0 ? (
-                          formatCount(used)
-                        ) : (
-                          <span className="text-default-600">None</span>
-                        )}
-                      </span>
-                    );
+              case "count":
+                return (
+                  <span>
+                    {used > 0 ? (
+                      formatCount(used)
+                    ) : (
+                      <span className="text-default-600">None</span>
+                    )}
+                  </span>
+                );
 
-                  case "created":
-                    return (
-                      <span className="text-xs tabular-nums text-default-600">
-                        {formatDay(category.createdAt)}
-                      </span>
-                    );
+              case "created":
+                return (
+                  <span className="text-xs tabular-nums text-default-600">
+                    {formatDay(category.createdAt)}
+                  </span>
+                );
 
-                  case "actions":
-                    return (
-                      <div className="flex items-center justify-end gap-0.5">
-                        <button
-                          type="button"
-                          onClick={() => openEdit(category)}
-                          aria-label={`Edit ${category.name}`}
-                          className={iconButton}
-                        >
-                          <FiEdit2 aria-hidden className="size-4" />
-                        </button>
+              case "actions":
+                return (
+                  <div className="flex items-center justify-end gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(category)}
+                      aria-label={`Edit ${category.name}`}
+                      className={iconButton}
+                    >
+                      <FiEdit2 aria-hidden className="size-4" />
+                    </button>
 
-                        {used > 0 ? (
+                    {used > 0 ? (
+                      <button
+                        type="button"
+                        disabled
+                        aria-label={`Delete ${category.name}`}
+                        title={`${used} published ${
+                          used === 1 ? "article uses" : "articles use"
+                        } this category, so it cannot be deleted until they are moved or removed.`}
+                        className={`${iconButton} cursor-not-allowed text-default-400 hover:bg-transparent hover:text-default-400`}
+                      >
+                        <FiTrash2 aria-hidden className="size-4" />
+                      </button>
+                    ) : (
+                      <ConfirmDialog
+                        trigger={
                           <button
                             type="button"
-                            disabled
                             aria-label={`Delete ${category.name}`}
-                            title={`${used} published ${
-                              used === 1 ? "article uses" : "articles use"
-                            } this category, so it cannot be deleted until they are moved or removed.`}
-                            className={`${iconButton} cursor-not-allowed text-default-400 hover:bg-transparent hover:text-default-400`}
+                            className={`${iconButton} text-danger hover:bg-danger/10 hover:text-danger`}
                           >
                             <FiTrash2 aria-hidden className="size-4" />
                           </button>
-                        ) : (
-                          <ConfirmDialog
-                            trigger={
-                              <button
-                                type="button"
-                                aria-label={`Delete ${category.name}`}
-                                className={`${iconButton} text-danger hover:bg-danger/10 hover:text-danger`}
-                              >
-                                <FiTrash2 aria-hidden className="size-4" />
-                              </button>
-                            }
-                            title={`Delete ${category.name}?`}
-                            description="It stops appearing in the feed filter and in the category picker. No articles use it, so nothing is left without a category."
-                            confirmLabel="Delete category"
-                            tone="danger"
-                            isPending={isDeleting}
-                            onConfirm={() =>
-                              deleteCategory(category._id, {
-                                onSuccess: () => {
-                                  if (page > 1 && pageRows.length <= 1) {
-                                    setPage((current) =>
-                                      Math.max(1, current - 1),
-                                    );
-                                  }
-                                },
-                              })
-                            }
-                          />
-                        )}
-                      </div>
-                    );
+                        }
+                        title={`Delete ${category.name}?`}
+                        description="It stops appearing in the feed filter and in the category picker. No articles use it, so nothing is left without a category."
+                        confirmLabel="Delete category"
+                        tone="danger"
+                        isPending={isDeleting}
+                        onConfirm={() =>
+                          deleteCategory(category._id, {
+                            onSuccess: () => {
+                              if (page > 1 && pageRows.length <= 1) {
+                                setPage((current) => Math.max(1, current - 1));
+                              }
+                            },
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                );
 
-                  default:
-                    return null;
-                }
-              }}
-            />
+              default:
+                return null;
+            }
+          }}
+        />
 
-            <ListFooter
-              total={isError || isLoading ? undefined : visible.length}
-              shown={pageRows.length}
-              noun="category"
-              page={page}
-              totalPages={totalPages}
-              pageSize={limit}
-              onPageChange={setPage}
-              isLoading={isLoading && pageRows.length === 0}
-              isError={isError}
-              context={
-                needle
-                  ? `, matching "${searchTerm}"`
-                  : activeTab === "unused"
-                    ? ", unused"
-                    : null
-              }
-            />
-          </>
-        )}
+        <ListFooter
+          total={isError || isLoading ? undefined : visible.length}
+          shown={pageRows.length}
+          noun="category"
+          page={page}
+          totalPages={totalPages}
+          pageSize={limit}
+          onPageChange={setPage}
+          isLoading={isLoading && pageRows.length === 0}
+          isError={isError}
+          context={
+            needle
+              ? `, matching "${searchTerm}"`
+              : tab === "unused"
+                ? ", unused"
+                : null
+          }
+        />
       </ListFrame>
 
       <FormDialog

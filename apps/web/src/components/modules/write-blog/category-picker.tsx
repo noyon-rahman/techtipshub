@@ -8,7 +8,7 @@ export interface ICategoryPickerProps {
   /** Input id, so the parent's `<label htmlFor>` points at the search box. */
   id: string;
   categories: ICategory[];
-  /** The selected category id, or a pending request the draft is filed under. */
+  /** The selected category id. */
   value: string;
   onChange: (id: string) => void;
   /** true while the list is being fetched */
@@ -20,21 +20,12 @@ export interface ICategoryPickerProps {
   isInvalid?: boolean;
   errorMessage?: string;
   /**
-   * Called with the trimmed query when the writer asks for a category that is
-   * not in the list.
+   * Creates the category the writer named and hands back its id. Given for a
+   * signed-in member, who may add a topic on the spot; a guest writes drafts
+   * only, so they get no create row.
    */
-  onRequest?: (name: string) => void;
-  /**
-   * Names already requested by this writer, offered in the picker so the draft
-   * keeps working.
-   */
-  extras?: { id: string; name: string; pending: boolean }[];
-  /**
-   * A draft can hold a category that is neither live nor in `extras`: a
-   * request made before a reload, or an id saved while the list was down. Its
-   * name is passed so the field can still say what the draft is filed under
-   * instead of showing nothing.
-   */
+  onCreate?: (name: string) => Promise<string | undefined>;
+  /** A draft can hold a category the list no longer has. Its name is shown. */
   selectedName?: string;
   isDisabled?: boolean;
 }
@@ -56,7 +47,7 @@ const rank = (query: string) => (a: string, b: string) => {
   return a.localeCompare(b, "en", { sensitivity: "base" });
 };
 
-const REQUEST_PREFIX = "request:";
+const CREATE_PREFIX = "create:";
 
 /**
  * The category field: a complete, searchable list rather than a dropdown that
@@ -67,9 +58,10 @@ const REQUEST_PREFIX = "request:";
  * before it is handed over, so the built-in filter is replaced with `() => true`
  * and rendering walks the already-ranked array with an item render callback.
  *
- * Asking for a missing category is the last option inside that list, not a
- * separate control, so the arrow keys reach it. The form that follows belongs to
- * the parent.
+ * A name the list does not hold ends in a create row, last, so the arrow keys
+ * reach it after the matches. Choosing it creates the category and selects it
+ * without leaving the field, which is the whole point: a writer with a new
+ * topic should not lose their paragraph to a trip through a dialog.
  */
 export const CategoryPicker = ({
   id,
@@ -81,8 +73,7 @@ export const CategoryPicker = ({
   onRetry,
   isInvalid,
   errorMessage,
-  onRequest,
-  extras = [],
+  onCreate,
   selectedName: selectedNameFallback,
   isDisabled,
 }: ICategoryPickerProps) => {
@@ -90,6 +81,10 @@ export const CategoryPicker = ({
   // Whether the list is open. Kept here because the trigger reads its text from
   // the collection only while it is.
   const [isOpen, setIsOpen] = useState(false);
+  // A create that failed says why under the field it was typed into, rather
+  // than in the list, which closes as the answer arrives.
+  const [createError, setCreateError] = useState<string | undefined>();
+  const [creatingName, setCreatingName] = useState<string | null>(null);
   const trimmed = query.trim();
   const needle = fold(trimmed);
 
@@ -101,25 +96,20 @@ export const CategoryPicker = ({
       .sort((a, b) => order(fold(a.name), fold(b.name)));
   }, [categories, needle]);
 
-  const shownExtras = extras.filter((extra) =>
-    fold(extra.name).includes(needle),
+  // The name is already a category, only spelled with different capitals or
+  // trailing spaces: there is nothing to create, only something to select.
+  const alreadyExists = categories.some(
+    (category) => fold(category.name) === needle,
   );
 
-  // A draft can be filed under a name the list does not hold yet: the request
-  // it is waiting on, or a category saved before the list could be read.
+  // A draft can be filed under a category the list does not hold: removed
+  // since, or saved while the list was down.
   const selectedMissing =
-    Boolean(value) &&
-    !categories.some((category) => category._id === value) &&
-    !extras.some((extra) => extra.id === value);
+    Boolean(value) && !categories.some((category) => category._id === value);
 
   const selectedName =
-    [
-      ...categories.map((category) => ({
-        id: category._id,
-        name: category.name,
-      })),
-      ...extras.map((extra) => ({ id: extra.id, name: extra.name })),
-    ].find((option) => option.id === value)?.name ?? selectedNameFallback;
+    categories.find((category) => category._id === value)?.name ??
+    selectedNameFallback;
 
   // Closing keeps whatever the search box should read afterwards; the caller
   // decides, because a selection and a dismissed search end differently. The
@@ -131,12 +121,31 @@ export const CategoryPicker = ({
     queueMicrotask(() => setQuery(nextQuery));
   };
 
-  // The parent files the request and stores the id it answers with, so this
-  // only hands the name over.
-  const request = () => {
-    if (!onRequest) return;
-    onRequest(trimmed);
-    close();
+  const create = async (name: string) => {
+    if (!onCreate) return;
+
+    setCreateError(undefined);
+    setCreatingName(name);
+
+    try {
+      const created = await onCreate(name);
+
+      if (!created) {
+        setCreateError("The category could not be created. Try again.");
+        return;
+      }
+
+      onChange(created);
+      close(name);
+    } catch (failure) {
+      setCreateError(
+        failure instanceof Error && failure.message
+          ? failure.message
+          : "The category could not be created. Try again.",
+      );
+    } finally {
+      setCreatingName(null);
+    }
   };
 
   const rows: {
@@ -150,10 +159,10 @@ export const CategoryPicker = ({
   // is not something to choose: arrow keys move over options, not messages. It
   // only exists when it has something true to say, so a full list is options
   // and nothing else.
-  const nothingShown = !matches.length && !shownExtras.length;
+  const nothingShown = !matches.length;
   const status = error
     ? { key: "status", text: "Unavailable" }
-    : !categories.length && !extras.length
+    : !categories.length && !onCreate
       ? { key: "status", text: "No categories" }
       : isLoading && nothingShown
         ? { key: "status-loading", text: "Loading categories" }
@@ -202,14 +211,7 @@ export const CategoryPicker = ({
     rows.push({
       key: value,
       text: selectedName,
-      node: (
-        <span className="flex items-baseline justify-between gap-3">
-          <span className="truncate">{selectedName}</span>
-          <span className="shrink-0 text-xs text-default-600">
-            Pending review
-          </span>
-        </span>
-      ),
+      node: <span className="block truncate">{selectedName}</span>,
     });
   }
 
@@ -230,34 +232,34 @@ export const CategoryPicker = ({
     });
   });
 
-  shownExtras.forEach((extra) => {
-    rows.push({
-      key: extra.id,
-      text: extra.name,
-      node: (
-        <span className="flex items-baseline justify-between gap-3">
-          <span className="truncate">{extra.name}</span>
-          {extra.pending && (
-            <span className="shrink-0 text-xs text-default-600">
-              Pending review
-            </span>
-          )}
-        </span>
-      ),
-    });
-  });
+  // Offered only for a name that would become a new category, and only to a
+  // writer who may make one. With no query the row still shows, saying what it
+  // waits for, so the option is discoverable before anything is typed.
+  const canCreate =
+    Boolean(onCreate) &&
+    !alreadyExists &&
+    !matches.some((category) => fold(category.name) === needle);
 
-  if (onRequest) {
+  if (canCreate) {
     // A literal key, never equal to a category id, so Enter on a selected
-    // name cannot be mistaken for the request action.
+    // name cannot be mistaken for the create action.
     rows.push({
-      key: `${REQUEST_PREFIX}${needle}`,
+      key: `${CREATE_PREFIX}${needle}`,
       text: trimmed,
       node: (
-        <span className="block truncate text-sm">
-          {trimmed
-            ? `Can't find it? Request ${trimmed}`
-            : "Can't find it? Request a category"}
+        <span className="flex items-baseline justify-between gap-3 text-sm">
+          <span className="truncate">
+            {trimmed ? (
+              <>
+                Create <span className="font-medium">{trimmed}</span>
+              </>
+            ) : (
+              <span className="text-default-600">
+                Type a name to add a new category
+              </span>
+            )}
+          </span>
+          {creatingName !== null && <Spinner size="sm" />}
         </span>
       ),
     });
@@ -275,6 +277,11 @@ export const CategoryPicker = ({
       id={id}
       aria-label="Category"
       placeholder={isLoading ? "Loading categories" : "Choose a category"}
+      description={
+        onCreate
+          ? "Not in the list? Type its name and choose Create."
+          : undefined
+      }
       variant="bordered"
       radius="sm"
       size="sm"
@@ -283,19 +290,20 @@ export const CategoryPicker = ({
       selectedKey={value || null}
       defaultFilter={() => true}
       // An empty collection would collapse the popover and take the loading,
-      // error and request states inside it with it.
+      // error and create states inside it with it.
       allowsEmptyCollection
       onSelectionChange={(key: Key | null) => {
         if (key === null) return;
 
         const next = String(key);
 
-        if (next.startsWith(REQUEST_PREFIX)) {
-          request();
+        if (next.startsWith(CREATE_PREFIX)) {
+          if (trimmed) void create(trimmed);
 
           return;
         }
 
+        setCreateError(undefined);
         onChange(next);
         // The field keeps the chosen name in its search box once it closes.
         // HeroUI reads the display item from the open collection, so clearing
@@ -305,11 +313,15 @@ export const CategoryPicker = ({
       }}
       onOpenChange={setIsOpen}
       inputValue={shownValue}
-      onInputChange={setQuery}
+      onInputChange={(next) => {
+        setQuery(next);
+        // The message belonged to the name that was there a moment ago.
+        if (createError) setCreateError(undefined);
+      }}
       onClear={() => onChange("")}
-      isDisabled={isDisabled}
-      isInvalid={isInvalid}
-      errorMessage={errorMessage}
+      isDisabled={isDisabled || creatingName !== null}
+      isInvalid={isInvalid || Boolean(createError)}
+      errorMessage={createError || errorMessage}
       classNames={{
         popoverContent: "border border-default-100",
       }}
@@ -318,10 +330,12 @@ export const CategoryPicker = ({
       {({ key, text, status, node }) => (
         <AutocompleteItem
           key={key}
-          textValue={text}
+          textValue={
+            key.startsWith(CREATE_PREFIX) && text ? `Create ${text}` : text
+          }
           isDisabled={status}
           className={
-            key.startsWith(REQUEST_PREFIX)
+            key.startsWith(CREATE_PREFIX)
               ? "mt-1 border-t border-default-200 pt-2"
               : undefined
           }

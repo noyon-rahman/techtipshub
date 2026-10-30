@@ -5,7 +5,6 @@ import { AppError } from "../../errors";
 import { adminLogService } from "../admin/admin-log.service";
 import Blog from "../blog/blog.model";
 import { categorySearchableFields } from "./category.constant";
-import { ICategory } from "./category.interface";
 import Category from "./category.model";
 
 type TCategoryInput = {
@@ -23,7 +22,7 @@ const findByName = (name: string, excludeId?: string) =>
     ...(excludeId ? { _id: { $ne: excludeId } } : {}),
   });
 
-const create = async (payload: ICategory, adminEmail?: string) => {
+const create = async (payload: TCategoryInput, adminEmail?: string) => {
   const name = typeof payload.name === "string" ? payload.name.trim() : "";
   if (!name) {
     throw new AppError(httpStatus.BAD_REQUEST, "Category name is required");
@@ -49,6 +48,22 @@ const create = async (payload: ICategory, adminEmail?: string) => {
   });
 
   return category;
+};
+
+/**
+ * A signed-in member naming a category while writing an article.
+ *
+ * The same create the admin screen makes, so one duplicate check and one shape
+ * apply to both. It writes no activity-log row: that feed is the admins' own
+ * record, and a member's name under an admin action would muddy it.
+ *
+ * The refusal for a name already in use (409) reaches the caller as an error,
+ * which the composer shows on the field it was typed into.
+ */
+const createByAuthor = async (payload: TCategoryInput) => {
+  const category = await create(payload);
+
+  return category.toJSON();
 };
 
 /**
@@ -249,6 +264,7 @@ const getAdminList = async (query: Record<string, unknown> = {}) => {
 
 export const categoryService = {
   create,
+  createByAuthor,
   getAll,
   getSingleCategory,
   deleteSingleCategory,

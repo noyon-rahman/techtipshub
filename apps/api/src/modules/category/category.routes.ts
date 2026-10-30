@@ -8,22 +8,16 @@ import { categoryValidationSchema } from "./category.validation";
 const categoryRouter = new Hono<TAppBindings>();
 
 // Public reads. Creating, editing and deleting a category is the admin's, under
-// "/admin/categories". A member can ask for one that does not exist yet, and
-// read back the asks that went live.
+// "/admin/categories", with one exception: a signed-in member writing an
+// article makes the category they need on the spot, so the composer never has
+// to send them to an admin and back.
 categoryRouter.get("/", categoryController.getAll);
 
-// Literal paths stay above "/:id", or "requests" is read as an id.
 categoryRouter.post(
-  "/requests",
+  "/",
   auth(USER_ROLE.USER),
-  validate({ json: categoryValidationSchema.createRequest }),
-  categoryController.requestCategory,
-);
-
-categoryRouter.get(
-  "/requests/mine",
-  auth(USER_ROLE.USER),
-  categoryController.getMyRequests,
+  validate({ json: categoryValidationSchema.createByAuthor }),
+  categoryController.createByAuthor,
 );
 
 categoryRouter.get("/:id", categoryController.getSingleCategory);

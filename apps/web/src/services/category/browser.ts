@@ -1,4 +1,3 @@
-import type { TLegacyBody } from "@/lib/api-contract";
 import { messageOf } from "@/lib/api-error";
 import axiosInstance from "@/lib/AxiosInstance";
 import { toServiceError } from "@/services/admin/shared";
@@ -9,44 +8,24 @@ import type { ICategory } from "@/types";
  * `./index.ts`.
  *
  * A picker that reloads in place cannot ask a server action for its list, and
- * a request needs the member's session, which lives in an httpOnly cookie. Both
- * go through this app's `/api/v1` handler with the session attached.
+ * creating a category needs the member's session, which lives in an httpOnly
+ * cookie. Both go through this app's `/api/v1` handler with the session
+ * attached.
  */
 
-export interface ICategoryRequestPayload {
-  name: string;
-  description?: string;
-}
-
-export interface ICategoryRequest {
-  _id: string;
-  name: string;
-  description?: string;
-  status: "pending";
-  createdAt: string;
-}
-
-/** An approved ask, as `/categories/requests/mine` answers it. */
-export interface IApprovedCategoryRequest {
-  _id: string;
-  name: string;
-  status: "approved";
-  category?: string;
-}
-
-/**
- * An ask this writer made in the current session. Its id is what the draft's
- * `category` carries until an admin approves it.
- */
-export interface IRequestedCategory {
-  id: string;
+export interface ICreateCategoryPayload {
   name: string;
 }
 
 /** Every category, for a picker that has to show loading and failure states. */
 export const getCategoriesForPicker = async (): Promise<ICategory[]> => {
   try {
-    const res = await axiosInstance.get("/categories");
+    // The public list pages at ten by default, and a picker that silently cut
+    // the list there would hide categories the writer can see on the site. The
+    // bound is the API's own page ceiling.
+    const res = await axiosInstance.get("/categories", {
+      params: { limit: 100 },
+    });
 
     return (res.data?.data as ICategory[] | undefined) ?? [];
   } catch (error) {
@@ -55,42 +34,22 @@ export const getCategoriesForPicker = async (): Promise<ICategory[]> => {
 };
 
 /**
- * Asks an admin for a category.
+ * Creates a category for the member who is writing, and returns it.
  *
- * A refusal (409: the name is already a category, or this member already asked)
- * comes back as the body rather than a thrown error, because the answer belongs
- * on the name field the member just typed into.
+ * A name already in use, or one the API rejects, throws: the field picked the
+ * name, so the answer belongs on that field rather than in a toast the writer
+ * may have scrolled past.
  */
-export const requestCategory = async (
-  payload: ICategoryRequestPayload,
-): Promise<TLegacyBody<ICategoryRequest>> => {
+export const createCategoryForComposer = async (
+  payload: ICreateCategoryPayload,
+): Promise<ICategory> => {
   try {
-    const res = await axiosInstance.post("/categories/requests", payload);
+    const res = await axiosInstance.post("/categories", payload);
 
-    return res.data;
+    return res.data?.data as ICategory;
   } catch (error) {
-    const body = (
-      error as { response?: { data?: TLegacyBody<ICategoryRequest> } }
-    ).response?.data;
+    const message = messageOf(error);
 
-    if (body) return body;
-
-    return {
-      success: false,
-      message: messageOf(error) ?? "The request was not sent.",
-    };
-  }
-};
-
-/** The asks this member has had approved, each with the category it became. */
-export const getMyApprovedCategoryRequests = async (): Promise<
-  IApprovedCategoryRequest[]
-> => {
-  try {
-    const res = await axiosInstance.get("/categories/requests/mine");
-
-    return (res.data?.data as IApprovedCategoryRequest[] | undefined) ?? [];
-  } catch (error) {
-    throw toServiceError(error, "Your category requests did not load.");
+    throw new Error(message || "The category could not be created.");
   }
 };
