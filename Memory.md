@@ -168,8 +168,14 @@ Things known to be wrong or unfinished, in the order they matter.
   things.
 - **A reset link works once.** The API compares the JWT's `iat` with the user's
   `passwordChangeAt` and answers "already been used" when the password changed
-  after the token was minted. The screen treats any message about the link
-  (`/reset link/i`) as gone: no submit, a "Request a new link" link instead.
+  after the token was minted. The screen shows the API's own sentence for every
+  refusal: a spent or expired link gets "Request a new link", anything else
+  (blocked account, no answer, too many tries) gets "Back to sign in". Only a
+  password the rule rejects keeps the form, with the API's field message shown.
+- **A password is 8 characters, in the form and in the API.** `password()` in
+  `auth.validation.ts` and `newPasswordValidationSchema` must agree; the form's
+  bound was 6 for a while, so a six-character password passed the form and then
+  failed at the API with "did not pass validation".
 
 ## Changelog of state
 

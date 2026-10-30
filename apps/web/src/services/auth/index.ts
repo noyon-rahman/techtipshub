@@ -12,9 +12,16 @@ import { getSession, ISessionUser } from "@/lib/session";
 import { TLoggedInUser, TLogin } from "@/types";
 import { cookies } from "next/headers";
 
-/** Said when a reset failed for a reason that is not the link itself. */
+// The API's own answer, read by status rather than by guessing at the copy.
+const VALIDATION_STATUS = 400;
+const RATE_LIMITED_STATUS = 429;
+
+/** Said when a reset failed for a reason no other machine can describe. */
 const RESET_FAILED_MESSAGE =
-  "We could not set the new password. Nothing was changed. Try again, or request a new link.";
+  "The password was not changed: the server did not answer. Try again in a moment.";
+
+const RATE_LIMITED_MESSAGE =
+  "Too many password resets from this connection. Wait a few minutes and try again.";
 
 const cookieOptions = {
   secure: envConfig.NODE_ENV === "production",
@@ -170,26 +177,42 @@ export const forgetPassword = async (payload: { email: string }) => {
 /**
  * What a failed reset says.
  *
- * The API answers "This reset link has expired." when the token was real but
- * ran out, "This reset link is not valid." for any other bad token, and "already
- * been used" for a link that worked once; the screen shows that sentence as the
- * API wrote it. A failure with no answer at all says nothing about the link, so
- * it gets the one sentence that helps: nothing was changed, and trying again is
- * the way out.
+ * The API knows why it refused: a spent or expired link, a password that
+ * breaks its rule, a blocked account, too many tries. That answer is shown in
+ * the API's own words, because a user can act on it. Only the case with no
+ * answer at all is worded here, and it says the one true thing about that case:
+ * the request never landed, so nothing changed.
+ *
+ * A password that breaks the rule is kept as a sentence about the field, not
+ * as the API's general "did not pass validation" line: the form shows one line.
  */
-const asResetFailure = (data: unknown): TLegacyBody | undefined => {
-  if (!data || typeof data !== "object") return undefined;
-
-  const response = data as TLegacyBody;
+const asResetFailure = (
+  status: number | undefined,
+  data: unknown,
+): TLegacyBody => {
+  const response = (
+    data && typeof data === "object" ? data : { success: false }
+  ) as TLegacyBody;
   const message = typeof response.message === "string" ? response.message : "";
 
-  return /reset link/i.test(message)
-    ? response
-    : {
-        ...response,
-        success: false,
-        message: RESET_FAILED_MESSAGE,
-      };
+  const fieldMessage = Array.isArray(response.errorSources)
+    ? response.errorSources.find((source) => typeof source?.message === "string")
+        ?.message
+    : undefined;
+
+  if (status === VALIDATION_STATUS && fieldMessage) {
+    return { ...response, success: false, message: fieldMessage };
+  }
+
+  if (status === RATE_LIMITED_STATUS) {
+    return { ...response, success: false, message: RATE_LIMITED_MESSAGE };
+  }
+
+  return {
+    ...response,
+    success: false,
+    message: message || RESET_FAILED_MESSAGE,
+  };
 };
 
 export const resetPassword = async (payload: {
@@ -227,7 +250,7 @@ export const resetPassword = async (payload: {
 
     return res.data;
   } catch (err: any) {
-    return asResetFailure(err?.response?.data);
+    return asResetFailure(err?.response?.status, err?.response?.data);
   }
 };
 

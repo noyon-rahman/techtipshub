@@ -65,13 +65,29 @@ const ResetPasswordForm = () => {
 
   const errorMessage = data && !data.success ? data.message : undefined;
 
-  // A sentence about the link itself is one the form cannot fix: it expired,
-  // it was used, or the API will not take it. Any other failure (the API did
-  // not answer, the password was refused) leaves the form usable to try again.
-  const linkGone = !!errorMessage && /reset link/i.test(errorMessage);
+  // Only one kind of failure leaves the form usable: a password the rule will
+  // take, sent down a link that turned out to be spent or expired. Every other
+  // refusal names something the form cannot fix from here - the link, the
+  // account, the server - so it replaces the form instead of sitting over it.
+  const fieldMessage = !errorMessage
+    ? undefined
+    : data?.errorSources?.find(
+        (source: { path: string | number }) => source.path === "newPassword",
+      )?.message;
+
+  const rejectedPassword =
+    !!fieldMessage &&
+    !!errorMessage &&
+    fieldMessage === errorMessage;
+
+  const terminal = !!errorMessage && !rejectedPassword;
+
+  // The two refusals whose fix is a fresh email. Everything else that stops the
+  // form points at the account or the server, where a new link would not help.
+  const linkProblem = !!errorMessage && /reset link/i.test(errorMessage);
 
   const onSubmit: SubmitHandler<FieldValues> = (values) => {
-    if (!token || linkGone) return;
+    if (!token || terminal) return;
     mutate({ newPassword: values.newPassword, token });
   };
 
@@ -158,6 +174,42 @@ const ResetPasswordForm = () => {
     );
   }
 
+  // Every refusal reads the same way: what the API said, and the one action
+  // that answers it. The API's sentence is the message, so it is not rewritten.
+  if (terminal && errorMessage) {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-danger/30 bg-danger/10 p-5"
+      >
+        <p className="font-medium text-danger">{errorMessage}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {linkProblem && (
+            <Button
+              as={Link}
+              href="/forget-password"
+              radius="lg"
+              color="primary"
+              className="font-semibold"
+              onClick={() => reset()}
+            >
+              Request a new link
+            </Button>
+          )}
+          <Button
+            as={Link}
+            href="/login"
+            radius="lg"
+            variant="bordered"
+            className="border border-default-300 font-medium text-foreground hover:bg-default-100"
+          >
+            Back to sign in
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <THForm
       onSubmit={onSubmit}
@@ -171,7 +223,7 @@ const ResetPasswordForm = () => {
           <PasswordInput
             name="newPassword"
             id="newPassword"
-            placeholder="At least 6 characters"
+            placeholder="At least 8 characters"
             autoComplete="new-password"
           />
         </div>
@@ -189,7 +241,7 @@ const ResetPasswordForm = () => {
         </div>
 
         <p className="text-xs text-default-600">
-          Use at least 6 characters. A passphrase you don’t use anywhere else is
+          Use at least 8 characters. A passphrase you don’t use anywhere else is
           strongest.
         </p>
 
@@ -198,30 +250,19 @@ const ResetPasswordForm = () => {
             role="alert"
             className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
           >
-            <p>{errorMessage}</p>
-            {linkGone && (
-              <Link
-                href="/forget-password"
-                className="mt-1 inline-block font-semibold underline underline-offset-4"
-                onClick={() => reset()}
-              >
-                Request a new link
-              </Link>
-            )}
+            {errorMessage}
           </div>
         )}
 
-        {!linkGone && (
-          <Button
-            isLoading={isPending}
-            type="submit"
-            color="primary"
-            radius="lg"
-            className="w-full font-semibold"
-          >
-            {isPending ? "Updating…" : "Set new password"}
-          </Button>
-        )}
+        <Button
+          isLoading={isPending}
+          type="submit"
+          color="primary"
+          radius="lg"
+          className="w-full font-semibold"
+        >
+          {isPending ? "Updating…" : "Set new password"}
+        </Button>
       </div>
     </THForm>
   );

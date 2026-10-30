@@ -61,12 +61,19 @@ export const passwordResetValidationSchema = z.object({
     .trim(),
 });
 
-/** Used by the in-app reset page: a new password and its confirmation. */
+/**
+ * Used by the in-app reset page: a new password and its confirmation.
+ *
+ * The length is the API's own rule (`password()` in `auth.validation.ts`), so
+ * the form answers "too short" before the request goes out. The old bound here
+ * was six, which let a password through the form only for the API to refuse it.
+ */
 export const newPasswordValidationSchema = z
   .object({
     newPassword: z
       .string({ error: "Password is required" })
-      .min(6, "Use at least 6 characters"),
+      .min(8, "Use at least 8 characters")
+      .max(72, "Use 72 characters or fewer"),
     confirmPassword: z.string({ error: "Confirm your password" }),
   })
   .refine((values) => values.newPassword === values.confirmPassword, {
