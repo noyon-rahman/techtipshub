@@ -367,10 +367,11 @@ interface IPublishingDetailsProps {
   categoriesError?: string;
   /** Retry the category list. */
   onRetryCategories?: () => void;
-  /** The writer asked for a category that is not in the list. */
-  onRequestCategory?: (name: string) => void;
-  /** Categories this draft requested, so they stay selectable. */
-  requestedCategories?: { id: string; name: string; pending: boolean }[];
+  /**
+   * Creates a category for the writer and answers with its id. Given to a
+   * signed-in member, who may add a topic instead of requesting one.
+   */
+  onCreateCategory?: (name: string) => Promise<string | undefined>;
   /** The name of a selected category the list does not hold yet. */
   categorySelectedName?: string;
   tags: string[];
@@ -411,8 +412,7 @@ export const PublishingDetails = ({
   categoriesLoading = false,
   categoriesError,
   onRetryCategories,
-  onRequestCategory,
-  requestedCategories = [],
+  onCreateCategory,
   categorySelectedName,
   tags,
   onTagsChange,
@@ -506,8 +506,7 @@ export const PublishingDetails = ({
           onRetry={onRetryCategories}
           isInvalid={Boolean(categoryError)}
           errorMessage={categoryError}
-          onRequest={onRequestCategory}
-          extras={requestedCategories}
+          onCreate={onCreateCategory}
           selectedName={categorySelectedName}
         />
       </div>
@@ -832,8 +831,7 @@ export const PreviewModal = ({
  *
  * The API returns the category populated on most reads, but an id on some, so
  * both are accepted: an id is resolved against the loaded list rather than
- * printed to the writer, and an unknown one shows nothing at all. The list also
- * holds the writer's own requests, which have no stored category of their own.
+ * printed to the writer, and an unknown one shows nothing at all.
  */
 export const categoryName = (
   blog: { category?: ICategory | string | null },

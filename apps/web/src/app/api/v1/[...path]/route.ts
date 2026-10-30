@@ -29,12 +29,11 @@ const ALLOWED: { method: string; pattern: RegExp }[] = [
   // Follow and unfollow.
   { method: "PUT", pattern: /^users\/[^/]+\/follow$/ },
   { method: "DELETE", pattern: /^users\/[^/]+\/unfollow$/ },
-  // The composer's category step: a member asks for a category that does not
-  // exist yet, from an editor that is already open in the browser. Both calls
-  // need the session, so they cannot be signed server-side. The admin list and
-  // the approve/decline route are deliberately absent: those are admin screens.
-  { method: "POST", pattern: /^categories\/requests$/ },
-  { method: "GET", pattern: /^categories\/requests\/mine$/ },
+  // The composer's category step: a member who needs a topic the list does not
+  // have makes it on the spot, from an editor that is already open in the
+  // browser, so the call needs the session and cannot be signed server-side.
+  // "Create" here is a live category for the whole site, not a request.
+  { method: "POST", pattern: /^categories$/ },
   // The public category list, for the composer's picker: the writer has to be
   // able to retry a list that failed to load without losing the draft. It is
   // the same list the pages already render, and this answer is never cached.

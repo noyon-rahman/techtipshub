@@ -34,8 +34,6 @@
  * Categories
  *   GET    /admin/categories?searchTerm=&page=&limit=
  *   POST   /admin/categories
- *   GET    /admin/categories/requests?status=&searchTerm=&page=&limit=
- *   PATCH  /admin/categories/requests/:id     (body: `status`, optional `declineReason`)
  *   PATCH  /admin/categories/:id
  *   DELETE /admin/categories/:id
  *

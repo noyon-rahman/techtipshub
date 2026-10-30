@@ -123,8 +123,7 @@ their stored spelling, because documents already hold them.
 | --- | --- | --- |
 | `users` | `User` | role `User`/`Admin`, status `Active`/`Blocked`, `tokenVersion`, `googleId`, soft delete `isDeleted`, counted fields for followers/following/posts |
 | `posts` | `Blog` (model named `Post`) | author, title, unique slug, contentType, content, cover, category, images, tags, `status` `draft`/`published`, `publishedAt`, counters for votes/comments/views, `isDeleted`, `createdBy` when an admin wrote it |
-| `categories` | `Category` | slug and name, admin managed |
-| `category_requests` | `CategoryRequest` | a member's ask for a category, status `pending`/`approved`/`declined`, requester, `reviewedBy` and reason once reviewed; approving creates the `categories` row |
+| `categories` | `Category` | slug and name, soft delete `isDeleted`; an admin adds them from the panel, a signed-in member can add one from the composer (`POST /categories`) |
 | `comments` | `Comment` | on an article, optional images, counted on the article |
 | `votes` | `Vote` | one per member per article, `upvote`/`downvote` |
 | `followers` | `Follower` | follower to following, one row per pair |

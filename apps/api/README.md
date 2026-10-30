@@ -72,7 +72,7 @@
 ### Category Routes:
 
 - `/api/v1/categories` - **GET** - Get all categories
-- `/api/v1/categories` - **POST** - (moved to `POST /api/v1/admin/categories`)
+- `/api/v1/categories` - **POST** - (member, signed in) create a category from the composer
 - `/api/v1/categories/:id` - **GET** - Get a single category by ID
 - `/api/v1/categories/:id` - **DELETE** - (moved to `DELETE /api/v1/admin/categories/:id`)
 - `/api/v1/categories/:id` - **PATCH** - (moved to `PATCH /api/v1/admin/categories/:id`)

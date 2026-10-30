@@ -1,16 +1,14 @@
 "use client";
 
-import { useUser } from "@/context/user.provider";
 import {
+  createCategoryForComposer,
   getCategoriesForPicker,
-  getMyApprovedCategoryRequests,
-  requestCategory,
-  type ICategoryRequestPayload,
+  type ICreateCategoryPayload,
 } from "@/services/category/browser";
+import type { ICategory } from "@/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const CATEGORIES_FOR_PICKER_KEY = ["CATEGORIES_FOR_PICKER"] as const;
-export const CATEGORY_REQUESTS_MINE_KEY = ["CATEGORY_REQUESTS_MINE"] as const;
 
 /** Long enough that a writer moving between titles does not refetch the list. */
 const CATEGORY_STALE_MS = 5 * 60 * 1000;
@@ -40,43 +38,26 @@ export const useCategoryList = () => {
 };
 
 /**
- * Asks for a category.
- *
- * `requestCategory` resolves with a refusal body, so a 409 is a normal result
- * here: the dialog reads the message and puts it on the name field.
+ * A category a member created from the composer. The picker reads the new row
+ * from the list itself once the mutation has put it there.
  */
-export const useRequestCategory = () => {
+export const useCreateCategoryForComposer = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationKey: ["REQUEST_CATEGORY"],
-    mutationFn: (payload: ICategoryRequestPayload) => requestCategory(payload),
-    onSuccess: (body) => {
-      if (!body?.success) return;
-
-      void queryClient.invalidateQueries({
-        queryKey: CATEGORIES_FOR_PICKER_KEY,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: CATEGORY_REQUESTS_MINE_KEY,
-      });
+  return useMutation<ICategory, Error, ICreateCategoryPayload>({
+    mutationKey: ["CREATE_CATEGORY_FOR_COMPOSER"],
+    mutationFn: createCategoryForComposer,
+    onSuccess: (category) => {
+      // Put it in the cached list as well, so a later reopen of the picker or a
+      // second composer has it without waiting for the list to go stale. The
+      // list's own shape is the same one `getCategoriesForPicker` returns.
+      queryClient.setQueryData<ICategory[]>(
+        CATEGORIES_FOR_PICKER_KEY,
+        (current) =>
+          current
+            ? [...current.filter((row) => row._id !== category._id), category]
+            : [category],
+      );
     },
-  });
-};
-
-/**
- * The member's approved asks, so a category made from a request can be offered
- * before the next list load picks it up. Guests have no asks, so nothing is
- * asked of the API for them.
- */
-export const useMyCategoryRequests = () => {
-  const { user } = useUser();
-
-  return useQuery({
-    queryKey: CATEGORY_REQUESTS_MINE_KEY,
-    queryFn: getMyApprovedCategoryRequests,
-    enabled: Boolean(user),
-    staleTime: CATEGORY_STALE_MS,
-    retry: 0,
   });
 };

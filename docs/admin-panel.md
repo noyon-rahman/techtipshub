@@ -47,11 +47,9 @@ so the rail, the breadcrumb and the quick links cannot drift apart.
 
 `/admin/categories` lists every category with the number of published articles
 filed under it, and splits out the unused ones, which are the only rows that can
-be deleted. Members can ask for a category from the composer; a pending request
-appears under **Requested** in the Categories manager, which only shows that tab
-while something is waiting. Approving a request creates the live category
-immediately and writes the decision to the activity log. Declining keeps the
-request on record with an optional reason that only admins see.
+be deleted. The list is the admin's own: a signed-in member can add a category
+from the composer while writing, so new rows appear here without an admin
+approving anything, and nothing in the panel waits on a decision.
 
 ## Shared kit
 

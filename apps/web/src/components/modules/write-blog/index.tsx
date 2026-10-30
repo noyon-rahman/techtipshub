@@ -3,25 +3,20 @@
 import { useComposerEditor } from "@/components/editor/rich-text-editor";
 import { useUser } from "@/context/user.provider";
 import { useCreateBlog } from "@/hooks/blog.hook";
-import { useCategoryList, useMyCategoryRequests } from "@/hooks/category.hook";
+import {
+  useCategoryList,
+  useCreateCategoryForComposer,
+} from "@/hooks/category.hook";
 import {
   editBlogPath,
   manageBlogsPath,
   writeBlogPath,
 } from "@/lib/blog-routes";
-import type { IRequestedCategory } from "@/services/category/browser";
 import { Button, Spinner } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuClock, LuEye, LuTrash2 } from "react-icons/lu";
 import { toast } from "sonner";
-import {
-  categoryPickerItems,
-  isLiveCategory,
-  pickerItemName,
-} from "./category-options";
-
-import CategoryRequestDialog from "./category-request-dialog";
 import {
   BlogFormData,
   DraftField,
@@ -48,6 +43,7 @@ import {
   PublishingDetails,
   StatusMark,
   WritingPane,
+  categoryName,
 } from "./editor-shell";
 import { useObjectUrl, useStoredUpload } from "./use-stored-upload";
 import { useUnsavedChangesGuard } from "./use-unsaved-changes-guard";
@@ -106,7 +102,9 @@ const WriteBlog = () => {
   // Writing is open to guests; only publishing needs an account.
   const { user, isLoading: userLoading } = useUser();
   const categoryList = useCategoryList();
-  const myRequests = useMyCategoryRequests();
+  // A member adds the category they need from the field itself; a guest writes
+  // drafts only, so the field stays a list for them.
+  const createCategory = useCreateCategoryForComposer();
 
   const [values, setValues] = useState<BlogFormData>(EMPTY_DRAFT);
   // The cover is kept with the draft, so a reload does not lose it.
@@ -120,13 +118,6 @@ const WriteBlog = () => {
   const [tagInput, setTagInput] = useState("");
   const [errors, setErrors] = useState<Partial<Record<DraftField, string>>>({});
   const [previewOpen, setPreviewOpen] = useState(false);
-  // The categories this writer has asked for, kept for the rest of this session:
-  // the request id they chose has to stay in the picker after the list reloads.
-  const [requestedCategories, setRequestedCategories] = useState<
-    IRequestedCategory[]
-  >([]);
-  const [requestOpen, setRequestOpen] = useState(false);
-  const [requestName, setRequestName] = useState("");
   // Reading a draft happens during the first client render only; the server
   // render has no storage, so both start empty and the banner appears on mount.
   const [recovered, setRecovered] = useState(() => Boolean(readPendingDraft()));
@@ -371,27 +362,28 @@ const WriteBlog = () => {
       "Your unfinished draft is kept in this browser, so you can pick it up where you left off.",
   });
 
-  // A request is only offered to a member: a guest cannot ask for anything, and
-  // the list they see is the public one. Everything on this screen is a draft
-  // until it is published, so a request is always usable here.
-  const categoryItems = categoryPickerItems(
-    categoryList.categories,
-    requestedCategories,
-    myRequests.data ?? [],
-  );
-  const requestExtras = categoryItems.filter(
-    (item) => !isLiveCategory(item.id, categoryList.categories),
-  );
-  const canRequest = Boolean(user);
-  const requestActionProps = canRequest
-    ? {
-        onRequestCategory: (name: string) => {
-          setRequestName(name);
-          setRequestOpen(true);
-        },
-        requestedCategories: requestExtras,
-      }
-    : {};
+  // Making a category is the member's own step: it happens the moment they
+  // confirm the name, and the field selects it before this returns, so the
+  // draft is filed under a live category like any other.
+  const createCategoryInField = async (name: string) => {
+    try {
+      const category = await createCategory.mutateAsync({ name });
+      toast.success(`Added ${category.name}.`, { id: "category-created" });
+
+      return category._id;
+    } catch (failure) {
+      // The field says the category did not appear; the toast carries the
+      // reason from the API (a name already in use, a name too short).
+      toast.error(
+        failure instanceof Error && failure.message
+          ? failure.message
+          : "The category could not be created.",
+        { id: "category-create" },
+      );
+
+      return undefined;
+    }
+  };
 
   /* ---------------------------------------------------------------- render */
 
@@ -510,9 +502,12 @@ const WriteBlog = () => {
               ...current,
               category: value,
               // The picker hands back an id, so the name is looked up from the
-              // options in front of the writer at this moment. A restored draft
+              // list in front of the writer at this moment. A restored draft
               // has no list to look in and keeps what it stored.
-              categoryName: pickerItemName(categoryItems, value),
+              categoryName: categoryName(
+                { category: value },
+                categoryList.categories,
+              ),
             }))
           }
           categoryError={errors.category}
@@ -523,9 +518,12 @@ const WriteBlog = () => {
               : undefined
           }
           onRetryCategories={() => void categoryList.refetch()}
-          {...requestActionProps}
+          onCreateCategory={user ? createCategoryInField : undefined}
           categorySelectedName={
-            pickerItemName(categoryItems, values.category) ?? values.categoryName
+            categoryName(
+              { category: values.category },
+              categoryList.categories,
+            ) ?? values.categoryName
           }
           tags={values.tags}
           onTagsChange={(next) => update("tags", next)}
@@ -617,29 +615,15 @@ const WriteBlog = () => {
           title: values.title,
           content: values.content,
           tags: values.tags,
-          category: pickerItemName(categoryItems, values.category) ?? values.categoryName,
+          category:
+            categoryName(
+              { category: values.category },
+              categoryList.categories,
+            ) ?? values.categoryName,
           coverUrl: showCover ? coverUrl : null,
           authorName: user?.name,
         }}
       />
-
-      {canRequest && (
-        <CategoryRequestDialog
-          isOpen={requestOpen}
-          onClose={() => setRequestOpen(false)}
-          suggestedName={requestName}
-          onRequested={(request) => {
-            setRequestedCategories((current) => [...current, request]);
-            // Filing the draft under the request now is what makes it usable
-            // before an admin has reviewed it.
-            update("category", request.id);
-            setValues((current) => ({ ...current, categoryName: request.name }));
-            toast.success("Request sent. You can use it on this draft now.", {
-              id: "category-request",
-            });
-          }}
-        />
-      )}
 
       {prompt}
     </EditorShell>

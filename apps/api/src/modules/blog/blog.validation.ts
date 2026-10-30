@@ -10,8 +10,8 @@ const create = z
     }),
     content: z.string({ error: "Content must be a string" }),
     coverImage: z.string({ error: "Cover Image must be a string" }),
-    // A live category id, or the name of a request the writer has pending. The
-    // service decides which, because only it can read the writer's requests.
+    // A live category's id. A member who needs one makes it from the composer
+    // first, so there is nothing else this field can hold.
     category: z
       .string({ error: "Category Id must be a string" })
       .trim()
@@ -38,8 +38,7 @@ const update = z
       .optional(),
     content: z.string({ error: "Content must be a string" }).optional(),
     coverImage: z.string({ error: "Cover Image must be a string" }).optional(),
-    // Same as `create`: an id or a pending request's name, checked in the
-    // service where the writer's own requests are visible.
+    // Same as `create`: a live category's id.
     category: z
       .string({ error: "Category Id must be a string" })
       .trim()

@@ -31,57 +31,29 @@ const update = z
  */
 const deleteCategory = z.object({}).passthrough();
 
-const createRequest = z
+/**
+ * A member naming a category from the composer. Tighter than the admin create:
+ * the name lands in a public list and a public path, so it is bounded here
+ * rather than left to whatever the field allowed.
+ */
+const createByAuthor = z
   .object({
     name: z
       .string({ error: "Name must be a string" })
       .trim()
-      .min(1, "Name is required")
-      .max(60, "Name must be at most 60 characters"),
+      .min(2, "Use at least 2 characters")
+      .max(40, "Use 40 characters or fewer"),
     description: z
       .string({ error: "Description must be a string" })
       .trim()
-      .max(200, "Description must be at most 200 characters")
+      .max(200, "Use 200 characters or fewer")
       .optional(),
-  })
-  .strict();
-
-// A decline reason is optional: an admin may just say no. A reason sent with an
-// approval is dropped by the service rather than rejected, so a panel that keeps
-// its last answer in the body still works.
-const decideRequest = z
-  .object({
-    status: z.enum(["approved", "declined"], {
-      error: "Status must be approved or declined",
-    }),
-    declineReason: z
-      .string({ error: "Reason must be a string" })
-      .trim()
-      .max(200, "Reason must be at most 200 characters")
-      .optional(),
-  })
-  .strict();
-
-// Query strings arrive as strings, so page and limit are converted here and
-// bounded; the service still treats them as opt-in paging.
-const requestList = z
-  .object({
-    status: z
-      .enum(["pending", "approved", "declined"], {
-        error: "Status must be pending, approved or declined",
-      })
-      .optional(),
-    page: z.coerce.number().int().min(1).optional(),
-    limit: z.coerce.number().int().min(1).max(100).optional(),
-    searchTerm: z.string().max(200).optional(),
   })
   .strict();
 
 export const categoryValidationSchema = {
   create,
+  createByAuthor,
   update,
   deleteCategory,
-  createRequest,
-  decideRequest,
-  requestList,
 };

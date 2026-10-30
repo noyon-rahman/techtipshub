@@ -6,7 +6,6 @@ import { articleDeletedEmailMessage } from "../../emails";
 import { AppError } from "../../errors";
 import { sendEmail } from "../../utils";
 import { adminLogService } from "../admin/admin-log.service";
-import { categoryRequestService } from "../category/category-request.service";
 import Category from "../category/category.model";
 import { IComment } from "../comment/comment.interface";
 import Comment from "../comment/comment.model";
@@ -56,43 +55,14 @@ const create = async (
 
   const publish = onBehalfOf ? onBehalfOf.publish : true;
 
-  // The schema accepts an ObjectId only, so anything else is a writer naming a
-  // category they have asked for. Storing the request id is what lets the draft
-  // be saved before an admin answers; it stays a draft, and publishing it later
-  // fails with "Category not found" until a live category exists. A real id
-  // takes the ordinary path below.
-  const namedCategory =
-    typeof payload.category === "string" &&
-    !/^[a-f\d]{24}$/i.test(payload.category)
-      ? payload.category
-      : "";
-
-  let liveCategory: Types.ObjectId | null = null;
-
-  if (namedCategory) {
-    const pending = await categoryRequestService.findPendingRequestFor(
-      author.email as string,
-      namedCategory,
-    );
-
-    if (!pending) {
-      throw new AppError(httpStatus.NOT_FOUND, "Category not found");
-    }
-
-    payload.category = pending._id as Types.ObjectId;
-    payload.status = "draft";
-    payload.publishedAt = undefined;
-  } else {
-    const category = await Category.findById(payload.category);
-    if (!category) {
-      throw new AppError(httpStatus.NOT_FOUND, "Category not found");
-    }
-
-    liveCategory = category._id as Types.ObjectId;
-    payload.category = liveCategory;
-    payload.status = publish ? "published" : "draft";
-    payload.publishedAt = publish ? new Date() : undefined;
+  const category = await Category.findById(payload.category);
+  if (!category) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
   }
+
+  payload.category = category._id as Types.ObjectId;
+  payload.status = publish ? "published" : "draft";
+  payload.publishedAt = publish ? new Date() : undefined;
 
   payload.author = author._id;
 
@@ -114,11 +84,11 @@ const create = async (
       throw new AppError(httpStatus.BAD_REQUEST, "Failed to create blog");
     }
 
-    // A draft that names a pending request never reaches this: it was forced
-    // into a draft above, so `liveCategory` is always set when publishing.
-    if (publish && liveCategory) {
+    // The category was checked above, so a published article always counts
+    // toward one.
+    if (publish) {
       const updatedCategory = await Category.findByIdAndUpdate(
-        liveCategory,
+        category._id,
         { $inc: { postCount: 1 } },
         { session, new: true },
       );
@@ -1008,39 +978,14 @@ const updateBlogByUserUsingId = async (
 
   const { status: _status, publishedAt: _publishedAt, ...fields } = payload;
 
-  // A draft may point at a category the writer has only asked for, both when it
-  // is written and when it is edited: the request id is stored in place of a
-  // live one, and only while the article is a draft. A published article keeps
-  // its live category, which is what the readers and the counts run on.
+  // A member moves a draft to a live category from the list. The category is
+  // checked here because the write is not otherwise validated against it, and
+  // an article pointing at a category that does not exist would drop out of
+  // every filtered view.
   if (typeof fields.category === "string") {
-    if (/^[a-f\d]{24}$/i.test(fields.category)) {
-      const live = await Category.findById(fields.category).select("_id");
-      if (!live) {
-        throw new AppError(httpStatus.NOT_FOUND, "Category not found");
-      }
-    } else {
-      const existing = await Blog.findOne({
-        _id: blogId,
-        author: user._id,
-      }).select("status");
-
-      if (existing && existing.status !== "draft") {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          "A published article needs a live category",
-        );
-      }
-
-      const pending = await categoryRequestService.findPendingRequestFor(
-        user.email as string,
-        fields.category,
-      );
-
-      if (!pending) {
-        throw new AppError(httpStatus.NOT_FOUND, "Category not found");
-      }
-
-      fields.category = pending._id as Types.ObjectId;
+    const live = await Category.findById(fields.category).select("_id");
+    if (!live) {
+      throw new AppError(httpStatus.NOT_FOUND, "Category not found");
     }
   }
 
