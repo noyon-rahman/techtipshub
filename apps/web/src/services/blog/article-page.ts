@@ -1,6 +1,7 @@
 import "server-only";
 
 import envConfig from "@/config/env.config";
+import { articleAccessOf } from "@/lib/article-access";
 import { lastRenderedAt, rememberRenderedAt } from "@/lib/article-renders";
 import { allBlogsForBuild } from "@/lib/blog-index";
 import { bottomUpRevalidate } from "@/lib/bottom-up-revalidate";
@@ -90,11 +91,43 @@ const loadVersion = (slug: string, version: string) =>
     if (!blog) return undefined;
 
     return {
-      blog,
+      // Read once, here, so the page, its head and its structured data all
+      // decide the body from one value.
+      blog: { ...blog, access: articleAccessOf(blog) },
       updatedAt: version,
       comments: await fetchComments(blog._id),
     };
   });
+
+/**
+ * Store a just-published article under its own version.
+ *
+ * A slug published after the build has no prerendered page, so its first render
+ * reads the article and fills `article:<slug>:<updatedAt>`. `generateMetadata`
+ * and the page are part of that same render, and a cache write made while it
+ * runs can be lost with it. Writing the entry from the publish instead means the
+ * render finds it already there, so the head and the body describe the same
+ * article even in the request that creates the page.
+ *
+ * The published answer carries no comments: the first render reads those, which
+ * is one request rather than a guess at an empty list.
+ */
+export const cachePublishedArticle = async (
+  blog: Partial<IBlog> | undefined,
+) => {
+  const { slug, updatedAt } = blog ?? {};
+  if (!slug || !updatedAt) return;
+
+  const version = updatedAt;
+  await bottomUpRevalidate<ArticlePage>(
+    `article:${slug}:${version}`,
+    async () => ({
+      blog: { ...blog, access: articleAccessOf(blog) } as IBlog,
+      updatedAt: version,
+      comments: [],
+    }),
+  );
+};
 
 /**
  * An article's comments, read for a page rendered at `version`.
@@ -103,6 +136,10 @@ const loadVersion = (slug: string, version: string) =>
  * expired by tag when one is added, edited or removed.
  */
 const readComments = async (blogId: string, version: string) => {
+  // A version's list is cached on its own, so the empty list a publish stores in
+  // the article cache never hides a comment: this read ignores it and asks the
+  // API, since a comment is not part of the article and does not bump the
+  // version.
   const comments = await bottomUpRevalidate<IComment[]>(
     `comments:${blogId}:${version}`,
     () => fetchComments(blogId),
@@ -139,7 +176,12 @@ const readArticle = async (
 
   // The page has no version yet, or the version it had was forgotten because
   // something changed. Read the current article and bind the page to it.
-  const known = (await lastRenderedAt(decoded)) ?? builtAsOf ?? null;
+  //
+  // Only a version this module already knows gets loaded from the cache. The
+  // publish stores the article under a version of its own, and `builtAsOf` is
+  // the version this request would load for: loading it blind can hand back the
+  // cached *absence* of a slug that did not exist when the build asked.
+  const known = (await lastRenderedAt(decoded)) ?? null;
   const cached = known ? await loadVersion(decoded, known) : undefined;
 
   if (cached) {
@@ -157,7 +199,7 @@ const readArticle = async (
   rememberRenderedAt(decoded, version);
 
   const page = (await loadVersion(decoded, version)) ?? {
-    blog,
+    blog: { ...blog, access: articleAccessOf(blog) },
     updatedAt: version,
     comments: await fetchComments(blog._id),
   };

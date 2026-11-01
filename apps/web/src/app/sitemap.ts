@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { articlePreviewPath } from "@/lib/article-access";
+import { articleIndexablePath } from "@/lib/article-access";
 import { absoluteUrl } from "@/lib/seo";
 import { allBlogsForBuild } from "@/lib/blog-index";
 import { categorySlug } from "@/lib/feed-routes";
@@ -69,9 +69,10 @@ const articleEntries = async (): Promise<MetadataRoute.Sitemap> => {
   const { rows } = await allBlogsForBuild();
 
   return rows.map((row) => ({
-    // The preview variant is the article's canonical address: it is the copy a
-    // crawler can read without a session (see `lib/article-access`).
-    url: absoluteUrl(articlePreviewPath(row.slug)),
+    // A public article is readable and canonical at its plain address. A
+    // members-only one is only readable by a crawler at the preview variant,
+    // which is its canonical address (see `lib/article-access`).
+    url: absoluteUrl(articleIndexablePath(row.slug, row.access)),
     lastModified: new Date(row.updatedAt || row.createdAt || Date.now()),
     changeFrequency: "weekly",
     priority: 0.7,

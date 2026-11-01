@@ -23,9 +23,14 @@ interface IProps {
    */
   onRemoveExisting?: () => void;
   /**
-   * How much of the cover has gone to the server while it uploads. A number is
-   * the file on its way out, `null` is the server storing it, and absent means
-   * nothing is uploading and the strip shows its preview.
+   * How much of the cover has gone to the server, or `undefined` when nothing
+   * is in flight.
+   *
+   * The three states must stay apart, because `null` already means one of
+   * them: a number is the file on its way out, `null` is "the bytes are gone,
+   * the server is storing it", and `undefined` is "settled". Sending `null` for
+   * a finished upload left the strip saying "Finishing upload" for good, and
+   * its Replace and Remove buttons disabled with it.
    */
   progress?: number | null;
   /** Why the last upload did not finish. The picker is the retry. */
@@ -120,8 +125,8 @@ const CoverUpload = ({
 
   // Where the upload has got to, for the label and the bar. Rounded here so the
   // text and the bar never disagree about whether it is finished.
-  const uploading = typeof progress === "number" && progress !== null;
-  const finishing = uploading === false && progress === null;
+  const uploading = typeof progress === "number";
+  const finishing = progress === null;
   const percent = uploading ? Math.min(100, Math.round(progress * 100)) : null;
   const failed = !uploading && !finishing && Boolean(failedMessage);
   const phase: TCoverPhase = uploading
@@ -148,6 +153,11 @@ const CoverUpload = ({
     .join(", ");
 
   const busyUploading = uploading || finishing;
+
+  // A failed upload leaves its file on screen for the writer to retry with, but
+  // it must not also disable the two buttons that replace or clear it. Remove
+  // on a failed upload clears the file and the dead asset; Replace picks again.
+  const actionsLocked = busyUploading;
 
   return (
     <div>
@@ -185,15 +195,18 @@ const CoverUpload = ({
                       : "New cover"}
             </span>
             <div
-              className={`flex gap-2 sm:opacity-0 sm:transition-opacity sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 ${
-                busyUploading ? "pointer-events-none opacity-0" : ""
+              // Hidden until hover on a pointer device, which keeps the image
+              // clean while writing; always visible where hovering is not a
+              // thing, because a button that cannot be revealed cannot be used.
+              className={`flex gap-2 sm:opacity-0 sm:transition-opacity sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 sm:pointer-coarse:opacity-100 ${
+                actionsLocked ? "pointer-events-none opacity-0" : ""
               }`}
             >
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
-                disabled={busyUploading || !canPick}
-                className="flex min-h-11 items-center gap-1.5 rounded-md bg-black/60 px-2.5 py-1.5 text-xs text-white backdrop-blur transition-colors hover:bg-black/80 focus-visible:opacity-100 disabled:opacity-60 sm:min-h-0"
+                disabled={actionsLocked || !canPick}
+                className="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md bg-black/60 px-2.5 py-1.5 text-xs text-white backdrop-blur transition-colors hover:bg-black/85 focus-visible:cursor-pointer focus-visible:opacity-100 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-0"
               >
                 <LuUpload className="size-3.5" />
                 Replace
@@ -201,8 +214,8 @@ const CoverUpload = ({
               <button
                 type="button"
                 onClick={remove}
-                disabled={busyUploading}
-                className="flex min-h-11 items-center gap-1.5 rounded-md bg-black/60 px-2.5 py-1.5 text-xs text-white backdrop-blur transition-colors hover:bg-black/80 focus-visible:opacity-100 disabled:opacity-60 sm:min-h-0"
+                disabled={actionsLocked}
+                className="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-md bg-black/60 px-2.5 py-1.5 text-xs text-white backdrop-blur transition-colors hover:bg-danger focus-visible:cursor-pointer focus-visible:opacity-100 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-0"
               >
                 <LuTrash2 className="size-3.5" />
                 Remove

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { baseApi } from "@/config/api";
 import {
   ARTICLE_TOO_LARGE,
@@ -27,11 +28,16 @@ const ALLOWED: { method: string; pattern: RegExp }[] = [
   // One article by slug, for the reader's own vote state.
   { method: "GET", pattern: /^blogs\/[^/]+$/ },
   { method: "GET", pattern: /^blogs\/[^/]+\/vote-status$/ },
+  // A publish. The browser cannot expire a cache tag, and the actions below
+  // run on the server, but posting here as well keeps a publish that skips
+  // them (an older tab, a script) from leaving the feed stale.
+  { method: "POST", pattern: /^blogs$/ },
   // A cover goes up the moment it is picked, and comes back down when the
   // writer replaces, removes or abandons it. The file passes through this
   // handler only as bytes; the API stores it in Cloudinary and answers with
-  // the URL the article will carry. Publishing itself is a server action, so
-  // it is not listed here (it never was).
+  // the URL the article will carry. Publishing itself is sent server-side from
+  // a Server Action, so a publish that goes through the action never passes
+  // here; the POST rule above covers the rest.
   { method: "POST", pattern: /^uploads\/cover$/ },
   { method: "DELETE", pattern: /^uploads\/asset$/ },
   // The vote itself.
@@ -146,7 +152,30 @@ const handler = async (
   if (upstreamType) response.headers.set("content-type", upstreamType);
   response.headers.set("cache-control", "no-store");
 
+  // A publish also expires the feed here, for the tab or script that posts
+  // without going through the Server Action. The article's page is warmed in the
+  // action: its cache belongs to the versioned article service.
+  if (isPublish(request.method, rest) && upstream.ok) revalidatePublished();
+
   return response;
+};
+
+/** Whether this call is `POST /blogs`: a publish or a saved draft. */
+const isPublish = (method: string, rest: string) =>
+  method === "POST" && rest === "blogs";
+
+/**
+ * Expire the lists a new article belongs on.
+ *
+ * `revalidateTag` is the one that works from a route handler; `updateTag` is
+ * refused outside a Server Action. The article's own cache entry is written by
+ * the action, which has the new row; a publish that skipped it is still served
+ * correctly, just from a read on its first page view.
+ */
+const revalidatePublished = () => {
+  revalidateTag("allBlogs", { expire: 0 });
+  revalidatePath("/");
+  revalidatePath("/sitemap.xml");
 };
 
 export const GET = handler;

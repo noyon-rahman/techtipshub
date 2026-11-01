@@ -1,4 +1,5 @@
 import { baseApi } from "@/config/api";
+import { articleAccessOf } from "@/lib/article-access";
 import type { IBlog } from "@/types";
 
 /**
@@ -18,7 +19,14 @@ const PAGE_SIZE = 100;
 
 type BlogListRow = Pick<
   IBlog,
-  "_id" | "slug" | "title" | "content" | "updatedAt" | "createdAt" | "tags"
+  | "_id"
+  | "slug"
+  | "title"
+  | "content"
+  | "updatedAt"
+  | "createdAt"
+  | "tags"
+  | "access"
 > & {
   coverImage?: string;
   author?: { fullName?: string; username?: string };
@@ -67,7 +75,9 @@ const load = async (): Promise<IndexedBlogs> => {
         for (const row of pageRows) {
           if (!row.slug || seen.has(row.slug)) continue;
           seen.add(row.slug);
-          rows.push(row);
+          // A row written before access was a choice carries no value, and
+          // members only is what it behaved as.
+          rows.push({ ...row, access: articleAccessOf(row) });
         }
 
         totalPages = body.meta?.totalPages ?? 1;

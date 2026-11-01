@@ -17,8 +17,11 @@ Conventions: [`Rules.md`](./Rules.md).
 - Auth is JWT in two httpOnly cookies set by the API (`tth_access_token`,
   `tth_refresh_token`). The web app never decodes a token; it asks
   `GET /auth/session`. `tokenVersion` on the user row is what revokes a session.
-- An article body is only revealed to a browser that holds a session. Crawlers
-  get the `?view=preview` variant via `proxy.ts`.
+- An article body is revealed to a browser without a session only when the
+  author chose "Everyone"; the default and every older row is "Members only",
+  where the body waits on the session and crawlers get the `?view=preview`
+  variant via `proxy.ts`. A public article is plain, indexable, and its preview
+  variant redirects to it.
 - The Next.js in `apps/web` is newer than most training data. `next dev` writes
   `apps/web/AGENTS.md` and points at `apps/web/node_modules/next/dist/docs/`.
   Read the guide there before using a Next API.
@@ -35,8 +38,11 @@ Conventions: [`Rules.md`](./Rules.md).
 - Accounts: register, log in, Google sign-in, forget and reset password, sign
   out. Blocked and deleted accounts refused everywhere.
 - Articles: composer and editor with drafts, publish, cover image, category,
-  tags, code blocks. Member list at `/profile/blogs`, admin list, admin composer
-  writing on a member's behalf, permanent delete and restore.
+  tags, code blocks, and a per-article access setting ("Everyone" or "Members
+  only") shown in both composer rails, both editors, the member article list,
+  the admin table and the moderation queue. Member list at `/profile/blogs`,
+  admin list, admin composer writing on a member's behalf, permanent delete and
+  restore.
 - Categories: searchable picker in every composer, showing each category with
   its published article count. A signed-in member who needs one the list does
   not have types the name and picks the `Create <name>` row, which posts
@@ -101,6 +107,16 @@ Things known to be wrong or unfinished, in the order they matter.
   unlisted env key that types cannot. `query-filter.mjs` runs the real
   `QueryBuilder` through the app's own tsx and needs no database: `.find()`
   builds a query and `getFilter()` reads it back without connecting.
+- **The article gate is per-article, and the API answers with `access`.** Three
+  rules keep it in step. A missing `access` means members only, read in one
+  place (`articleAccessOf` in the API's blog constants and in
+  `lib/article-access.ts`), so older rows need no migration and must not be
+  written as `public`. The page decides the body from that value: public
+  renders one column and mounts no check, members-only renders both and waits
+  on `ArticleAccess`. Canonical, JSON-LD `mainEntityOfPage` and the sitemap all
+  use `articleIndexablePath`, so a public article is indexed at
+  `/blogs/<slug>` and a members-only one at `?view=preview`; the preview
+  variant of a public article redirects to the plain address.
 - **The legal pages name a person, not a company.** `config/legal.ts` says
   `Novon Rahman, publishing as TechTipsHub` and gives the contact address as the
   address of record. Do not add a registered company or a street address that
@@ -229,6 +245,14 @@ Things known to be wrong or unfinished, in the order they matter.
   refusal: a spent or expired link gets "Request a new link", anything else
   (blocked account, no answer, too many tries) gets "Back to sign in". Only a
   password the rule rejects keeps the form, with the API's field message shown.
+- **A published article's page is two callers of one reader.** `generateMetadata`
+  and the body of `/blogs/[slug]` both go through `getArticlePage`; metadata used
+  to read only the build index, so a slug published after the last build got the
+  "Article not found" head over a body that rendered. Any new renderer of the
+  page reads it the same way. `updateTag` only works in a Server Action, so the
+  publish is one; `revalidateTag(tag, { expire: 0 })` is the copy that works in a
+  route handler.
+
 - **A password is 8 characters, in the form and in the API.** `password()` in
   `auth.validation.ts` and `newPasswordValidationSchema` must agree; the form's
   bound was 6 for a while, so a six-character password passed the form and then
@@ -239,6 +263,14 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-11-01: Per-article access (#8). The composer, both editors and the admin
+  composer ask "who can read it" with two explained choices, stored on the
+  article as `access` (`members` by default, so no migration and no behaviour
+  change for older rows). A public article renders its whole body for a
+  signed-out reader, has no members prompt, is canonical at `/blogs/<slug>`,
+  and `?view=preview` redirects to that address. A members-only one behaves as
+  before. The setting shows in the member list, the admin table and the
+  moderation queue, and the sitemap and JSON-LD follow it.
 - 2026-10-30: Password reset fixed (#15). The reset call no longer picks up the
   session's `Authorization` (or loses its own token in the browser), so links
   stop reporting "not valid"; a failed reset that is not about the link says so
@@ -265,6 +297,16 @@ the only history section here.
   no longer calls `POST /uploads/signature`, so it is off the proxy allow list.
   Admin composer keeps the multipart path. Fixes issue #4 (the 1 MB Server
   Action "Body exceeded" toast).
+- 2026-11-01: New article missing from the feed and titled "Article not found"
+  fixed (#6). Publish is a Server Action, so its `updateTag`/`revalidatePath`
+  actually run (they were silently ignored when `createBlog` ran in the browser);
+  `POST /blogs` is on the proxy allow list and a route-handler publish calls
+  `revalidateTag("allBlogs", { expire: 0 })` as a backstop. `generateMetadata`
+  and the page body both resolve the article through `getArticlePage`, and a
+  publish writes the article into its own version cache, so head and body
+  describe one article even on the request that creates the page. A version the
+  module has not remembered is no longer loaded blind: a cached miss from the
+  build was being handed back as "no article".
 - 2026-10-31: The cover strip's Remove always clears, with no `canRemove` gate:
   after a failed upload the writer was stuck on "upload failed" with nothing to
   remove. `textValue` added to the account menu's identity row and to the other

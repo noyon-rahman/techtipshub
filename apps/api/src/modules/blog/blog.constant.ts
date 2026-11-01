@@ -1,4 +1,4 @@
-import { TBlogStatus, TContentType } from "./blog.interface";
+import { TArticleAccess, TBlogStatus, TContentType } from "./blog.interface";
 
 export const BlogContentType: TContentType[] = ["html", "markdown", "text"];
 export const blogSearchableFields = ["title", "slug", "content"];
@@ -9,6 +9,18 @@ export const blogSearchableFields = ["title", "slug", "content"];
  * field existed becomes.
  */
 export const BlogStatus: TBlogStatus[] = ["draft", "published"];
+
+/**
+ * Who a published article is readable by. A row written before this was a
+ * choice has no stored value and is members only, which is how it behaved
+ * (see `articleAccessOf`).
+ */
+export const BlogAccess: TArticleAccess[] = ["members", "public"];
+
+/** The stored access, with a missing value read as members only. */
+export const articleAccessOf = (
+  access?: TArticleAccess | null,
+): TArticleAccess => (access === "public" ? "public" : "members");
 
 /**
  * The filter for "a reader may see this": live and not a draft.

@@ -20,6 +20,19 @@ const formatDate = (value?: string) =>
     : null;
 
 /**
+ * Who the published article is open to, said in the row.
+ *
+ * A plain word, not a badge: it sits beside "Published" and answers the next
+ * question a writer has about a live piece, whether a stranger can open it.
+ */
+const AccessLabel = ({ access }: { access?: IBlog["access"] }) =>
+  access === "public" ? (
+    <span>Everyone</span>
+  ) : (
+    <span className="text-default-700">Members only</span>
+  );
+
+/**
  * One article in the account list.
  *
  * A row, because the writer is scanning for a title they recognise: the title
@@ -133,6 +146,7 @@ const ManageBlogCard = ({ blog }: IProps) => {
             </span>
           </span>
           <span className="text-success-700 dark:text-success">Published</span>
+          <AccessLabel access={blog.access} />
 
           <div className="ml-auto flex items-center gap-1">
             <Link

@@ -63,6 +63,8 @@ const initialValues = (blog: IBlog): BlogFormData => ({
   category: blog.category?._id ?? "",
   tags: blog.tags ?? [],
   description: "",
+  // A row written before access was a choice has no value and was members only.
+  access: blog.access === "public" ? "public" : "members",
 });
 
 /** A replacement cover on its way to the API, kept until the answer is in. */
@@ -81,6 +83,7 @@ const editableFingerprint = (values: BlogFormData) =>
     content: values.content,
     category: values.category,
     tags: values.tags,
+    access: values.access,
   });
 
 /**
@@ -217,6 +220,7 @@ const EditBlog = ({
     if (values.content !== initial.content) labels.push("body");
     if (values.category !== initial.category) labels.push("category");
     if (values.tags.join(",") !== initial.tags.join(",")) labels.push("tags");
+    if (values.access !== initial.access) labels.push("who can read it");
     if (file) labels.push("cover image");
     // `dirty` also counts an upload that has no file left to show, so the
     // label list follows it rather than leaving it unexplained.
@@ -670,12 +674,14 @@ const EditBlog = ({
               });
             }
           }}
+          access={values.access}
+          onAccessChange={(access) => update("access", access)}
           footer={
             dirty ? (
               <button
                 type="button"
                 onClick={discard}
-                className="mt-6 flex items-center gap-1.5 border-t border-default-200 pt-4 text-[0.8125rem] font-medium text-default-600 transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300"
+                className="mt-5 flex items-center gap-1.5 border-t border-default-200 pt-4 text-[0.8125rem] font-medium text-default-600 transition-colors hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300"
               >
                 <LuRotateCcw aria-hidden className="size-3.5" />
                 Discard changes
@@ -689,7 +695,9 @@ const EditBlog = ({
           note={
             dirty
               ? "Your changes are not live yet."
-              : "This is the version readers see now."
+              : values.access === "public"
+                ? "This article is open to everyone, signed in or not."
+                : "This article is open to members. Everyone else sees the opening and a sign-in prompt."
           }
           previewHref={
             liveSlug
@@ -727,7 +735,9 @@ const EditBlog = ({
         cover={
           <CoverUpload
             file={file}
-            progress={coverStatus === "uploading" ? coverProgress : null}
+            progress={
+              coverStatus === "uploading" ? (coverProgress ?? null) : undefined
+            }
             failedMessage={coverFailure}
             onChange={(next) => {
               // Remove sends null, which goes through the same path: only this

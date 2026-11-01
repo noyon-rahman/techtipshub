@@ -554,6 +554,14 @@ const ModerationQueue = () => {
                         >
                           {formatRelative(blog.createdAt)}
                         </time>
+                        <span aria-hidden>{SEPARATOR}</span>
+                        {/* The moderator is deciding what the public sees, so
+                            who can open it belongs next to the piece. */}
+                        <span>
+                          {blog.access === "public"
+                            ? "Everyone"
+                            : "Members only"}
+                        </span>
                       </p>
 
                       <div className="mt-1 flex items-center gap-0.5">

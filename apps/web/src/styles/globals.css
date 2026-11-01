@@ -918,6 +918,15 @@
   display: block;
 }
 
+/* A public article is the same for every visitor, so it carries no check to
+   wait for: its body is shown from the first paint, scripted or not. The page
+   only renders the body column for it (see `/blogs/[slug]`), and this rule
+   has to stay under the waiting rule below, or a stale attribute would hide
+   it. */
+[data-article-access][data-article-public] [data-article-for] {
+  display: block;
+}
+
 /* The answer is on its way, so neither column is right yet and neither is
    shown. Without this the members prompt is painted for the length of the
    round trip and then swapped for the body. The attribute is only ever set by
@@ -925,4 +934,8 @@
    keeps the prompt above - search engines read the article at `?view=preview`. */
 [data-article-access][data-article-waiting] [data-article-for] {
   display: none;
+}
+
+[data-article-access][data-article-public] [data-article-for] {
+  display: block;
 }

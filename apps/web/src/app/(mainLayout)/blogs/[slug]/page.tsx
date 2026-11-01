@@ -15,18 +15,41 @@ import { splitAfterIntro } from "@/components/modules/blog/split-article-intro";
 import ArticleAccess from "@/components/modules/blog/article-access";
 import Container from "@/components/ui/container";
 import { siteConfig } from "@/config/site";
-import { articlePreviewPath } from "@/lib/article-access";
+import {
+  ARTICLE_PREVIEW_PARAM,
+  ARTICLE_PREVIEW_VALUE,
+  articleIndexablePath,
+} from "@/lib/article-access";
 import { articlePreviewHtml } from "@/lib/article-preview";
 import { excerpt } from "@/lib/seo";
 import { decodeSlug } from "@/lib/slug";
 import { getArticlePage } from "@/services/blog/article-page";
-import type { IBlog } from "@/types";
 import { blogForBuild, blogStaticParams } from "@/lib/blog-index";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { redirect } from "next/navigation";
 
 type Props = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+/**
+ * Whether this render was asked for the `?view=preview` variant.
+ *
+ * A page that reads `searchParams` cannot be prerendered, so only the request
+ * that carries the parameter is ever treated as one.
+ */
+const isPreviewRequest = (searchParams: Record<string, unknown>) => {
+  const entry = Object.entries(searchParams).find(
+    ([key]) => key === ARTICLE_PREVIEW_PARAM,
+  );
+  const view = entry?.[1];
+
+  return (
+    view === ARTICLE_PREVIEW_VALUE ||
+    (Array.isArray(view) && view.includes(ARTICLE_PREVIEW_VALUE))
+  );
 };
 
 /**
@@ -38,27 +61,44 @@ type Props = {
  */
 
 /**
- * The article's own row from the build index.
+ * The article this render describes, read the way the page reads it.
  *
- * `generateStaticParams` already fetched every article once for the whole
- * build, so metadata costs a map lookup instead of a second request per page.
- * A slug published after the last build has no row: the page reads it from the
- * service instead, which fetches the current version and binds the page to it.
+ * The build index already fetched every article once, so `generateMetadata`
+ * checks it first: a slug the build saw costs a map lookup and no request. A
+ * slug published after the last build has no row there, and this is what reads
+ * it. Before, metadata answered from the index alone, so such a slug got the
+ * not-found head over a body that rendered perfectly.
+ *
+ * Both callers now go through `getArticlePage`, the one place that decides which
+ * version a render is for. The `updatedAt` the page was built with is in its
+ * stored `params`, the same value the page itself is handed, so the head and the
+ * body describe one article.
  */
+const readForRender = async (params: Props["params"]) => {
+  const { slug: routeSlug, updatedAt: builtAsOf } = (await params) as {
+    slug: string;
+    updatedAt?: string;
+  };
+
+  return getArticlePage(decodeSlug(routeSlug), builtAsOf);
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug: routeSlug } = await params;
   const slug = decodeSlug(routeSlug);
-  // The build index has every article; a slug published after the last build
-  // is rendered by the page itself, so its metadata comes from that render.
-  const blog = (await blogForBuild(slug)) as unknown as IBlog | undefined;
+  // The build index has every article the build saw, so a known slug costs a
+  // map lookup and no request. A slug published since then is read from the
+  // service, exactly as the page reads it.
+  const blog = (await blogForBuild(slug)) ?? (await readForRender(params)).blog;
   const { title, content, coverImage, tags, author, createdAt, updatedAt } =
     blog ?? {};
 
   const description = content ? excerpt(content, 160) : undefined;
-  // The canonical address is the preview variant: it is the one search engines
-  // and link unfurls can read without a session. The page itself still lives at
-  // the plain address and is what members are served.
-  const canonical = articlePreviewPath(slug);
+  // A public article is readable and canonical at the plain address. A
+  // members-only one is canonical at the preview variant: it is the one search
+  // engines and link unfurls can read without a session, since the plain
+  // address carries a body that waits on the reader check.
+  const canonical = articleIndexablePath(slug, blog?.access);
   // Blogs without an upload fall back to the brand cover, so a shared link
   // still shows the house mark rather than no image at all.
   const ogImage = coverImage
@@ -131,20 +171,14 @@ const readingMinutes = (html?: string) => {
   return Math.max(1, Math.round(words / 220));
 };
 
-const DynamicBlogPage = async ({ params }: Props) => {
-  // `updatedAt` is what the build stored in `params` - the version this page
-  // was rendered with. A route that was not prerendered stores none.
-  const { slug: routeSlug, updatedAt: builtAsOf } = (await params) as {
-    slug: string;
-    updatedAt?: string;
-  };
-
-  const slug = decodeSlug(routeSlug);
-
+const DynamicBlogPage = async ({ params, searchParams }: Props) => {
   // The plain address is what members are served, and what a preview link is
   // redirected from (see `proxy.ts`): a crawler, or anyone without a session,
-  // ends up on the preview variant.
-  const page = await getArticlePage(slug, builtAsOf);
+  // ends up on the preview variant. The version read is the same one
+  // `generateMetadata` uses, so the head and the body describe one article.
+  const page = await readForRender(params);
+  const { slug: routeSlug } = (await params) as { slug: string };
+  const slug = decodeSlug(routeSlug);
 
   if (!page.blog) {
     return (
@@ -158,6 +192,13 @@ const DynamicBlogPage = async ({ params }: Props) => {
         </Container>
       </section>
     );
+  }
+
+  // A public article needs no preview: the plain page already carries the whole
+  // body for everyone, so a link or a crawler that still asks for the variant
+  // is sent to the one address this article is canonical at.
+  if (page.blog.access === "public" && isPreviewRequest(await searchParams)) {
+    redirect(`/blogs/${encodeURIComponent(slug)}`);
   }
 
   const {
@@ -174,6 +215,9 @@ const DynamicBlogPage = async ({ params }: Props) => {
     category,
   } = page.blog;
   const comments = page.comments;
+  // A public article is the same document for every visitor, so its body does
+  // not wait on the reader check and the members prompt never appears.
+  const isPublic = page.blog.access === "public";
 
   const minutes = readingMinutes(content);
   const loginHref = `/login?redirect=${encodeURIComponent(`blogs/${routeSlug}`)}`;
@@ -268,10 +312,13 @@ const DynamicBlogPage = async ({ params }: Props) => {
   // `data-article-view`, which the per-request reader answer writes (see the
   // article access rules in `globals.css`). Neither the page nor its caching
   // depends on who is asking.
+  //
+  // A public article has nothing to choose between: every reader gets the body
+  // above, so no check is mounted and no column is picked.
   const readableColumn = (
-    <div data-article-access>
-      <ArticleAccess key={slug} />
-      <div data-article-for="guest">{previewColumn}</div>
+    <div data-article-access {...(isPublic && { "data-article-public": "" })}>
+      {!isPublic && <ArticleAccess key={slug} />}
+      {!isPublic && <div data-article-for="guest">{previewColumn}</div>}
       <div data-article-for="member">{memberColumn}</div>
     </div>
   );
@@ -314,7 +361,7 @@ const DynamicBlogPage = async ({ params }: Props) => {
                     url: `${siteConfig.url}/brand/icon-512.png`,
                   },
                 },
-                mainEntityOfPage: `${siteConfig.url}${articlePreviewPath(slug)}`,
+                mainEntityOfPage: `${siteConfig.url}${articleIndexablePath(slug, page.blog.access)}`,
                 keywords: tags?.join(", "),
               }),
             }}

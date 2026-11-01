@@ -1,5 +1,5 @@
 import { model, Schema } from "mongoose";
-import { BlogContentType, BlogStatus } from "./blog.constant";
+import { BlogAccess, BlogContentType, BlogStatus } from "./blog.constant";
 import { IBlog } from "./blog.interface";
 
 const blogSchema = new Schema<IBlog>(
@@ -68,6 +68,17 @@ const blogSchema = new Schema<IBlog>(
     createdBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
+    },
+    // Who may read it once published. Rows written before this was a choice
+    // have no value, and every reader treats a missing one as members only,
+    // which is how those rows behaved.
+    access: {
+      type: String,
+      enum: {
+        values: BlogAccess,
+        message: "{VALUE} is not a valid access setting",
+      },
+      default: "members",
     },
     // When it first went live. Absent while it is a draft.
     publishedAt: {

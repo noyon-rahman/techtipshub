@@ -10,6 +10,7 @@ import CategoryPicker from "@/components/modules/write-blog/category-picker";
 import TagInput from "@/components/modules/write-blog/tag-input";
 import { ICategory } from "@/types";
 import { formatBlogDate } from "@/utils";
+import type { TArticleAccess } from "@techtipshub/shared";
 import {
   Button,
   Input,
@@ -22,7 +23,14 @@ import {
 } from "@heroui/react";
 import Link from "next/link";
 import type { ReactNode, RefObject } from "react";
-import { LuArrowLeft, LuEye, LuExternalLink } from "react-icons/lu";
+import {
+  LuArrowLeft,
+  LuCheck,
+  LuEye,
+  LuExternalLink,
+  LuGlobe,
+  LuLock,
+} from "react-icons/lu";
 
 /**
  * The width of a text column inside an article screen.
@@ -107,6 +115,9 @@ export const EditorShell = ({
       stickyClass={barStickyClass}
     />
 
+    {/* The rail's sticky range: `top` clears the 3.5rem bar above it. There is
+        deliberately no max height and no nested scroll: the panel travels with
+        the page and releases at the end of the piece. */}
     <div className={`mx-auto w-full max-w-page pb-24 pt-6 ${FRAME_GUTTERS}`}>
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(15rem,18rem)] lg:items-start lg:gap-12 xl:gap-16">
         <div className="min-w-0">
@@ -116,8 +127,15 @@ export const EditorShell = ({
           {footer}
         </div>
         <div
-          className={`hidden lg:block lg:sticky ${
-            railStickyClass ?? "lg:top-[calc(var(--header-height)+3.5rem)]"
+          // The rail fits the panel, never forces a scroll of its own. When the
+          // panel is taller than the window there is nothing useful to rescue
+          // inside a column this narrow: a track over a two-card sidebar is
+          // worse than letting the panel run past the fold and travel with the
+          // page, which is what a sticky column without a height bound does.
+          // `self-start` keeps the grid from stretching it to the piece's
+          // height; `items-start` on the row does the same for other browsers.
+          className={`hidden self-start lg:block lg:sticky lg:top-[calc(var(--header-height)+3.5rem)] ${
+            railStickyClass ?? ""
           }`}
         >
           {sidebar}
@@ -341,6 +359,22 @@ export const ComposerToolbar = ({ editor }: { editor: BlogEditor }) => (
   <EditorToolbar editor={editor} />
 );
 
+/** The two settings a writer can give an article, and what each one means. */
+export const ARTICLE_ACCESS_OPTIONS = [
+  {
+    value: "public" as const,
+    label: "Everyone",
+    hint: "Signed-out visitors read the whole article, and search engines index it.",
+    icon: LuGlobe,
+  },
+  {
+    value: "members" as const,
+    label: "Members only",
+    hint: "Visitors without a session see the opening and a prompt to sign in.",
+    icon: LuLock,
+  },
+];
+
 interface IPublishingDetailsProps {
   idPrefix: string;
   /**
@@ -381,9 +415,101 @@ interface IPublishingDetailsProps {
   tagSuggestions: string[];
   tagsError?: string;
   onTagsRejected?: (raw: string, rejected: string[]) => void;
+  /** Who can read the article once it is published. */
+  access: TArticleAccess;
+  onAccessChange: (access: TArticleAccess) => void;
   /** Anything that belongs under the two fields: the summary of choices. */
   footer?: ReactNode;
 }
+
+/**
+ * Who can read the article, as two tiles with the difference spelled out.
+ *
+ * A native radio group rather than a switch: the two are the whole decision,
+ * both have to be readable before one is picked, and a browser gives the
+ * group arrow-key movement and a visible focus ring for free. The radio itself
+ * is visually hidden and the label carries the state, so the tile can be read
+ * as one object.
+ *
+ * The selection is drawn as a 2px rule under the chosen tile, the same rule the
+ * site uses for a current state everywhere else. No amber and no tinted fill on
+ * the tile: the panel already sits on paper, a tint would make one of the two
+ * choices look promoted rather than chosen, and amber on paper is 1.9:1, under
+ * the 3:1 a state indicator needs. The rule, a weight shift in the label and a
+ * check mark are the three signals; the checked radio inside is hidden but
+ * still what a screen reader announces.
+ */
+const AccessField = ({
+  idPrefix,
+  access,
+  onAccessChange,
+}: {
+  idPrefix: string;
+  access: TArticleAccess;
+  onAccessChange: (access: TArticleAccess) => void;
+}) => (
+  <fieldset className="min-w-0">
+    <legend className="sr-only">Who can read it</legend>
+    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+      {ARTICLE_ACCESS_OPTIONS.map((option) => {
+        const checked = access === option.value;
+        const Icon = option.icon;
+
+        return (
+          <label
+            key={option.value}
+            className={`group relative flex cursor-pointer items-start gap-2.5 rounded-[6px] border px-3 pb-3 pt-2.5 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-primary-300 ${
+              checked
+                ? "border-default-300 bg-default-50/70 dark:bg-default-100/5"
+                : "border-default-200 hover:border-default-300 hover:bg-default-50 dark:hover:bg-default-100/5"
+            }`}
+          >
+            <input
+              type="radio"
+              name={`${idPrefix}-access`}
+              value={option.value}
+              checked={checked}
+              onChange={() => onAccessChange(option.value)}
+              className="sr-only"
+            />
+            <Icon
+              aria-hidden
+              className={`mt-0.5 size-4 shrink-0 ${
+                checked ? "text-foreground" : "text-default-600"
+              }`}
+            />
+            <span className="min-w-0 flex-1">
+              <span
+                className={`flex items-center gap-1.5 text-[0.8125rem] ${
+                  checked
+                    ? "font-semibold text-foreground"
+                    : "font-medium text-default-700"
+                }`}
+              >
+                {option.label}
+                {checked && <LuCheck aria-hidden className="size-3.5" />}
+              </span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-default-600">
+                {option.hint}
+              </span>
+            </span>
+            {/* The current-state rule. Drawn on the tile, not around it.
+                  Ink, not the primary fill: amber on paper is 1.9:1 and a state
+                  indicator needs 3:1, so the rule is stated in contrast and the
+                  choice is also announced by the border, the label weight and
+                  the check mark. */}
+            <span
+              aria-hidden
+              className={`absolute inset-x-3 bottom-0 h-0.5 rounded-full transition-colors ${
+                checked ? "bg-foreground" : "bg-transparent"
+              }`}
+            />
+          </label>
+        );
+      })}
+    </div>
+  </fieldset>
+);
 
 /**
  * Category and tags: the rail beside the piece on wide screens, and the panel
@@ -395,6 +521,13 @@ interface IPublishingDetailsProps {
  * floating on the page, because the rail is a separate object from the piece.
  * The caller decides which of the two places it is in, since it knows whether
  * it is rendering the rail or the band under the piece.
+ *
+ * The panel is a stack of sections, not a form: each one starts with the same
+ * label from `.tth-label` and is separated from the next by a hairline and
+ * space. That is what keeps it readable at rail width, where four different
+ * left edges (heading, label, input, hint) would otherwise pile up in a column
+ * 15rem wide. The requirement line says only what is still missing, so a writer
+ * who has set both fields sees one sentence, not a summary of their own form.
  */
 export const PublishingDetails = ({
   idPrefix,
@@ -421,24 +554,28 @@ export const PublishingDetails = ({
   tagSuggestions,
   tagsError,
   onTagsRejected,
+  access,
+  onAccessChange,
   footer,
 }: IPublishingDetailsProps) => {
-  const requirement =
-    category && tags.length
-      ? "Category and tags are set."
-      : !category && !tags.length
-        ? "Publishing needs a category and tags."
-        : !category
-          ? "Publishing needs a category."
-          : "Publishing needs tags.";
+  // A list of what is still missing, so the line never describes work already
+  // done. Empty means the piece can be published.
+  const missing = [
+    !category ? "a category" : null,
+    !tags.length ? "tags" : null,
+  ].filter(Boolean) as string[];
+
+  const requirement = missing.length
+    ? `Still needed to publish: ${missing.join(" and ")}.`
+    : null;
 
   const address = onSlugChange ? (
-    <div className={slugTitle ? "" : "mt-5"}>
+    <div>
+      {/* With `slugTitle` the heading above already names the field, so the
+          label is only there for the input's own accessibility. */}
       <label
         htmlFor={`${idPrefix}-slug`}
-        className={`mb-1.5 block text-[0.8125rem] font-medium ${
-          slugTitle ? "text-foreground" : "text-default-600"
-        }`}
+        className={`tth-label mb-2.5 block ${slugTitle ? "sr-only" : ""}`}
       >
         {slugTitle ?? "Address"}
       </label>
@@ -470,32 +607,59 @@ export const PublishingDetails = ({
     </div>
   ) : null;
 
+  /** One labelled section; the hairline above it is what separates the stack. */
+  const section = (id: string, title: string, body: ReactNode) => (
+    <section
+      aria-labelledby={`${idPrefix}-${id}`}
+      className="mt-5 border-t border-default-200 pt-5"
+    >
+      <h3 id={`${idPrefix}-${id}`} className="tth-label mb-2.5">
+        {title}
+      </h3>
+      {body}
+    </section>
+  );
+
+  // The address belongs to the stack when the panel owns it, so it uses the
+  // same hairline and spacing as every other section. When the screen gives it
+  // its own heading above the panel, it is that screen's block, not this one.
+  const addressSection =
+    address && !slugTitle ? section("address", "Address", address) : null;
+
+  // The panel in the rail: a card surface with a hairline border. White on
+  // paper in light theme, `content-1` on charcoal in dark. The border is the
+  // faint variant (`default-200`) rather than `default-300`: the fill is
+  // already doing the separating, and the line should only close the edge.
+  const cardSurface =
+    "lg:bg-white lg:dark:bg-content-1 lg:rounded-[12px] lg:border lg:border-t lg:border-default-200 lg:px-5 lg:py-5";
+
   const details = (
     <aside
       aria-labelledby={`${idPrefix}-details-title`}
-      className={`border-t border-default-200 pt-6 lg:rounded-[10px] lg:border lg:p-5 lg:pt-4 ${
+      // Below `lg` the panel is a band under the piece, so it opens with the
+      // rule that separates it. From `lg` it is a card in the rail, and the
+      // band's top rule is replaced by the card's own edge.
+      className={`border-t border-default-200 pt-6 ${cardSurface} ${
         placement === "rail" ? "" : "mt-14"
       }`}
     >
       <h2
         id={`${idPrefix}-details-title`}
-        className="text-[0.8125rem] font-medium text-foreground"
+        className="text-sm font-semibold text-foreground"
       >
         Publishing details
       </h2>
-      <p className="mt-1 text-xs leading-relaxed text-default-600">
-        Where the blog is filed. {requirement}
-      </p>
+      {requirement && (
+        <p className="mt-1 text-xs leading-relaxed text-default-600">
+          {requirement}
+        </p>
+      )}
 
-      {address}
+      {addressSection}
 
-      <div className="mt-5">
-        <label
-          htmlFor={`${idPrefix}-category`}
-          className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
-        >
-          Category
-        </label>
+      {section(
+        "category",
+        "Category",
         <CategoryPicker
           id={`${idPrefix}-category`}
           categories={categories}
@@ -508,53 +672,66 @@ export const PublishingDetails = ({
           errorMessage={categoryError}
           onCreate={onCreateCategory}
           selectedName={categorySelectedName}
-        />
-      </div>
+        />,
+      )}
 
-      <div className="mt-5">
-        <label
-          htmlFor={`${idPrefix}-tags`}
-          className="mb-1.5 block text-[0.8125rem] font-medium text-default-600"
-        >
-          Tags
-        </label>
-        <TagInput
-          id={`${idPrefix}-tags`}
-          tags={tags}
-          onChange={onTagsChange}
-          input={tagInput}
-          onInputChange={onTagInputChange}
-          suggestions={tagSuggestions}
-          invalid={Boolean(tagsError)}
-          onTagsRejected={onTagsRejected}
-        />
-        {tagsError ? (
-          <FieldError className="mt-1.5">{tagsError}</FieldError>
-        ) : (
-          <p className="mt-1.5 text-xs text-default-600">
-            Up to 8, separated by commas.
-          </p>
-        )}
-      </div>
+      {section(
+        "tags",
+        "Tags",
+        <>
+          <TagInput
+            id={`${idPrefix}-tags`}
+            tags={tags}
+            onChange={onTagsChange}
+            input={tagInput}
+            onInputChange={onTagInputChange}
+            suggestions={tagSuggestions}
+            invalid={Boolean(tagsError)}
+            onTagsRejected={onTagsRejected}
+          />
+          {tagsError ? (
+            <FieldError className="mt-1.5">{tagsError}</FieldError>
+          ) : (
+            <p className="mt-1.5 text-xs leading-relaxed text-default-600">
+              Up to 8, separated by commas.
+            </p>
+          )}
+        </>,
+      )}
+
+      {section(
+        "access",
+        "Who can read it",
+        <AccessField
+          idPrefix={idPrefix}
+          access={access}
+          onAccessChange={onAccessChange}
+        />,
+      )}
 
       {footer}
     </aside>
   );
 
   // An address that lives in its own section, with its own heading, reads as
-  // the change it is: a different URL for something already published.
+  // the change it is: a different URL for something already published. It
+  // takes the panel surface too, so the rail is two matching blocks rather
+  // than a bare block over a card.
   if (!slugTitle) return details;
 
   return (
-    <div>
-      <section aria-labelledby={`${idPrefix}-address-title`}>
+    <div className="space-y-5">
+      <section
+        aria-labelledby={`${idPrefix}-address-title`}
+        className={`border-t border-default-200 pt-6 ${cardSurface}`}
+      >
         <h2
           id={`${idPrefix}-address-title`}
-          className="text-[0.8125rem] font-medium text-foreground"
+          className="text-sm font-semibold text-foreground"
         >
           {slugTitle}
         </h2>
-        <div className="mt-4">{address}</div>
+        <div className="mt-3">{address}</div>
       </section>
       {details}
     </div>
@@ -579,9 +756,12 @@ export const BottomActions = ({
   primary: ReactNode;
 }) => (
   <div
-    className={`${MEASURE} mt-12 flex flex-col gap-3 border-t border-default-200 pt-5 sm:flex-row sm:items-center sm:justify-between`}
+    className={`${MEASURE} mt-12 flex flex-col gap-4 border-t border-default-200 pt-5`}
   >
-    <p className="text-sm text-default-600">{note}</p>
+    {/* The actions come first: they are the next step, and they are what the
+        eye is looking for after finishing a piece. The note follows as one
+        sentence per meaning, so a longer line (members only says more than
+        everyone does) never turns into a paragraph crammed above the buttons. */}
     <div className="flex flex-wrap items-center gap-2">
       {previewHref && (
         <Button
@@ -604,6 +784,7 @@ export const BottomActions = ({
       </Button>
       {primary}
     </div>
+    <p className="text-sm leading-relaxed text-default-600">{note}</p>
   </div>
 );
 

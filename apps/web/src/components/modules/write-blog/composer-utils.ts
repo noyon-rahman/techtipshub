@@ -6,6 +6,7 @@
  * reload does not throw the draft away.
  */
 
+import { ARTICLE_ACCESS, type TArticleAccess } from "@techtipshub/shared";
 import { ARTICLE_TOO_LARGE, COVER_MAX_BYTES } from "@/lib/upload-limits";
 
 export interface BlogFormValues {
@@ -13,6 +14,8 @@ export interface BlogFormValues {
   content: string;
   category: string;
   tags: string[];
+  /** Who can read it once published. Always one of the two, never unset. */
+  access: TArticleAccess;
 }
 
 export interface BlogFormData extends BlogFormValues {
@@ -33,6 +36,8 @@ export const EMPTY_DRAFT: BlogFormData = {
   category: "",
   tags: [],
   description: "",
+  // The setting every article had before it was a choice.
+  access: ARTICLE_ACCESS.MEMBERS,
 };
 
 const DRAFT_KEY = "tth:write-blog:draft";
@@ -72,6 +77,7 @@ export const draftFingerprint = (values: BlogFormData) =>
     categoryName: values.categoryName ?? "",
     tags: values.tags,
     description: values.description ?? "",
+    access: values.access,
   });
 
 /** True when the value is empty HTML such as `<p></p>`. */
@@ -151,6 +157,7 @@ export const payloadSizeBytes = (values: BlogFormData) => {
     category: values.category,
     tags: values.tags,
     description: values.description ?? "",
+    access: values.access,
   });
   return new TextEncoder().encode(article).byteLength;
 };
@@ -189,6 +196,7 @@ export const buildBlogJson = (
   category: values.category,
   tags: values.tags,
   contentType: "html",
+  access: values.access,
   ...(coverImageUrl ? { coverImage: coverImageUrl } : {}),
   ...extra,
 });
