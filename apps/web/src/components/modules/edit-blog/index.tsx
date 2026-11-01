@@ -735,7 +735,9 @@ const EditBlog = ({
         cover={
           <CoverUpload
             file={file}
-            progress={coverStatus === "uploading" ? coverProgress : null}
+            progress={
+              coverStatus === "uploading" ? (coverProgress ?? null) : undefined
+            }
             failedMessage={coverFailure}
             onChange={(next) => {
               // Remove sends null, which goes through the same path: only this

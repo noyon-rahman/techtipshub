@@ -700,7 +700,9 @@ const WriteBlog = () => {
         cover={
           <CoverUpload
             file={coverFile}
-            progress={coverStatus === "uploading" ? coverProgress : null}
+            progress={
+              coverStatus === "uploading" ? (coverProgress ?? null) : undefined
+            }
             failedMessage={coverFailure}
             onChange={(file) => {
               if (file) pickCover(file);
