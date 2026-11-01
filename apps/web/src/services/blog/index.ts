@@ -6,6 +6,7 @@ import type { TLegacyBody } from "@/lib/api-contract";
 import axiosInstance from "@/lib/AxiosInstance";
 import { getAccessToken } from "@/lib/fetch-with-auth";
 import { forgetRenderedArticles } from "@/lib/article-renders";
+import { cachePublishedArticle } from "@/services/blog/article-page";
 import type { IVoteResult, TVoteType } from "@techtipshub/shared";
 import { revalidatePath, updateTag } from "next/cache";
 
@@ -140,6 +141,17 @@ export const getFollowingUsersBlogs = async (
  *
  * JSON, not multipart: the cover was already uploaded to Cloudinary from the
  * browser and arrives here as its `secure_url`, so the body is only the text.
+ *
+ * This runs on the server, in a Server Action, because the expiry below is the
+ * part that makes a new article appear: `updateTag` does nothing outside an
+ * action, so a publish from the browser leaves the feed and the article's cache
+ * entry as they were until their timers run out. The session comes from the
+ * action's request, the same way every other server-side write here gets it.
+ *
+ * A published article is also written into the version cache its page reads.
+ * The page of a slug the build never prerendered fetches its article on the
+ * first render, in the same request that renders its metadata: without the
+ * entry, the body would read the article while the head described a miss.
  */
 export const createBlog = async (payload: Record<string, unknown>) => {
   try {
@@ -148,6 +160,7 @@ export const createBlog = async (payload: Record<string, unknown>) => {
     updateTag("allBlogs");
     revalidatePath("/");
     refreshArticles();
+    await cachePublishedArticle(res?.data?.data);
 
     return res?.data;
   } catch (err: any) {

@@ -5,6 +5,12 @@ export type TContentType = "html" | "markdown" | "text";
 /** Writing that only its author and the admins can open, or one readers see. */
 export type TBlogStatus = "draft" | "published";
 
+/**
+ * Who may read a published article: anyone, or members with a session. Absent
+ * on rows written before this was a choice; those are read as members.
+ */
+export type TArticleAccess = "members" | "public";
+
 export interface IBlog extends Document {
   author: Types.ObjectId;
   /** The admin who wrote it on someone's behalf, when that is not the author. */
@@ -18,6 +24,7 @@ export interface IBlog extends Document {
   category: Types.ObjectId;
   tags: string[];
   status: TBlogStatus;
+  access?: TArticleAccess;
   publishedAt?: Date;
   upVotes: number;
   downVotes: number;

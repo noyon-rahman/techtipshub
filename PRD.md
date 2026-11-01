@@ -31,12 +31,17 @@ products. An admin is also a member and can publish.
 
 ## The one rule the product is built around
 
-**An article body belongs to a signed-in reader.** The page is prerendered and
-served from the CDN, so anyone can be handed the shell, but the prose is only
+**A published article belongs to a signed-in reader, unless its author says
+otherwise.** Every article is set to "Everyone" or "Members only" in the
+composer, and the choice is stored with it (a row written before the setting
+existed is members only). The page is prerendered and served from the CDN, so
+anyone can be handed the shell; on a members-only article the prose is only
 revealed after the browser proves it has a session
-(`services/blog/article-access.ts`). Crawlers are redirected to a
-server-rendered preview variant by `proxy.ts` so search and link unfurls still
-work. This is a product decision, not a technical one, and it shapes the reader
+(`services/blog/article-access.ts`), and crawlers are redirected to a
+server-rendered preview variant by `proxy.ts`. A public article is the
+exception the author chose: its body is in the document for everyone, its
+canonical address is the plain one, and the preview variant redirects to it.
+This is a product decision, not a technical one, and it shapes the reader
 journey below.
 
 ## Jobs and what ships for them
@@ -47,12 +52,14 @@ journey below.
 - Article at `/blogs/<slug>`: cover, title, body, code blocks, author block,
   vote, comments, related reading, newsletter signup, and a view counter that
   counts one reader once (`/views/:slug`).
-- Signed-out readers see the opening and are asked to sign in for the rest.
+- On a members-only article, signed-out readers see the opening and are asked
+  to sign in for the rest. On a public one they read the whole thing.
 - `/following` shows articles from the members you follow.
 
-**Done when:** the body appears only for a session-holding browser, the crawler
-variant carries the real text and canonical URL, a view is counted once per
-reader, and the page holds at 360px.
+**Done when:** a members-only body appears only for a session-holding browser,
+a public body appears for everyone and is indexed at `/blogs/<slug>`, the
+crawler variant of a members-only article carries the real text and canonical
+URL, a view is counted once per reader, and the page holds at 360px.
 
 ### 2. Write and publish
 

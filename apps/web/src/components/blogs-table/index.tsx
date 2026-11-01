@@ -92,6 +92,10 @@ const count = (value?: number) => (value ?? 0).toLocaleString("en-GB");
  */
 const isDraft = (blog: IBlog) => blog.status === "draft";
 
+/** A row written before access was a choice was members only. */
+const accessOf = (blog: IBlog) =>
+  blog.access === "public" ? "public" : "members";
+
 const displayName = (blog: IBlog) =>
   blog.author?.fullName?.trim() || blog.author?.username || "";
 
@@ -174,6 +178,13 @@ const ArticleCell = ({ blog }: { blog: IBlog }) => {
           {isDraft(blog) && (
             <span className="shrink-0 rounded-full border border-warning-300 px-1.5 text-[0.6875rem] font-medium text-warning-700 dark:border-warning/60 dark:text-warning">
               Draft
+            </span>
+          )}
+          {/* Who the published piece is open to. A draft has no readers yet,
+              so it says nothing here. */}
+          {!isDraft(blog) && (
+            <span className="shrink-0">
+              {accessOf(blog) === "public" ? "Everyone" : "Members only"}
             </span>
           )}
         </span>
@@ -260,8 +271,7 @@ const BlogsTable = () => {
   // table on a page that still exists instead of an empty frame the filters
   // did not empty.
   const stepBackIfEmpty = useCallback(() => {
-    if (page > 1 && rows.length <= 1)
-      filtersRef.current({ page: page - 1 });
+    if (page > 1 && rows.length <= 1) filtersRef.current({ page: page - 1 });
   }, [page, rows.length]);
 
   const isFiltered = Boolean(searchTerm) || category !== "all";

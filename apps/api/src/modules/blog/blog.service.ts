@@ -14,8 +14,13 @@ import User from "../user/user.model";
 import { recordView, recomputeTotalViews } from "../view/view.service";
 import View from "../view/view.model";
 import Vote from "../vote/vote.model";
-import { LIVE_ARTICLE, blogSearchableFields } from "./blog.constant";
-import { IBlog } from "./blog.interface";
+import {
+  LIVE_ARTICLE,
+  BlogAccess,
+  articleAccessOf,
+  blogSearchableFields,
+} from "./blog.constant";
+import { IBlog, TArticleAccess } from "./blog.interface";
 import Blog from "./blog.model";
 import { generateUniqueSlug, toSlug } from "./blog.utils";
 
@@ -292,6 +297,20 @@ const getAdminList = async (query: Record<string, unknown>) => {
     filter.author = new Types.ObjectId(author);
   }
 
+  // `access` narrows the list to what readers get without a session, or to
+  // what asks them to sign in. A value outside the two is a 400.
+  const access = typeof query.access === "string" ? query.access.trim() : "";
+  if (access && !BlogAccess.includes(access as TArticleAccess)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `access must be ${BlogAccess.join(" or ")}`,
+    );
+  }
+  if (access) {
+    // Missing means members only, so "members" is "not public".
+    filter.access = access === "public" ? "public" : { $ne: "public" };
+  }
+
   // Title/slug live on the document; the author's name needs a lookup.
   // Matching ids for terms that hit a member keeps one query and one count.
   // Every term has to match (AND), on the article or on its author (OR).
@@ -456,6 +475,10 @@ const getBlogByProperty = async (key: string, value: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
   }
 
+  // A row written before access was a choice has no value, and the website
+  // reads a missing one as members only, which is how it behaved.
+  blog.access = articleAccessOf(blog.access);
+
   return blog;
 };
 
@@ -492,6 +515,10 @@ const getSingleBlog = async (
     if (!blog) {
       throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
     }
+
+    // Read once, before either branch hands it out: a missing value means
+    // members only, and the website decides the body from this field.
+    blog.access = articleAccessOf(blog.access);
 
     // Guest visitors get the article as stored. Nobody is signed in to record
     // a read for, so the counter is whatever the document already holds, but
@@ -1069,6 +1096,9 @@ const updateBlogByAdmin = async (
   if (fields.coverImage !== undefined) changes.coverImage = fields.coverImage;
   if (fields.category !== undefined) changes.category = fields.category;
   if (fields.tags !== undefined) changes.tags = fields.tags;
+  // The one field here that changes who can read a published article, so it is
+  // writable from the panel the same way the body is.
+  if (fields.access !== undefined) changes.access = fields.access;
 
   // An address the panel sends wins over the one derived from the title, so an
   // admin can retitle without moving the article, or move it deliberately.

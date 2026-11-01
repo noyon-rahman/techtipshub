@@ -193,7 +193,9 @@ const AdminComposer = () => {
           setSaved(true);
           toast.success(
             publish
-              ? "Article published. Readers can open it now."
+              ? values.access === "public"
+                ? "Article published. Anyone can open it, signed in or not."
+                : "Article published. Readers with an account can open it now."
               : "Draft saved. It is in the author's account.",
             { id: "admin-compose-saved" },
           );
@@ -345,8 +347,10 @@ const AdminComposer = () => {
                 });
               }
             }}
+            access={values.access}
+            onAccessChange={(access) => update("access", access)}
             footer={
-              <p className="mt-6 border-t border-default-200 pt-4 text-xs leading-relaxed text-default-600">
+              <p className="mt-5 border-t border-default-200 pt-4 text-xs leading-relaxed text-default-600">
                 A draft is saved to the author&apos;s account, not to this
                 browser. They can open it from their own article list.
               </p>

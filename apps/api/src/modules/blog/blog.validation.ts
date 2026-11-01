@@ -1,7 +1,18 @@
 import mongoose from "mongoose";
 import { z } from "zod";
 import config from "../../config";
-import { BlogContentType } from "./blog.constant";
+import { BlogAccess, BlogContentType } from "./blog.constant";
+
+/**
+ * Who the article is readable by. Optional everywhere: a body without it keeps
+ * what is stored (the model defaults a new row to members only), so an older
+ * client publishing still works.
+ */
+const access = z
+  .enum([...BlogAccess] as [string, ...string[]], {
+    error: "Access must be members or public",
+  })
+  .optional();
 
 /**
  * A cover is set by the client now (a signed direct upload), so only a URL on
@@ -40,6 +51,7 @@ const create = z
     tags: z.array(z.string({ error: "Tag must be a string" }), {
       error: "Tags must be an array of string",
     }),
+    access,
   })
   .strict();
 
@@ -64,6 +76,7 @@ const update = z
         error: "Tags must be an array of string",
       })
       .optional(),
+    access,
   })
   .strict();
 
@@ -103,6 +116,7 @@ const updateByAdmin = z
         error: "Tags must be an array of string",
       })
       .optional(),
+    access,
   })
   .strict();
 

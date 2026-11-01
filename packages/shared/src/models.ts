@@ -8,6 +8,7 @@
  */
 
 import type {
+  TArticleAccess,
   TContentType,
   TSocialLink,
   TUserGender,
@@ -79,6 +80,11 @@ export interface IBlog {
    * admins. Rows stored before drafts existed have no value and are published.
    */
   status?: "draft" | "published";
+  /**
+   * Who may read the body once it is published. Rows stored before this field
+   * existed carry no value and are members only, which is how they behaved.
+   */
+  access?: TArticleAccess;
   /** When it first went live. Absent while it is a draft. */
   publishedAt?: string;
   /** The admin who created it on the author's behalf, when that was someone else. */

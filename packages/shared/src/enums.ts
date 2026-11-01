@@ -34,3 +34,16 @@ export type TSocialLink = {
  * this list is the API's contract, not a preference of the renderer.
  */
 export type TContentType = "html" | "markdown" | "text";
+
+/**
+ * Who may read a published article: anyone, signed in or not, or members only.
+ *
+ * Stored per article. Rows written before this field existed carry no value and
+ * are read as `members`, which is how every article behaved then.
+ */
+export type TArticleAccess = "members" | "public";
+
+export const ARTICLE_ACCESS = {
+  MEMBERS: "members",
+  PUBLIC: "public",
+} as const satisfies Record<string, TArticleAccess>;

@@ -656,8 +656,10 @@ const WriteBlog = () => {
               });
             }
           }}
+          access={values.access}
+          onAccessChange={(access) => update("access", access)}
           footer={
-            <p className="mt-6 border-t border-default-200 pt-4 text-xs leading-relaxed text-default-600">
+            <p className="mt-5 border-t border-default-200 pt-4 text-xs leading-relaxed text-default-600">
               The draft stays in this browser until you publish. Only you can
               see it.
             </p>
@@ -666,7 +668,11 @@ const WriteBlog = () => {
       }
       footer={
         <BottomActions
-          note="Publishing makes it live for everyone."
+          note={
+            values.access === "public"
+              ? "Publishing makes it live for everyone, with no sign-in."
+              : "Publishing makes it live for members. Everyone else sees the opening and a sign-in prompt."
+          }
           onPreview={() => setPreviewOpen(true)}
           primary={
             <Button
