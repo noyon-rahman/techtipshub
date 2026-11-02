@@ -1,6 +1,7 @@
 "use client";
 
 import UserAvatar from "@/components/ui/user-avatar";
+import { publicProfilePath } from "@/lib/blog-routes";
 import { imageTooLargeMessage, IMAGE_MAX_BYTES } from "@/lib/upload-limits";
 import { Button } from "@heroui/react";
 import Link from "next/link";
@@ -133,7 +134,7 @@ const ProfileCard = ({
 
           {username && (
             <Link
-              href={`/profile/@${username}`}
+              href={publicProfilePath(username)}
               className="inline-flex items-center gap-1 text-sm font-medium text-primary-accessible underline-offset-4 hover:underline"
             >
               Preview profile

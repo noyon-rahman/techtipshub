@@ -28,7 +28,7 @@ const CategoriesButton = () => {
       as={Link}
       href={categoriesPath}
       radius="full"
-      className="bg-transparent font-medium text-default-600 hover:bg-default-100 hover:text-foreground"
+      className="shrink-0 bg-transparent px-2 font-medium text-default-600 hover:bg-default-100 hover:text-foreground min-[420px]:px-3"
       startContent={<LuFolderTree aria-hidden className="text-lg" />}
     >
       Categories

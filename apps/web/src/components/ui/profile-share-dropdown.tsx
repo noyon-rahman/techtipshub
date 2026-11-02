@@ -7,7 +7,7 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from "@heroui/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { BsTwitterX } from "react-icons/bs";
 import { FaFacebook, FaLinkedin } from "react-icons/fa";
 import { IoShareOutline } from "react-icons/io5";
@@ -15,22 +15,27 @@ import { PiLink } from "react-icons/pi";
 import copy from "clipboard-copy";
 import { toast } from "sonner";
 
-interface IProps {}
+interface IProps {
+  /**
+   * The public profile address, `/users/<handle>`.
+   *
+   * Passed in because the page sharing it sits at `/profile`, which carries no
+   * handle: the shareable address cannot be read off the browser's location.
+   */
+  profileUrl: string;
+}
 
-const ProfileShareDropdown = ({}: IProps) => {
-  const [profileLink, setProfileLink] = useState("");
+const ProfileShareDropdown = ({ profileUrl }: IProps) => {
   const [isCopied, setIsCopied] = useState(false);
 
-  useEffect(() => {
-    // Adjust profile link to new users path
-    const currentUrl = window.location.href;
-    const adjustedUrl = currentUrl.replace("/profile", "/users");
-    setProfileLink(adjustedUrl);
-  }, []);
+  // Resolved at click time, not stored: the origin belongs to the browser, so
+  // the server render does not need it and no effect has to keep it in step.
+  const profileLink = () =>
+    new URL(profileUrl, window.location.origin).toString();
 
   const handleCopyLink = async () => {
     try {
-      await copy(profileLink);
+      await copy(profileLink());
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 4000); // Reset after 4 seconds
       toast.success("Link Copied!", {
@@ -78,7 +83,7 @@ const ProfileShareDropdown = ({}: IProps) => {
           onClick={() =>
             handleShareClick(
               `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-                profileLink,
+                profileLink(),
               )}`,
             )
           }
@@ -90,7 +95,7 @@ const ProfileShareDropdown = ({}: IProps) => {
           startContent={<BsTwitterX />}
           onClick={() =>
             handleShareClick(
-              `https://twitter.com/share?url=${encodeURIComponent(profileLink)}`,
+              `https://twitter.com/share?url=${encodeURIComponent(profileLink())}`,
             )
           }
         >
@@ -102,7 +107,7 @@ const ProfileShareDropdown = ({}: IProps) => {
           onClick={() =>
             handleShareClick(
               `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-                profileLink,
+                profileLink(),
               )}`,
             )
           }

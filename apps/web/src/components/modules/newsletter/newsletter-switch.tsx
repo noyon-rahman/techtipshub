@@ -9,15 +9,20 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 /**
- * The newsletter switch on the profile.
+ * The newsletter setting on the profile.
  *
- * Off by default for everyone, including a member who already joined from a
- * public form: the switch reads the list on mount, so it shows what is true
- * rather than what this page assumes.
+ * One setting, so it is one row: what the email is on the left, the switch on
+ * the right, and the state written beside the switch rather than left to a
+ * browser tint. A switch is a binary the reader has to decode; "On" and "Off"
+ * say the answer outright.
+ *
+ * `null` until the list answers, because a switch that starts off and turns
+ * itself on is a switch that lied for a moment. The row reserves its height
+ * while loading so the page does not jump under the reader's thumb.
  *
  * An address that bounced or was reported as spam cannot be switched back on,
- * because mailing it again is what damages the sending domain. The switch says
- * so instead of failing silently.
+ * because mailing it again is what damages the sending domain. The row says so
+ * instead of failing silently.
  */
 const NewsletterSwitch = () => {
   const [subscribed, setSubscribed] = useState(false);
@@ -72,24 +77,33 @@ const NewsletterSwitch = () => {
   };
 
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4">
       <div className="min-w-0">
-        <p className="text-sm font-medium">The monthly roundup</p>
+        <p className="tth-label">The monthly roundup</p>
         <p className="mt-1 text-sm leading-relaxed text-default-600">
           {suppressed
-            ? "Mail to this address is being refused, so it cannot be added to the list. Write to us if you think that is wrong."
-            : "One email a month with the articles worth your time. Every edition has an unsubscribe link."}
+            ? "Mail to this address is being refused, so it cannot be added. Write to us if you think that is wrong."
+            : "One email a month with the articles worth your time. Unsubscribe any time."}
         </p>
       </div>
 
-      <Switch
-        aria-label="Receive the monthly newsletter"
-        isSelected={subscribed}
-        isDisabled={isLoading || isSaving || suppressed}
-        onValueChange={save}
-        size="sm"
-        className="mt-0.5 shrink-0"
-      />
+      <div className="flex shrink-0 items-center gap-3">
+        <span
+          role="status"
+          aria-live="polite"
+          className="w-16 text-right text-sm tabular-nums text-default-600"
+        >
+          {isLoading ? "…" : isSaving ? "Saving" : subscribed ? "On" : "Off"}
+        </span>
+
+        <Switch
+          aria-label="Receive the monthly roundup email"
+          isSelected={subscribed}
+          isDisabled={isLoading || isSaving || suppressed}
+          onValueChange={save}
+          size="sm"
+        />
+      </div>
     </div>
   );
 };

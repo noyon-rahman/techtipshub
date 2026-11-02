@@ -14,7 +14,8 @@ interface IProps {
 
 const FollowersFollowingLayout = async ({ params, children }: IProps) => {
   // The segment is `@name` (or its percent-encoded form); the API wants the
-  // bare username.
+  // bare username. A retired handle is redirected by each page below, which is
+  // the only place that knows whether `/followers` or `/following` follows it.
   const data = await getUserByUsername(
     normaliseRouteUsername((await params).username),
   );

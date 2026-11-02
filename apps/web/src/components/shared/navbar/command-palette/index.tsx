@@ -12,7 +12,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { writeBlogPath } from "@/lib/blog-routes";
+import { publicProfilePath, writeBlogPath } from "@/lib/blog-routes";
 import { searchPath, categoriesPath } from "@/lib/feed-routes";
 import { useUser } from "@/context/user.provider";
 import { SearchIcon } from "@/components/icons";
@@ -356,7 +356,7 @@ const CommandPalette = ({ open, onClose }: IProps) => {
             detail: `@${currentProfile.username} · ${currentProfile.totalBlogs} ${
               currentProfile.totalBlogs === 1 ? "article" : "articles"
             }`,
-            href: `/profile/@${currentProfile.username}`,
+            href: publicProfilePath(currentProfile.username),
           },
         ],
       });

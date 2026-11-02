@@ -33,10 +33,33 @@ const publishBlog = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+// `reason` rides in `meta` beside the paging numbers: it describes the page as
+// a whole (whether the order came from the reader's topics), not an article, so
+// the feed can say why it is ordered as it is without a second request.
 const getAll = async (c: Context<TAppBindings>) => {
-  const { meta, result } = await blogService.getAll(c.req.query());
+  const { meta, result, reason } = await blogService.getAll(
+    c.req.query(),
+    c.get("user"),
+  );
 
-  return sendResponse(c, httpStatus.OK, { data: result, meta });
+  return sendResponse(c, httpStatus.OK, {
+    data: result,
+    meta: { ...meta, reason },
+  });
+};
+
+// The reader's own feed: same page, but built from the interests on their
+// account, which is why the token is required here and optional on `getAll`.
+const getFeed = async (c: Context<TAppBindings>) => {
+  const { meta, result, reason } = await blogService.getFeed(
+    c.get("user"),
+    c.req.query(),
+  );
+
+  return sendResponse(c, httpStatus.OK, {
+    data: result,
+    meta: { ...meta, reason },
+  });
 };
 
 const getFollowingUsersBlogs = async (c: Context<TAppBindings>) => {
@@ -211,6 +234,7 @@ export const blogController = {
   createByAdmin,
   publishBlog,
   getAll,
+  getFeed,
   getLoggedInUserBlogs,
   getSingleBlog,
   voteOnBlog,

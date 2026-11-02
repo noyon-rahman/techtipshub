@@ -107,6 +107,7 @@ const SignUpForm = () => {
                 name="username"
                 id="username"
                 placeholder="e.g. noyon"
+                description="You can confirm or change it right after you sign in."
               />
             </div>
 

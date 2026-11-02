@@ -99,14 +99,17 @@ export const getAllBlogs = async (
   }
 };
 
+/**
+ * One page of the follow list, from the reader's token.
+ *
+ * The list is per-reader, so it is never cached: `no-store`, like the reader's
+ * own feed. Paging is the API's, and the page's order is newest first, which is
+ * decided in `blog.ranking.ts` rather than here.
+ */
 export const getFollowingUsersBlogs = async (
   params?: Record<string, string | undefined>,
 ) => {
-  // Read here rather than at module scope: a top-level `next/headers` import
-  // request-bound. Only this function needs the session.
-  const { cookies } = await import("next/headers");
-  const cookieStore = await cookies();
-  const accessToken = cookieStore.get("tth_access_token")?.value;
+  const token = await getAccessToken();
 
   try {
     const url = new URL(`${envConfig.baseApi}/blogs/following-users`);
@@ -121,18 +124,15 @@ export const getFollowingUsersBlogs = async (
     }
 
     const res = await fetch(url.toString(), {
-      cache: "no-cache", // Consistent with getAllBlogs
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      next: {
-        tags: ["allBlogs"], // Add this if you want to enable cache invalidation
-      },
+      cache: "no-store",
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
 
+    if (!res.ok) return undefined;
+
     return legacyResponse<unknown>(res);
-  } catch (err: any) {
-    return err; // Handle the error as you see fit
+  } catch {
+    return undefined;
   }
 };
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { usernameField } from "../user/username.validation";
 import { UserGender } from "../user/user.constant";
 
 /**
@@ -20,7 +21,7 @@ const password = (label = "Password") =>
 const register = z
   .object({
     fullName: z.string({ error: "Full Name must be string" }),
-    username: z.string({ error: "Username must be string" }),
+    username: usernameField,
     email: z.string({ error: "Email must be string" }),
     password: password(),
     gender: z.enum([...UserGender] as [string, ...string[]], {

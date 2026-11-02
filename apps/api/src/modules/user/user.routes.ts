@@ -4,6 +4,7 @@ import type { TAppBindings } from "../../interface/bindings";
 import { auth, validate, withUploads } from "../../middlewares";
 import { userController } from "./user.controller";
 import { userValidationSchema } from "./user.validation";
+import { usernameValidationSchema } from "./username.validation";
 
 const userRouter = new Hono<TAppBindings>();
 
@@ -26,6 +27,56 @@ userRouter.put(
   validate({ json: userValidationSchema.updateSocialLinks }),
   userController.updateSocialLinks,
 );
+
+// The reader's interests, answered from the token rather than an id the site
+// would have to hold. Both are open to an admin too: an admin reads articles.
+userRouter.get(
+  "/interests",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  userController.getInterests,
+);
+
+userRouter.put(
+  "/interests",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  validate({ json: userValidationSchema.updateInterests }),
+  userController.updateInterests,
+);
+
+/**
+ * The username step. Its own paths rather than a wider profile update, so the
+ * one-time decision is recorded by an endpoint that can only do that, and the
+ * availability answer a form asks for every few keystrokes is a read.
+ */
+userRouter.get(
+  "/username/onboarding",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  userController.readUsernameOnboarding,
+);
+
+userRouter.post(
+  "/username/onboarding",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  validate({ json: usernameValidationSchema.completeUsernameOnboarding }),
+  userController.completeUsernameOnboarding,
+);
+
+userRouter.get(
+  "/username/availability",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  validate({ query: usernameValidationSchema.checkUsernameAvailability }),
+  userController.checkUsernameAvailability,
+);
+
+userRouter.get(
+  "/username/state",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  userController.getUsernameState,
+);
+
+// Public on purpose: the caller is a crawler or a reader following a saved
+// link, and neither holds a session.
+userRouter.get("/username/current/:handle", userController.findCurrentHandle);
 
 userRouter.get(
   "/my-followers",

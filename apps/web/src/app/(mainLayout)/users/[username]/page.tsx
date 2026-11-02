@@ -9,6 +9,8 @@ import { getBlogsByUserId } from "@/services/blog";
 import { getUserByUsername } from "@/services/user";
 import { siteConfig } from "@/config/site";
 import { allBlogsForBuild } from "@/lib/blog-index";
+import { publicProfilePath } from "@/lib/blog-routes";
+import { redirectRetiredHandle } from "@/lib/profile-redirect";
 import { normaliseRouteUsername } from "@/utils/username";
 import { IBlog, IUser } from "@/types";
 import { Metadata } from "next";
@@ -78,7 +80,14 @@ export async function generateStaticParams() {
 
 const GetUserByIdPage = async ({ params }: Props) => {
   const { username: routeUsername } = await params;
-  const data = await getUserByUsername(usernameFromRoute(routeUsername));
+  const handle = usernameFromRoute(routeUsername);
+
+  // A handle this member gave up answers a permanent redirect to the one they
+  // hold now. Checked before the profile read, because the old handle resolves
+  // to nobody by design.
+  await redirectRetiredHandle(handle);
+
+  const data = await getUserByUsername(handle);
 
   const user = (data?.data as IUser) ?? undefined;
 
@@ -133,7 +142,9 @@ const GetUserByIdPage = async ({ params }: Props) => {
             blogCount={totalBlogs}
             actions={
               <>
-                <ProfileShareDropdown />
+                <ProfileShareDropdown
+                  profileUrl={publicProfilePath(user.username ?? handle)}
+                />
                 {user._id && <FollowUnFollowButton id={user._id} />}
               </>
             }

@@ -1,19 +1,12 @@
 import { z } from "zod";
 import { SocialPlatform, UserGender } from "./user.constant";
+import { usernameField } from "./username.validation";
 
 // One shape for both editors: a member's own form and the admin panel's. Role,
 // status and email are left out because each has its own endpoint.
 const profileFields = {
   fullName: z.string({ error: "Full Name must be a string" }).optional(),
-  username: z
-    .string({ error: "Username must be a string" })
-    .trim()
-    .min(3, "Username must be at least 3 characters")
-    .max(30, "Username must be at most 30 characters")
-    .regex(/^[a-zA-Z0-9_]+$/, {
-      error: "Username can only use letters, numbers and underscores",
-    })
-    .optional(),
+  username: usernameField.optional(),
   bio: z.string({ error: "Bio must be a string" }).optional(),
   designation: z.string({ error: "Designation must be a string" }).optional(),
   phone: z.string({ error: "Phone must be a string" }).optional(),
@@ -61,8 +54,31 @@ const updateSocialLinks = z
   })
   .strict();
 
+/** A Mongo object id, as the strings the site sends. */
+const objectId = z
+  .string({ error: "Interest must be a category id" })
+  .regex(/^[a-f0-9]{24}$/i, { error: "Interest must be a category id" });
+
+/**
+ * The interests step. An empty list is a real answer: it is how a reader says
+ * "not these", and it is what skipping sends, so nothing here requires one.
+ * The ids are checked against live categories by the service, which is the
+ * only place that knows which ones exist.
+ */
+const updateInterests = z
+  .object({
+    interests: z
+      .array(objectId)
+      .max(20, { error: "Pick no more than 20 interests" })
+      .refine((ids) => new Set(ids).size === ids.length, {
+        error: "The same category was picked twice",
+      }),
+  })
+  .strict();
+
 export const userValidationSchema = {
   updateProfile,
   updateProfileByAdmin,
   updateSocialLinks,
+  updateInterests,
 };

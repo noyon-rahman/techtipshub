@@ -8,10 +8,13 @@ import ProfileEditFrame from "@/components/modules/profile/profile-edit-frame";
 import ProfileCard from "@/components/modules/settings/profile-card";
 import ProfileFormSection from "@/components/modules/profile/profile-form-section";
 import NewsletterSwitch from "@/components/modules/newsletter/newsletter-switch";
+import InterestSettings from "@/components/modules/reader/interest-settings";
+import TopicsSummary from "@/components/modules/profile/topics-summary";
+import UsernameField from "@/components/modules/profile/username-field";
 import { useUpdateProfile, useUpdateSocialLinks } from "@/hooks/user.hook";
 import { IUser, TSocialPlatform } from "@/types";
 import { FieldValues, SubmitHandler } from "react-hook-form";
-import { useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { FiEdit3 } from "react-icons/fi";
 import { BsTwitterX } from "react-icons/bs";
 import {
@@ -87,6 +90,40 @@ const previewPicture = (
   return saved;
 };
 
+/**
+ * A secondary action inside a settings row: bordered, 6px, clear of the
+ * primary amber. Same in every row so the column of controls lines up.
+ */
+export const settingsButton =
+  "inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-[6px] border border-default-300 px-3 text-sm font-medium transition-colors hover:border-default-400 hover:bg-default-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300";
+
+/**
+ * One setting line: what it is on the left, the control that changes it on the
+ * right.
+ *
+ * The form's own settings and the ones on the profile must line up, so the row
+ * is defined once here and reused rather than styled again where it appears.
+ */
+const SettingsRow = ({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) => (
+  <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 py-4">
+    <div className="min-w-0">
+      <p className="tth-label">{title}</p>
+      <p className="mt-1 text-sm leading-relaxed text-default-600">
+        {description}
+      </p>
+    </div>
+    <div className="shrink-0">{children}</div>
+  </div>
+);
+
 const ProfileEditForm = ({
   user,
   selectedImage,
@@ -133,7 +170,6 @@ const ProfileEditForm = ({
 
   const defaultValues = {
     fullName,
-    username,
     designation,
     location,
     phone,
@@ -151,9 +187,12 @@ const ProfileEditForm = ({
     // The link fields are saved by their own request, not with the profile.
     for (const field of socialFields) delete payload[field.key];
 
+    // The handle saves itself (`UsernameField`), so this request never carries
+    // one, even if an old value is still in the form state.
+    delete payload.username;
+
     // An untouched field is left out rather than sent empty: the API validates
     // whatever it receives, and "" is not a gender or a date.
-    if (!payload.username) delete payload.username;
     if (!payload.gender) delete payload.gender;
     if (!payload.dateOfBirth) delete payload.dateOfBirth;
     // An empty profilePicture is the only signal the API clears a stored photo.
@@ -224,6 +263,40 @@ const ProfileEditForm = ({
     setActive(true);
   };
 
+  // The band's button opens the editor on the picker. It is called in the same
+  // click, so the editor is already rendering when the frame below runs.
+  const openTopics = () => {
+    open();
+
+    window.requestAnimationFrame(() =>
+      document
+        .getElementById("topics")
+        ?.scrollIntoView({ block: "start", behavior: "smooth" }),
+    );
+  };
+
+  // A link from elsewhere on the site (`/profile#topics`) names the
+  // section it means. Opened on its own, the editor never shows that section,
+  // so the fragment has to open the editor and land on it.
+  //
+  // The editor grows in this same render, so its card cannot be measured yet;
+  // the scroll waits a frame and then goes smoothly, so it reads as travelling
+  // to the section rather than as a jump down a page that just got taller.
+  useEffect(() => {
+    if (!window.location.hash) return;
+
+    setActive(true);
+
+    const target = () =>
+      document
+        .getElementById(decodeURIComponent(window.location.hash.slice(1)))
+        ?.scrollIntoView({ block: "start", behavior: "smooth" });
+
+    const frame = window.requestAnimationFrame(target);
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
   const cancel = () => {
     setLastError(null);
     setActive(false);
@@ -235,220 +308,241 @@ const ProfileEditForm = ({
 
   if (!active) {
     return (
-      <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-default/60 pt-5">
-        <button
-          type="button"
-          onClick={open}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-300"
+      // The settings that do not need the editor: who they are, what their feed
+      // leads with, and the one email we send. They share one band and one
+      // hairline between rows, so the page reads as a short list of settings
+      // rather than a stack of bands with a stray rule above the first.
+      <div
+        className="mt-8 border-t border-default/60"
+        aria-labelledby="account-settings"
+      >
+        <h2
+          id="account-settings"
+          className="mt-5 text-sm font-semibold tracking-tight"
         >
-          <FiEdit3 aria-hidden className="size-4" />
-          Edit profile
-        </button>
-        <span className="text-xs text-default-600">
-          Name, photo, bio and links - edited right here.
-        </span>
+          Account
+        </h2>
+
+        <SettingsRow
+          title="Profile details"
+          description="Your name, photo, bio and links."
+        >
+          <button type="button" onClick={open} className={settingsButton}>
+            <FiEdit3 aria-hidden className="size-4" />
+            Edit profile
+          </button>
+        </SettingsRow>
+
+        {/* What the feed leads with belongs on the profile, not behind the
+            editor: a reader should be able to see their answer, and change it
+            from the same place. */}
+        <div className="border-t border-default/60">
+          <TopicsSummary onEdit={openTopics} />
+        </div>
+
+        {/* The newsletter is a setting with one switch, not a field to edit. A
+            member who wants to stop the email is looking for exactly this, and
+            should not have to open a form to press it. */}
+        <div
+          id="newsletter-setting"
+          className="scroll-mt-24 border-t border-default/60"
+        >
+          <NewsletterSwitch />
+        </div>
       </div>
     );
   }
 
   return (
-    <ProfileEditFrame
-      isOpen={active}
-      isPending={isPending}
-      filePending={Boolean(selectedImage) || photoRemoved}
-      hint="Changes appear on your public profile and on your articles right away."
-      onCancel={cancel}
-    >
-      <THForm onSubmit={onSubmit} defaultValues={defaultValues}>
-        <div className="space-y-6">
-          {lastError && (
-            <div
-              role="alert"
-              className="rounded-xl border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-foreground"
+    <>
+      <ProfileEditFrame
+        isOpen={active}
+        isPending={isPending}
+        filePending={Boolean(selectedImage) || photoRemoved}
+        hint="Changes appear on your public profile and on your articles right away. The username saves on its own."
+        onCancel={cancel}
+      >
+        <THForm onSubmit={onSubmit} defaultValues={defaultValues}>
+          <div className="space-y-6">
+            {lastError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-foreground"
+              >
+                {lastError}
+              </div>
+            )}
+            <ProfileFormSection
+              id="identity"
+              title="Identity"
+              description="How you look on your profile, articles and comments."
             >
-              {lastError}
-            </div>
-          )}
-          <ProfileFormSection
-            id="identity"
-            title="Identity"
-            description="How you look on your profile, articles and comments."
-          >
-            <ProfileCard
-              fullName={fullName}
-              designation={designation}
-              location={location}
-              bio={bio}
-              username={username}
-              savedPicture={previewPicture(
-                selectedImage,
-                photoRemoved,
-                profilePicture,
-              )}
-              selectedImage={selectedImage}
-              onSelectImage={onSelectImage}
-              onRemoveExisting={onRemoveExisting}
-            />
-          </ProfileFormSection>
+              <ProfileCard
+                fullName={fullName}
+                designation={designation}
+                location={location}
+                bio={bio}
+                username={username}
+                savedPicture={previewPicture(
+                  selectedImage,
+                  photoRemoved,
+                  profilePicture,
+                )}
+                selectedImage={selectedImage}
+                onSelectImage={onSelectImage}
+                onRemoveExisting={onRemoveExisting}
+              />
+            </ProfileFormSection>
 
-          <ProfileFormSection
-            id="details"
-            title="Public details"
-            description="What readers see on your profile. A few fields stay private to your account."
-          >
-            <div className="grid gap-5 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label htmlFor="fullName" className={fieldLabel}>
-                  Full name
-                </label>
-                <THInput
-                  name="fullName"
-                  variant="bordered"
-                  placeholder="Your name"
-                  radius="lg"
-                  id="fullName"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="username" className={fieldLabel}>
-                  Username
-                </label>
-                <THInput
-                  name="username"
-                  variant="bordered"
-                  placeholder="your-handle"
-                  radius="lg"
-                  id="username"
-                  isRequired
-                  maxLength={30}
-                  autoComplete="username"
-                  description="Your profile address: /profile/@your-handle"
-                />
-              </div>
-              <div>
-                <label htmlFor="designation" className={fieldLabel}>
-                  Designation
-                </label>
-                <THInput
-                  name="designation"
-                  variant="bordered"
-                  placeholder="e.g. Full-stack developer"
-                  radius="lg"
-                  id="designation"
-                />
-              </div>
-              <div>
-                <label htmlFor="location" className={fieldLabel}>
-                  Location
-                </label>
-                <THInput
-                  name="location"
-                  variant="bordered"
-                  placeholder="City, country"
-                  radius="lg"
-                  id="location"
-                />
-              </div>
-              <div>
-                <label htmlFor="gender" className={fieldLabel}>
-                  Gender
-                </label>
-                <THGenderSelect name="gender" id="gender" aria-label="Gender" />
-              </div>
-              <div>
-                <label htmlFor="dateOfBirth" className={fieldLabel}>
-                  Date of birth
-                </label>
-                <THInput
-                  name="dateOfBirth"
-                  type="date"
-                  variant="bordered"
-                  radius="lg"
-                  id="dateOfBirth"
-                  description="Private. Never shown on your profile."
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="phone" className={fieldLabel}>
-                  Phone
-                </label>
-                <THInput
-                  name="phone"
-                  variant="bordered"
-                  placeholder="Never shown publicly"
-                  radius="lg"
-                  id="phone"
-                  description="For account recovery only. Readers never see it."
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={fieldLabel} htmlFor="bio">
-                  Bio
-                </label>
-                <THTextarea
-                  name="bio"
-                  variant="bordered"
-                  placeholder="A short introduction: what you work on, what you write about."
-                  radius="lg"
-                  id="bio"
-                  maxLength={MAX_BIO}
-                  description={`A sentence or two reads best. ${MAX_BIO} characters max.`}
-                />
-              </div>
-            </div>
-          </ProfileFormSection>
-
-          <ProfileFormSection
-            id="social-links"
-            title="Social profiles"
-            description="Linked from your profile header. Leave a field empty to drop that link."
-            action={
-              <span className="text-xs tabular-nums text-default-600">
-                {savedCount} of {socialFields.length} linked
-              </span>
-            }
-          >
-            <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
-              {socialFields.map((field) => (
-                <div key={field.key}>
-                  <label
-                    htmlFor={field.key}
-                    className="mb-1 flex items-center justify-between gap-2 text-xs font-semibold text-default-600"
-                  >
-                    <span className="flex items-center gap-2">
-                      <span aria-hidden className="text-default-600">
-                        {field.icon}
-                      </span>
-                      {field.label}
-                    </span>
-                    <span className="font-normal text-default-600">
-                      {field.hint}
-                    </span>
+            <ProfileFormSection
+              id="details"
+              title="Public details"
+              description="What readers see on your profile. A few fields stay private to your account."
+            >
+              <div className="grid gap-5 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label htmlFor="fullName" className={fieldLabel}>
+                    Full name
                   </label>
                   <THInput
-                    name={field.key}
+                    name="fullName"
                     variant="bordered"
-                    placeholder={field.placeholder}
+                    placeholder="Your name"
                     radius="lg"
-                    id={field.key}
-                    type="url"
-                    classNames={{ inputWrapper: "h-10" }}
+                    id="fullName"
                   />
                 </div>
-              ))}
-            </div>
-          </ProfileFormSection>
+                <UsernameField username={username} disabled={isPending} />
+                <div>
+                  <label htmlFor="designation" className={fieldLabel}>
+                    Designation
+                  </label>
+                  <THInput
+                    name="designation"
+                    variant="bordered"
+                    placeholder="e.g. Full-stack developer"
+                    radius="lg"
+                    id="designation"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="location" className={fieldLabel}>
+                    Location
+                  </label>
+                  <THInput
+                    name="location"
+                    variant="bordered"
+                    placeholder="City, country"
+                    radius="lg"
+                    id="location"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="gender" className={fieldLabel}>
+                    Gender
+                  </label>
+                  <THGenderSelect
+                    name="gender"
+                    id="gender"
+                    aria-label="Gender"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="dateOfBirth" className={fieldLabel}>
+                    Date of birth
+                  </label>
+                  <THInput
+                    name="dateOfBirth"
+                    type="date"
+                    variant="bordered"
+                    radius="lg"
+                    id="dateOfBirth"
+                    description="Private. Never shown on your profile."
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label htmlFor="phone" className={fieldLabel}>
+                    Phone
+                  </label>
+                  <THInput
+                    name="phone"
+                    variant="bordered"
+                    placeholder="Never shown publicly"
+                    radius="lg"
+                    id="phone"
+                    description="For account recovery only. Readers never see it."
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className={fieldLabel} htmlFor="bio">
+                    Bio
+                  </label>
+                  <THTextarea
+                    name="bio"
+                    variant="bordered"
+                    placeholder="A short introduction: what you work on, what you write about."
+                    radius="lg"
+                    id="bio"
+                    maxLength={MAX_BIO}
+                    description={`A sentence or two reads best. ${MAX_BIO} characters max.`}
+                  />
+                </div>
+              </div>
+            </ProfileFormSection>
 
-          <ProfileFormSection
-            id="newsletter"
-            title="Email"
-            description="The one email we send on purpose."
-          >
-            <NewsletterSwitch />
-          </ProfileFormSection>
-        </div>
-      </THForm>
-    </ProfileEditFrame>
+            <ProfileFormSection
+              id="social-links"
+              title="Social profiles"
+              description="Linked from your profile header. Leave a field empty to drop that link."
+              action={
+                <span className="text-xs tabular-nums text-default-600">
+                  {savedCount} of {socialFields.length} linked
+                </span>
+              }
+            >
+              <div className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
+                {socialFields.map((field) => (
+                  <div key={field.key}>
+                    <label
+                      htmlFor={field.key}
+                      className="mb-1 flex items-center justify-between gap-2 text-xs font-semibold text-default-600"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span aria-hidden className="text-default-600">
+                          {field.icon}
+                        </span>
+                        {field.label}
+                      </span>
+                      <span className="font-normal text-default-600">
+                        {field.hint}
+                      </span>
+                    </label>
+                    <THInput
+                      name={field.key}
+                      variant="bordered"
+                      placeholder={field.placeholder}
+                      radius="lg"
+                      id={field.key}
+                      type="url"
+                      classNames={{ inputWrapper: "h-10" }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </ProfileFormSection>
+
+            <ProfileFormSection
+              id="topics"
+              title="Topics"
+              description="What the feed puts first. Change them any time."
+              className="scroll-mt-24"
+            >
+              <InterestSettings />
+            </ProfileFormSection>
+          </div>
+        </THForm>
+      </ProfileEditFrame>
+    </>
   );
 };
 

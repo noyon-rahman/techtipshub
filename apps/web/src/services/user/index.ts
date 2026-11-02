@@ -3,10 +3,49 @@
 import envConfig from "@/config/env.config";
 import { legacyResponse } from "@/lib/api-contract";
 import type { TLegacyBody } from "@/lib/api-contract";
+import { publicProfilePath } from "@/lib/blog-routes";
 import axiosInstance from "@/lib/AxiosInstance";
-import type { IFollowResult } from "@techtipshub/shared";
-import { TSocialLink } from "@/types";
-import { updateTag } from "next/cache";
+import { readReaderSession } from "@/lib/reader-session";
+import { getBlogs } from "@/services/blog";
+import { readReaderUsername } from "@/services/reader/interests";
+import { readUsernameState as readUsernameChangeState } from "@/services/reader/username";
+import type { IFollowResult, IUsernameChangeState } from "@techtipshub/shared";
+import type { IBlog, IUser, TSocialLink } from "@/types";
+import { revalidatePath, updateTag } from "next/cache";
+
+/**
+ * Authors the follow list can suggest to a member who follows nobody yet.
+ *
+ * Read from the public article list rather than from a "popular members" query
+ * of its own: whoever wrote the articles the ranking already leads with is a
+ * writer a reader of this site has actually been reading. The member's own
+ * handle is dropped, because suggesting that someone follow themselves is the
+ * one suggestion that is always wrong.
+ */
+export const getAuthorsToFollow = async (
+  ownUsername?: string | null,
+  limit = 3,
+) => {
+  const data = await getBlogs({ limit: "24", sort: "ranking" });
+  const rows = Array.isArray(data?.data) ? (data.data as IBlog[]) : [];
+
+  const seen = new Set<string>();
+  const authors: IUser[] = [];
+
+  for (const row of rows) {
+    const author = row.author;
+    if (!author?._id || !author.username) continue;
+    if (author.username === ownUsername) continue;
+    if (seen.has(author.username)) continue;
+
+    seen.add(author.username);
+    authors.push(author);
+
+    if (authors.length === limit) break;
+  }
+
+  return authors;
+};
 
 /**
  * A member's public profile.
@@ -150,16 +189,42 @@ export const unblockUser = async (userId: string) => {
 
 export const updateProfile = async (payload: FormData) => {
   try {
+    // Read before the save so the address the member is leaving is known: a
+    // handle change must expire the page at the old one as well as the new.
+    const before = await readReaderUsername();
     const res = await axiosInstance.patch(`/users/update-profile`, payload);
+    const after = await readReaderUsername();
 
     updateTag("loggedInUserProfile");
     // A username or photo change also changes the public profile page.
     updateTag("singleUser");
 
+    if (before && after && before !== after) {
+      // The old address now redirects. Expiring both paths means a reader
+      // reaches the redirect and the new page without waiting out the cache.
+      revalidatePath(publicProfilePath(before));
+      revalidatePath(publicProfilePath(after));
+    }
+
     return res.data;
   } catch (err: any) {
     return err.response.data;
   }
+};
+
+/**
+ * The handle lock as this member stands under it.
+ *
+ * Read by the profile form after load, the same way the interests are: the
+ * profile page is a server render and the profile also serves a session on the
+ * reader's own account, so the date is asked for rather than guessed.
+ */
+export const readUsernameState = async (): Promise<
+  TLegacyBody<IUsernameChangeState>
+> => {
+  const { accessToken } = await readReaderSession();
+
+  return readUsernameChangeState(accessToken);
 };
 
 export const updateSocialLinks = async (payload: {

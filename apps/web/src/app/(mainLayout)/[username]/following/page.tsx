@@ -1,6 +1,7 @@
 import PeopleList from "@/components/modules/profile/people-list";
 import { getFollowingByUserId, getUserByUsername } from "@/services/user";
 import { allBlogsForBuild } from "@/lib/blog-index";
+import { redirectRetiredHandle } from "@/lib/profile-redirect";
 import { normaliseRouteUsername } from "@/utils/username";
 import { IUFollowing, IUser } from "@/types";
 import { Metadata } from "next";
@@ -45,7 +46,12 @@ export async function generateMetadata({ params }: IProps): Promise<Metadata> {
 
 const Following = async ({ params }: IProps) => {
   const { username: routeUsername } = await params;
-  const data = await getUserByUsername(normaliseRouteUsername(routeUsername));
+  const handle = normaliseRouteUsername(routeUsername);
+
+  // A handle this member gave up lands on the same list under the new one.
+  await redirectRetiredHandle(handle, "/following");
+
+  const data = await getUserByUsername(handle);
 
   const { username, _id, totalFollowing, totalFollowers } =
     (data?.data as IUser) ?? {};

@@ -26,6 +26,8 @@ import { AuthenticationModal } from "../modals";
 
 interface IProps {
   id: string;
+  /** How the control reads in a list row, where the member's name is beside it. */
+  label?: string;
 }
 
 /**
@@ -62,7 +64,7 @@ interface IBurst {
  * agree, and the burst ends; disagree, and one request for a single follow-up
  * goes out after the reader stops. A hammering script costs two requests.
  */
-const FollowUnFollowButton: React.FC<IProps> = ({ id }) => {
+const FollowUnFollowButton: React.FC<IProps> = ({ id, label }) => {
   const { user: loggedInUser } = useUser();
   const follow = useFollowUser();
   const unfollow = useUnfollowUser();
@@ -235,6 +237,10 @@ const FollowUnFollowButton: React.FC<IProps> = ({ id }) => {
   // the control is not shipped at all rather than shown permanently disabled.
   if (isOwnProfile) return null;
 
+  // In a list the name is already on the row, so the accessible name says who
+  // the button is about without the reader having to look back at the heading.
+  const who = label ?? "this member";
+
   // The API only lets a member follow, and the button says so up front.
   const buttonClassName =
     "w-full border border-default-300 text-foreground hover:bg-default-100";
@@ -248,7 +254,7 @@ const FollowUnFollowButton: React.FC<IProps> = ({ id }) => {
         variant="bordered"
         startContent={<GoPlus aria-hidden className="text-lg" />}
         className={buttonClassName}
-        aria-label="Follow this member"
+        aria-label={`Follow ${who}`}
       />
     );
   }
@@ -273,8 +279,8 @@ const FollowUnFollowButton: React.FC<IProps> = ({ id }) => {
       aria-label={
         settled
           ? isFollowing
-            ? `Unfollow this member, ${settled.totalFollowers.toLocaleString()} followers`
-            : `Follow this member, ${settled.totalFollowers.toLocaleString()} followers`
+            ? `Unfollow ${who}, ${settled.totalFollowers.toLocaleString()} followers`
+            : `Follow ${who}, ${settled.totalFollowers.toLocaleString()} followers`
           : undefined
       }
     >

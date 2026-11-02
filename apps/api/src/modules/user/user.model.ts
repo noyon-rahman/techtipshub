@@ -121,6 +121,30 @@ const userSchema = new Schema<IUser, IUserModel>(
       type: [socialLinksSchema],
       default: [],
     },
+    // Category ids the reader picked as interests. Strings, so the value a
+    // reader saves is the same value the feed compares against; an id that no
+    // longer names a live category is skipped at read time, not deleted here.
+    interests: {
+      type: [String],
+      default: [],
+    },
+    // Absent on every account that has never been asked (all of the older
+    // ones), which is what makes the onboarding step show for them.
+    interestsAnsweredAt: {
+      type: Date,
+    },
+    // Absent on every account that has never confirmed a handle, which is what
+    // makes the step show for them. Filled for existing members by the
+    // backfill in `username-history.backfill.ts`, so nobody is sent back to a
+    // step they never had.
+    usernameOnboardedAt: {
+      type: Date,
+    },
+    // Absent until the handle is actually changed. The lock is computed from
+    // it, never stored, so only the moment of the change is a fact.
+    usernameChangedAt: {
+      type: Date,
+    },
     isVerified: {
       type: Boolean,
       default: false,

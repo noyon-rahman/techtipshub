@@ -60,7 +60,12 @@ const clientAddress = (c: Context<TAppBindings>): string | undefined => {
 const recordBlogView = async (c: Context<TAppBindings>) => {
   const slug = c.req.param("slug")!;
   const user = c.get("user");
-  const body = c.get("validatedBody");
+
+  // This route declares no validator, so `validatedBody` is never set (only
+  // `validate({ json })` fills it). Read the body here; a malformed or missing
+  // one is not an error, because a view without an identifier still answers
+  // with the current total instead of recording one.
+  const body = await c.req.json().catch(() => undefined);
 
   const totalViews = await recordView(slug, {
     user,

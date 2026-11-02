@@ -10,7 +10,17 @@ const blogRouter = new Hono<TAppBindings>();
 
 // Literal paths are registered before "/:slug", which would otherwise read
 // "following-users" as an article slug.
-blogRouter.get("/", blogController.getAll);
+//
+// The list stays open to guests; a valid token is what makes the order the
+// reader's own (`optionalAuth`).
+blogRouter.get("/", optionalAuth, blogController.getAll);
+
+// The reader's feed, from the token rather than a parameter.
+blogRouter.get(
+  "/feed",
+  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  blogController.getFeed,
+);
 
 blogRouter.get(
   "/following-users",

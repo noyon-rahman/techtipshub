@@ -9,13 +9,29 @@ import {
 import { USER_ROLE, USER_STATUS } from "../../constant";
 import { AppError } from "../../errors";
 import { adminLogService } from "../admin/admin-log.service";
+import Category from "../category/category.model";
 import Comment from "../comment/comment.model";
 import Follower from "../follower/follower.model";
 import Blog from "../blog/blog.model";
 import View from "../view/view.model";
 import Vote from "../vote/vote.model";
+import {
+  isReservedUsername,
+  normaliseUsername,
+  suggestUsername,
+  usernameProblem,
+  usernameWithSuffix,
+} from "@techtipshub/shared";
 import { IUser, TSocialLink } from "./user.interface";
 import User from "./user.model";
+import UsernameHistory from "./username-history.model";
+import {
+  USERNAME_CHANGE_LOCK_DAYS,
+  formatUsernameDate,
+  isUsernameChange,
+  usernameLockEndsAt,
+  usernameReservationEndsAt,
+} from "./username.rules";
 
 // Values the admin panel may filter/sort members by. Anything else is a 400.
 const USER_SORT_FIELDS = [
@@ -178,26 +194,266 @@ const normaliseProfilePayload = (payload: object) => {
   return update;
 };
 
+// The same refusals as the availability answer, so a save and a live check
+// cannot disagree about the same handle.
 const assertUsernameAvailable = async (
   username: string,
   excludeId?: string,
 ) => {
-  // Deleted accounts still hold their handle against the unique index, so the
-  // find hook is bypassed here as it is on registration.
-  const existing = await User.findOne({
+  const refusal = await usernameRefusal(username, excludeId);
+  if (refusal) throw new AppError(httpStatus.BAD_REQUEST, refusal);
+};
+
+/**
+ * The account behind a session token, as the handle rules need it.
+ *
+ * Every refusal above is computed from what the database holds now, never from
+ * what a form sent, so a second tab, a reload or a direct call sees the same
+ * answer.
+ */
+const readerForUsername = async (userData: JwtPayload) => {
+  const user = await User.findOne({ email: userData.email }).select(
+    "username usernameChangedAt usernameOnboardedAt fullName email",
+  );
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  return user;
+};
+
+/** The change rule for one account, as `username/state` and the profile both read it. */
+const usernameChangeState = (user: {
+  username: string;
+  usernameChangedAt?: Date | null;
+}) => {
+  const lockedUntil = user.usernameChangedAt
+    ? usernameLockEndsAt(user.usernameChangedAt)
+    : null;
+  const locked = Boolean(lockedUntil && lockedUntil.getTime() > Date.now());
+
+  return {
+    username: user.username,
+    lockedUntil: locked && lockedUntil ? lockedUntil.toISOString() : null,
+    canChange: !locked,
+  };
+};
+
+/**
+ * The handle to offer at the onboarding step.
+ *
+ * Always valid and free when it is shown, so "Save and continue" on the
+ * suggestion is never a refusal. A suggestion is only ever a starting point:
+ * a member who takes it is confirming a handle, and one who types another is
+ * choosing it, and both are recorded the same way.
+ */
+const readUsernameOnboarding = async (userData: JwtPayload) => {
+  const user = await readerForUsername(userData);
+  const suggested = await freeUsername(
+    suggestUsername(user.fullName, user.email),
+    String(user._id),
+  );
+
+  return {
+    currentUsername: user.username,
+    suggestedUsername: suggested,
+    onboarded: Boolean(user.usernameOnboardedAt),
+  };
+};
+
+/** Whether a handle cannot be claimed: held by someone, or still reserved. */
+const isUsernameTakenOrReserved = async (
+  username: string,
+  excludeId?: string,
+) => {
+  const [held, reserved] = await Promise.all([
+    User.findOne({
+      username,
+      ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+    })
+      .select("_id")
+      .setOptions({ bypassMiddleware: true })
+      .lean(),
+    UsernameHistory.findOne({
+      username,
+      reservedUntil: { $gt: new Date() },
+    })
+      .select("_id")
+      .lean(),
+  ]);
+
+  return Boolean(held || reserved);
+};
+
+/**
+ * Why a handle cannot be claimed, in the sentence a form shows, or `null` if it
+ * can.
+ *
+ * "Taken" and "reserved" are different facts and the member can act on both
+ * differently ("try another" against "this one is retired"), so each is asked
+ * for on its own rather than reported as one vague refusal.
+ */
+const usernameRefusal = async (username: string, excludeId?: string) => {
+  const held = await User.findOne({
     username,
     ...(excludeId ? { _id: { $ne: excludeId } } : {}),
   })
     .select("_id")
-    .setOptions({ bypassMiddleware: true });
+    .setOptions({ bypassMiddleware: true })
+    .lean();
 
-  if (existing) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "That username is already taken",
-    );
-  }
+  if (held) return "That username is already taken";
+
+  const reserved = await UsernameHistory.findOne({
+    username,
+    reservedUntil: { $gt: new Date() },
+  })
+    .select("_id")
+    .lean();
+
+  return reserved ? "That username is reserved" : null;
 };
+
+/**
+ * Whether a typed handle can be claimed, with the sentence to show if not.
+ *
+ * The wording is the shared rule's own, so the form, the API's validation and
+ * this answer cannot describe the same handle three different ways.
+ */
+const checkUsernameAvailability = async (
+  userData: JwtPayload,
+  raw: string,
+) => {
+  const user = await readerForUsername(userData);
+  const username = normaliseUsername(raw);
+
+  const problem = usernameProblem(username);
+  if (problem) return { username, available: false, reason: problem };
+
+  // Keeping the handle you already have is not a refusal; it is a no-change.
+  if (!isUsernameChange(user.username, username)) {
+    return { username, available: true, reason: null };
+  }
+
+  const refusal = await usernameRefusal(username, String(user._id));
+
+  return { username, available: !refusal, reason: refusal };
+};
+
+/**
+ * `base` with the smallest free suffix, and a base that is itself reserved
+ * padded first (`admin` offers `admin_`), so a reserved word is never returned.
+ *
+ * Bounded: past a hundred attempts the caller gets a handle with a timestamp
+ * suffix rather than a loop that never ends, and a hundred `ada_lovelace`
+ * accounts is already the limit of a useful suggestion.
+ */
+const freeUsername = async (base: string, excludeId?: string) => {
+  const first = isReservedUsername(base) ? `${base}_` : base;
+
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const candidate = usernameWithSuffix(first, attempt);
+    if (!isReservedUsername(candidate)) {
+      if (!(await isUsernameTakenOrReserved(candidate, excludeId))) {
+        return candidate;
+      }
+    }
+  }
+
+  return usernameWithSuffix(first, Date.now() % 1000);
+};
+
+/**
+ * Confirm the handle at the step after a first sign-in.
+ *
+ * The step is the one place a new member picks a handle, so it is not bound by
+ * the 30 day lock: an account reaches it with the placeholder Google or signup
+ * invented, and the lock starts from the handle they chose here. It can only
+ * run once, and only for the caller's own account.
+ */
+const completeUsernameOnboarding = async (
+  userData: JwtPayload,
+  raw: string,
+) => {
+  const user = await readerForUsername(userData);
+  const username = normaliseUsername(raw);
+
+  const problem = usernameProblem(username);
+  if (problem) throw new AppError(httpStatus.BAD_REQUEST, problem);
+
+  const changes = isUsernameChange(user.username, username);
+
+  if (user.usernameOnboardedAt) {
+    // A second submit (a double click, an old tab) is answered with the state
+    // rather than an error, but it may not move the handle: that is a change,
+    // and changes go through the profile and the lock.
+    if (changes) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        "Your username is already set. Change it from your profile.",
+      );
+    }
+
+    return {
+      ...usernameChangeState(user),
+      onboarded: true,
+    };
+  }
+
+  if (changes) await assertUsernameAvailable(username, String(user._id));
+
+  const now = new Date();
+  const updated = await User.findOneAndUpdate(
+    { _id: user._id, usernameOnboardedAt: { $exists: false } },
+    {
+      $set: {
+        username,
+        usernameOnboardedAt: now,
+        // The handle chosen here is where the lock starts, so the next change
+        // is 30 days away rather than immediate.
+        usernameChangedAt: now,
+      },
+    },
+    { new: true, runValidators: true },
+  );
+
+  if (!updated) {
+    // Another request got here first; answer with what it wrote.
+    const current = await readerForUsername(userData);
+    return { ...usernameChangeState(current), onboarded: true };
+  }
+
+  return { ...usernameChangeState(updated), onboarded: true };
+};
+
+/**
+ * The current handle for one an address still carries.
+ *
+ * `null` when the handle was never held by anyone, which is the caller's cue to
+ * render a normal not-found page rather than redirect.
+ */
+const findCurrentHandle = async (handle: string) => {
+  const username = normaliseUsername(handle);
+  if (!username) return null;
+
+  const entry = await UsernameHistory.findOne({ username }).lean();
+  if (!entry) return null;
+
+  const holder = await User.findById(entry.userId)
+    .select("username isDeleted")
+    .setOptions({ bypassMiddleware: true })
+    .lean();
+
+  // A deleted account has no profile to forward to; the address is simply gone.
+  if (!holder || holder.isDeleted) return null;
+
+  return { username: holder.username };
+};
+
+const getUsernameState = async (userData: JwtPayload) =>
+  usernameChangeState(await readerForUsername(userData));
+
 
 const updateProfile = async (userData: JwtPayload, payload: IUser) => {
   const user = await User.findOne({ email: userData.email });
@@ -208,7 +464,65 @@ const updateProfile = async (userData: JwtPayload, payload: IUser) => {
   const update = normaliseProfilePayload(payload);
 
   if (typeof update.username === "string") {
-    await assertUsernameAvailable(update.username, String(user._id));
+    // `validate` already normalised and shape-checked this field.
+    const next = update.username;
+
+    if (isUsernameChange(user.username, next)) {
+      // The lock lives here, not in the form: the profile is one way to send
+      // this field, and a direct call has to meet the same rule. It is read
+      // from the stored account, so a client value means nothing.
+      const lockedUntil = user.usernameChangedAt
+        ? usernameLockEndsAt(user.usernameChangedAt)
+        : null;
+
+      if (lockedUntil && lockedUntil.getTime() > Date.now()) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          `You can change your username on ${formatUsernameDate(lockedUntil)}. It is locked for ${USERNAME_CHANGE_LOCK_DAYS} days after each change so the links people saved to your profile keep working.`,
+        );
+      }
+
+      const problem = usernameProblem(next);
+      if (problem) throw new AppError(httpStatus.BAD_REQUEST, problem);
+
+      await assertUsernameAvailable(next, String(user._id));
+
+      const updatedUser = await User.findByIdAndUpdate(
+        user._id,
+        {
+          ...update,
+          username: next,
+          usernameChangedAt: new Date(),
+          // A member who changes a handle has, by that act, seen and chosen it
+          // even if they never reached the step: the step is not asked again.
+          ...(user.usernameOnboardedAt ? {} : { usernameOnboardedAt: new Date() }),
+        },
+        { new: true, runValidators: true },
+      );
+
+      if (!updatedUser) {
+        throw new AppError(httpStatus.NOT_FOUND, "User not found");
+      }
+
+      // The old handle forwards to the new one, and is refused to everyone
+      // else for as long as the forward lasts.
+      await UsernameHistory.findOneAndUpdate(
+        { username: user.username },
+        {
+          $set: {
+            userId: String(user._id),
+            reservedUntil: usernameReservationEndsAt(new Date()),
+          },
+        },
+        { upsert: true },
+      );
+
+      return updatedUser;
+    }
+
+    // Confirming the handle you already hold is not a change: it falls through
+    // with the trimmed, lowercased value and no new lock.
+    update.username = next;
   }
 
   const updatedUser = await User.findByIdAndUpdate(user._id, update, {
@@ -237,17 +551,47 @@ const updateProfileByAdmin = async (
   }
 
   const update = normaliseProfilePayload(payload);
+  const previousUsername = user.username;
+  let usernameMoved = false;
 
   if (typeof update.username === "string") {
-    await assertUsernameAvailable(update.username, id);
+    // The admin panel corrects a bad handle without waiting out the lock. The
+    // old handle is still recorded below, so the member's saved links follow
+    // the correction exactly as they follow their own rename.
+    const next = normaliseUsername(update.username);
+    usernameMoved = isUsernameChange(previousUsername, next);
+
+    if (usernameMoved) {
+      await assertUsernameAvailable(next, id);
+      update.username = next;
+    } else {
+      update.username = next;
+    }
   }
 
-  const updatedUser = await User.findByIdAndUpdate(id, update, {
-    new: true,
-    runValidators: true,
-  });
+  const updatedUser = await User.findByIdAndUpdate(
+    id,
+    {
+      ...update,
+      ...(usernameMoved ? { usernameChangedAt: new Date() } : {}),
+    },
+    { new: true, runValidators: true },
+  );
   if (!updatedUser) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (usernameMoved) {
+    await UsernameHistory.findOneAndUpdate(
+      { username: previousUsername },
+      {
+        $set: {
+          userId: id,
+          reservedUntil: usernameReservationEndsAt(new Date()),
+        },
+      },
+      { upsert: true },
+    );
   }
 
   await adminLogService.record({
@@ -255,7 +599,9 @@ const updateProfileByAdmin = async (
     action: "user.update_profile",
     targetType: "user",
     targetId: id,
-    summary: `Updated profile for ${user.fullName} (@${user.username})`,
+    summary: usernameMoved
+      ? `Changed the username of ${user.fullName} from @${previousUsername} to @${updatedUser.username}`
+      : `Updated profile for ${user.fullName} (@${user.username})`,
   });
 
   return updatedUser;
@@ -279,6 +625,99 @@ const updateSocialLinks = async (
   }
 
   return updatedUser;
+};
+
+/**
+ * Resolve interest ids to the categories that are still live, in the order the
+ * reader picked them.
+ *
+ * One query for both jobs below: an id that comes back is a real category, and
+ * its name is what a screen shows and what the feed reason reads.
+ */
+const liveInterests = async (ids: string[]) => {
+  if (ids.length === 0) return [];
+
+  const categories = await Category.find({ _id: { $in: ids } }).select(
+    "name",
+  );
+  const byId = new Map(categories.map((row) => [String(row._id), row.name]));
+
+  return ids.flatMap((id) => {
+    const name = byId.get(id);
+    return name ? [{ _id: id, name }] : [];
+  });
+};
+
+/**
+ * What the reader has picked, for the interests step and the profile section.
+ *
+ * `interests` is the saved list untouched, `names` only the ones a reader can
+ * still see. A removed category therefore drops out of the screen without the
+ * saved choice being rewritten.
+ */
+const getInterests = async (userData: JwtPayload) => {
+  const user = await User.findOne({ email: userData.email }).select(
+    "interests interestsAnsweredAt",
+  );
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const saved = user.interests ?? [];
+  const live = await liveInterests(saved);
+
+  return {
+    interests: saved,
+    names: live.map((row) => row.name),
+    answered: Boolean(user.interestsAnsweredAt),
+  };
+};
+
+/**
+ * Save the reader's interests, or their skip.
+ *
+ * Every id is checked against a live category first, so a stale tab cannot
+ * store an id that names nothing. An empty list is accepted and is a real
+ * answer; the date is what stops the step being asked again either way.
+ *
+ * `interestsAnsweredAt` is only set here, never cleared, so a second visit from
+ * the profile edits the list without the first-sign-in step returning.
+ */
+const updateInterests = async (userData: JwtPayload, ids: string[]) => {
+  const live = await liveInterests(ids);
+
+  if (live.length !== ids.length) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "One of those categories is no longer available. Reload the page and pick again.",
+    );
+  }
+
+  const user = await User.findOneAndUpdate(
+    { email: userData.email },
+    [
+      {
+        $set: {
+          interests: { $literal: ids },
+          // The first answer is the one that counts: a later edit from the
+          // profile keeps the date it was given.
+          interestsAnsweredAt: { $ifNull: ["$interestsAnsweredAt", "$$NOW"] },
+        },
+      },
+    ],
+    { new: true, runValidators: true },
+  ).select("interests interestsAnsweredAt");
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  return {
+    interests: user.interests ?? [],
+    names: live.map((row) => row.name),
+    answered: true,
+  };
 };
 
 const blockUser = async (id: string, adminEmail?: string) => {
@@ -844,6 +1283,13 @@ export const userService = {
   updateProfile,
   updateProfileByAdmin,
   updateSocialLinks,
+  getInterests,
+  updateInterests,
+  readUsernameOnboarding,
+  checkUsernameAvailability,
+  completeUsernameOnboarding,
+  getUsernameState,
+  findCurrentHandle,
   blockUser,
   unBlockUser,
   followUser,

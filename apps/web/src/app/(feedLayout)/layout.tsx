@@ -22,7 +22,7 @@ const FeedLayout = ({ children }: IProps) => {
 
         {/* Main content: the reading column */}
         <main className="min-w-0 flex-1 px-0 py-6 lg:px-8">
-          <div className="mb-5 flex items-center gap-3 lg:hidden">
+          <div className="mb-5 flex items-center gap-1 overflow-x-auto lg:hidden [scrollbar-width:none]">
             <FeedButtonsForSmallDevice />
             <CategoriesButton />
           </div>
