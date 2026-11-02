@@ -272,7 +272,7 @@ const AdminSidebar = () => {
           <DropdownItem
             key="profile"
             as={Link}
-            href={ownProfilePath(user?.username ?? "")}
+            href={ownProfilePath}
             textValue="Your profile"
             startContent={
               <HiOutlineUserCircle aria-hidden className="size-4" />

@@ -5,6 +5,7 @@ import { escapeRegex, parseSearchTerms, QueryBuilder } from "../../builder";
 import { articleDeletedEmailMessage } from "../../emails";
 import { AppError } from "../../errors";
 import { sendEmail } from "../../utils";
+import type { TPaginationMeta } from "../../utils/sendResponse";
 import { adminLogService } from "../admin/admin-log.service";
 import Category from "../category/category.model";
 import { IComment } from "../comment/comment.interface";
@@ -22,6 +23,14 @@ import {
 } from "./blog.constant";
 import { IBlog, TArticleAccess } from "./blog.interface";
 import Blog from "./blog.model";
+import {
+  feedFilter,
+  interestIdsFrom,
+  parseFeedQuery,
+  readFeedPage,
+  readFollowingPage,
+} from "./blog.ranking";
+import type { IFeedPage } from "./blog.ranking";
 import { generateUniqueSlug, toSlug } from "./blog.utils";
 
 /**
@@ -157,26 +166,86 @@ const createByAdmin = async (
 
 // get all blogs (for anyone to see title small part of description, category, views, upvote, downvote etc)
 //
-// The filter is written out rather than left to the model's find hook: this is
-// the feed, and a deleted article or a draft must not reappear just because the
-// page asked for one (`.find()` replaces the filter, so an empty one would drop
-// the hook's).
-const getAll = async (query: Record<string, unknown>) => {
-  const blogQuery = new QueryBuilder(
-    Blog.find({ ...LIVE_ARTICLE })
-      .populate("author")
-      .populate("category"),
-    query,
-  ).search(blogSearchableFields);
+// The order is chosen here and nowhere else (see `blog.ranking.ts`), and this
+// route is open to guests as well as members. A signed-in reader's interests
+// are known from the token when one is sent, so the browse list is already
+// theirs; `getFeed` answers the same thing for the reader's own feed.
+const getAll = async (
+  query: Record<string, unknown>,
+  userData?: JwtPayload,
+): Promise<IFeedPage> => {
+  const { page, limit, sort } = parseFeedQuery(query);
+  const inputFilter = await feedFilter(query);
 
-  await blogQuery.filter();
+  // A category name that matches nothing: an empty page, not an error.
+  if (inputFilter === null) {
+    return {
+      result: [],
+      meta: { page, limit, total: 0, totalPages: 0 },
+      reason: "engagement",
+    };
+  }
 
-  blogQuery.sort().paginate().fields();
+  const interests = userData ? await readerInterestIds(userData) : [];
 
-  const result = await blogQuery.modelQuery;
-  const meta = await blogQuery.countTotal();
+  return readFeedPage({
+    interestIds: interests,
+    page,
+    limit,
+    sort,
+    inputFilter,
+  });
+};
 
-  return { result, meta };
+/**
+ * The signed-in reader's interests, as ids that still name a category.
+ *
+ * Read from the token rather than a request parameter: the caller's own list is
+ * the only one a feed can be built from, and an id in the URL would invite one
+ * reader's feed to be computed for another.
+ */
+const readerInterestIds = async (userData: JwtPayload) => {
+  const user = await User.findOne({ email: userData.email }).select(
+    "interests",
+  );
+  if (!user) return [];
+
+  const saved = interestIdsFrom(user.interests ?? []);
+  if (saved.length === 0) return [];
+
+  const live = await Category.find({ _id: { $in: saved } }).select("_id");
+  const liveIds = new Set(live.map((row) => String(row._id)));
+
+  return saved.filter((id) => liveIds.has(id));
+};
+
+/**
+ * The reader's own feed: the same page `GET /blogs` serves, built from the
+ * interests on their account.
+ *
+ * Separate from `getAll` only so the token is required and the answer is always
+ * personal. A reader who skipped the step has no interests, and gets the
+ * engagement order with `reason: "engagement"`, which the site says out loud
+ * instead of claiming a personalization it did not do.
+ */
+const getFeed = async (
+  userData: JwtPayload,
+  query: Record<string, unknown>,
+): Promise<IFeedPage> => {
+  const { page, limit, sort } = parseFeedQuery(query);
+  const inputFilter = await feedFilter(query);
+
+  if (inputFilter === null) {
+    return {
+      result: [],
+      meta: { page, limit, total: 0, totalPages: 0 },
+      reason: "engagement",
+    };
+  }
+
+  const interestIds = await readerInterestIds(userData);
+
+  return readFeedPage({ interestIds, page, limit, sort, inputFilter });
 };
 
 /**
@@ -375,46 +444,43 @@ const getAdminList = async (query: Record<string, unknown>) => {
 };
 
 // get following users blogs
+//
+// Newest first, from the writers the reader follows, and an empty page when
+// they follow nobody. The order and the empty case both live in
+// `blog.ranking.ts`, beside the main feed's, so there is one place that decides
+// what a list looks like.
 const getFollowingUsersBlogs = async (
   userData: JwtPayload,
   query: Record<string, unknown>,
-) => {
-  const user = await User.findOne({ email: userData.email });
+): Promise<IFeedPage & { meta: TPaginationMeta & { following: number } }> => {
+  const { page, limit } = parseFeedQuery(query);
+
+  const inputFilter = await feedFilter(query);
+
+  // A category name that matches nothing: an empty page, not an error.
+  if (inputFilter === null) {
+    return {
+      result: [],
+      meta: { page, limit, total: 0, totalPages: 0, following: 0 },
+      reason: "engagement",
+    };
+  }
+
+  const user = await User.findOne({ email: userData.email }).select("_id");
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  const following = await Follower.find({ follower: user._id }).select(
+  const follows = await Follower.find({ follower: user._id }).select(
     "following",
   );
 
-  if (!following || following.length === 0) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "You are not following any users.",
-    );
-  }
-
-  const followingUserIds = following.map((f) => f.following);
-
-  const blogQuery = new QueryBuilder(
-    Blog.find({
-      author: { $in: followingUserIds },
-      ...LIVE_ARTICLE,
-    })
-      .populate("author")
-      .populate("category"),
-    query,
-  ).search(blogSearchableFields);
-
-  await blogQuery.filter();
-
-  blogQuery.sort().paginate().fields();
-
-  const result = await blogQuery.modelQuery;
-  const meta = await blogQuery.countTotal();
-
-  return { result, meta };
+  return readFollowingPage({
+    authorIds: follows.map((row) => row.following),
+    page,
+    limit,
+    inputFilter,
+  });
 };
 
 // get current logged in user all blogs
@@ -1424,6 +1490,7 @@ export const blogService = {
   publishBlog,
   getAll,
   getLoggedInUserBlogs,
+  getFeed,
   getSingleBlog,
   getBlogByProperty,
   voteOnBlog,

@@ -12,15 +12,15 @@ interface ILink {
 }
 
 /**
- * The rail's links. The first one points at the member's own profile, so it is
- * built per visitor rather than declared as a constant.
+ * The rail's links. The profile page is the member's own, so it needs no handle
+ * from the visitor; the list entry beside it is the account's articles.
  */
-export const userLinks = (username?: string | null): ILink[] => [
+export const userLinks: ILink[] = [
   {
     id: "01",
     label: "Profile",
-    href: username ? ownProfilePath(username) : "/profile",
-    description: "Name, photo, bio and social links",
+    href: ownProfilePath,
+    description: "Your name, photo, bio, links and reading topics",
     icon: <HiOutlineUserCircle size={18} />,
   },
   {

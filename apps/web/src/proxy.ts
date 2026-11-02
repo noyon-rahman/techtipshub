@@ -1,9 +1,10 @@
-import { getSession, type TSession } from "@/lib/session";
+import { getSession } from "@/lib/session";
 import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/fetch-with-auth";
 import { requiresSession } from "@/lib/blog-routes";
+import { personalFeedPath } from "@/lib/feed-routes";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
@@ -41,13 +42,16 @@ const isAdminApiPath = (pathname: string) => pathname.startsWith("/api/admin/");
  * → `/profile/blogs/<slug>/edit` → `/blogs/<slug>/edit`, and `/write-blog`,
  * `/me/blogs/new`, `/profile/blogs/new` → `/blogs/new`. Settings itself went
  * away: the profile page is the place its fields are edited now, so `/me/blogs`,
- * `/me` and every `/settings` address land on the member's own profile. Every
- * one of them still redirects, so bookmarks, shared links and search results
- * keep working.
+ * `/me` and every `/settings` address land on the member's own profile at
+ * `/profile`. Every one of them still redirects, so bookmarks, shared links and
+ * search results keep working.
  *
  * The two renamed public pages (`/about-us`, `/contact-us`) redirect from
  * `src/app/…/route.ts` instead, which sees the request before the router
  * normalises a trailing slash.
+ *
+ * `/you` is a synonym retired early: the reader's own list is `/personalized`,
+ * named for what it shows, and the old address is kept alive in `LEGACY_EXACT`.
  */
 const LEGACY_REDIRECTS: { prefix: string; to: (rest: string) => string }[] = [
   {
@@ -78,21 +82,12 @@ const LEGACY_REDIRECTS: { prefix: string; to: (rest: string) => string }[] = [
   },
 ];
 
-/**
- * The member's own profile, from the session, or the article list when the
- * account has no handle to address it by. Only an exact path is served here;
- * the request is fully answered by `/profile/[username]`.
- */
-const ownProfilePath = (session: TSession) => {
-  const username = session.signedIn ? session.user.username : undefined;
-  return username
-    ? `/profile/@${encodeURIComponent(username)}`
-    : "/profile/blogs";
-};
-
 const LEGACY_EXACT: Record<string, string> = {
   "/write-blog": "/blogs/new",
   "/me/blogs/new": "/blogs/new",
+  // The reader's own list was `/you` before it was named for what it shows.
+  // A query string survives: the exact-match redirect only replaces the path.
+  "/you": personalFeedPath,
 };
 
 /** Settings addresses from every past shape; they resolve to the profile. */
@@ -163,24 +158,42 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url, 308);
   }
 
-  // 1a. Settings became part of the member's own profile page. The address
+  const bare = pathname.replace(/\/$/, "");
+
+  // 1a. The member's own profile used to carry their handle (`/profile/@name`)
+  // and sat at `/profile/<username>`. It is `/profile` now, because the page
+  // describes whoever holds the session; the public address a reader sees is
+  // `/users/<handle>`. Old links, and anything shared while the handle was in
+  // the path, land on the one address. A permanent redirect, unlike the
+  // settings aliases below, which depend on who is asking.
+  if (
+    bare.startsWith("/profile/@") ||
+    (bare.startsWith("/profile/") && !bare.startsWith("/profile/blogs"))
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/profile";
+    return NextResponse.redirect(url, 308);
+  }
+
+  // 1b. Settings became part of the member's own profile page. The address
   // depends on the session, and a signed-in member gets a 308 so the profile
   // is what their address bar keeps. A signed-out visitor skips this dict and
   // falls through to the login redirect at the bottom, coming back to the
   // profile afterwards.
-  const normalised = pathname.replace(/\/$/, "");
-  if (LEGACY_SETTINGS.has(normalised)) {
+  if (LEGACY_SETTINGS.has(bare)) {
     const session = await getSession();
     if (session.signedIn) {
       const url = request.nextUrl.clone();
-      url.pathname = ownProfilePath(session);
+      // Without a handle there is no profile page to land on yet: that member
+      // still has the handle step ahead of them, so they get the article list.
+      url.pathname = session.user.username ? "/profile" : "/profile/blogs";
       const response = NextResponse.redirect(url, 308);
       relayRenewedCookies(request, response);
       return response;
     }
   }
 
-  // 1b. An article, to a crawler or link unfurl: point it at the preview
+  // 1c. An article, to a crawler or link unfurl: point it at the preview
   // variant, which carries the article text server-side and is the canonical
   // address in the page metadata. Action requests are left alone: they are not
   // page reads, and rewriting them would put the preview variant in the answer.

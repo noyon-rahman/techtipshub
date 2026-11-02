@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
+import { afterSignInPath } from "@/lib/blog-routes";
+import { ACCESS_TOKEN_COOKIE } from "@/lib/fetch-with-auth";
 import { googleRedirectPath } from "@/lib/google-auth";
+import { readInterests } from "@/services/reader/interests";
+import { readUsernameOnboarding } from "@/services/reader/username";
 import { claimGoogleSession } from "@/lib/session-relay";
 
 /**
@@ -35,7 +39,35 @@ export async function GET(request: Request) {
     return NextResponse.redirect(url);
   }
 
-  const response = NextResponse.redirect(new URL(redirect, request.url));
+  // The cookies are not on the browser yet, so both answers are read with the
+  // token this handoff just produced. A member who has not confirmed their
+  // handle meets the username step first, then the interests step, then
+  // `redirect`; when an answer cannot be read, that step is skipped rather than
+  // blocking a sign-in.
+  const accessToken = session.find(
+    (cookie) => cookie.name === ACCESS_TOKEN_COOKIE,
+  )?.value;
+
+  const [username, interests] = accessToken
+    ? await Promise.all([
+        readUsernameOnboarding(accessToken),
+        readInterests(accessToken),
+      ])
+    : [undefined, undefined];
+
+  const response = NextResponse.redirect(
+    new URL(
+      afterSignInPath(redirect, {
+        onboarded: username?.success
+          ? username.data?.onboarded === true
+          : true,
+        interestsAnswered: interests?.success
+          ? interests.data?.answered === true
+          : true,
+      }),
+      request.url,
+    ),
+  );
   const secure = process.env.NODE_ENV === "production";
 
   for (const cookie of session) {

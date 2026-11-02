@@ -13,6 +13,14 @@ export type TPaginationMeta = {
   total?: number;
   page?: number;
   totalPages?: number;
+  /**
+   * Why a list is in the order it is in, for the feed. `personalized` only when
+   * the page actually matched one of the reader's interests; `following` only
+   * on the follow list.
+   */
+  reason?: "personalized" | "following" | "engagement";
+  /** Writers the reader follows, so the follow list can tell its two empty states apart. */
+  following?: number;
 };
 
 type TSuccess<T> = {

@@ -20,7 +20,8 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
-const INITIAL_NUMBERS_OF_BLOGS = "5";
+/** Articles on the category's first page; the rest load as the reader scrolls. */
+const INITIAL_NUMBERS_OF_BLOGS = "10";
 
 /** The published category whose slug is `slug`, or undefined. */
 const findCategory = async (slug: string) => {
@@ -75,6 +76,7 @@ export default async function CategoryFeed({ params }: Props) {
   const data = await getBlogs({
     category: category.name,
     limit: INITIAL_NUMBERS_OF_BLOGS,
+    sort: "newest",
   });
   const blogs = (data?.data as IBlog[]) || [];
 
@@ -91,5 +93,7 @@ export default async function CategoryFeed({ params }: Props) {
     );
   }
 
-  return <FeedBlogs initialBlogs={blogs} category={category.name} />;
+  return (
+    <FeedBlogs initialBlogs={blogs} category={category.name} sort="newest" />
+  );
 }

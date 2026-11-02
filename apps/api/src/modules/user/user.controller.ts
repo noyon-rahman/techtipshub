@@ -48,6 +48,69 @@ const updateSocialLinks = async (c: Context<TAppBindings>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+/** The signed-in reader's own interests, read from their token. */
+const getInterests = async (c: Context<TAppBindings>) => {
+  const result = await userService.getInterests(c.get("user"));
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const updateInterests = async (c: Context<TAppBindings>) => {
+  const { interests } = c.get("validatedBody") as { interests: string[] };
+  const result = await userService.updateInterests(c.get("user"), interests);
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+/** The username step: the handle to offer, and whether it still applies. */
+const readUsernameOnboarding = async (c: Context<TAppBindings>) => {
+  const result = await userService.readUsernameOnboarding(c.get("user"));
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+/** `?username=` while it is typed: available, or the sentence saying why not. */
+const checkUsernameAvailability = async (c: Context<TAppBindings>) => {
+  const { username } = c.get("validatedQuery") as { username: string };
+  const result = await userService.checkUsernameAvailability(
+    c.get("user"),
+    username,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const completeUsernameOnboarding = async (c: Context<TAppBindings>) => {
+  const { username } = c.get("validatedBody") as { username: string };
+  const result = await userService.completeUsernameOnboarding(
+    c.get("user"),
+    username,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+/** The lock as this member stands under it, for the profile's handle field. */
+const getUsernameState = async (c: Context<TAppBindings>) => {
+  const result = await userService.getUsernameState(c.get("user"));
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+/**
+ * Where an old handle points now, open to anyone.
+ *
+ * Public because the caller is a crawler following a link from a search
+ * result: it has no session, and the redirect is the whole reason the row
+ * exists. `data: null` means the handle was never held by anyone.
+ */
+const findCurrentHandle = async (c: Context<TAppBindings, string>) => {
+  const { handle } = c.req.param() as TRouteParams;
+  const result = await userService.findCurrentHandle(handle);
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const blockUser = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
 
@@ -158,6 +221,13 @@ export const userController = {
   updateProfile,
   updateProfileByAdmin,
   updateSocialLinks,
+  getInterests,
+  updateInterests,
+  readUsernameOnboarding,
+  checkUsernameAvailability,
+  completeUsernameOnboarding,
+  getUsernameState,
+  findCurrentHandle,
   blockUser,
   unBlockUser,
   followUser,

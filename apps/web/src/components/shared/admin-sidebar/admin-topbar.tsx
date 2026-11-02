@@ -457,7 +457,7 @@ export default function AdminTopbar() {
               <DropdownItem
                 key="profile"
                 as={Link}
-                href={ownProfilePath(user?.username ?? "")}
+                href={ownProfilePath}
                 startContent={
                   <HiOutlineUserCircle aria-hidden className="size-4" />
                 }

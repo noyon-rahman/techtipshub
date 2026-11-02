@@ -6,7 +6,6 @@ import NewsletterSignup from "@/components/modules/newsletter/newsletter-signup"
 import ButtonLink from "@/components/ui/button-link";
 import DownVoteButton from "@/components/ui/downvote-button";
 import FollowUnFollowButton from "@/components/ui/follow-unfollow-button";
-import PrintBlogButton from "@/components/ui/print-blog-button";
 import UpVoteButton from "@/components/ui/upvote-button";
 import UserAvatar from "@/components/ui/user-avatar";
 import { useUser } from "@/context/user.provider";
@@ -99,11 +98,14 @@ export const ArticleEndMatter = ({ blog }: EndMatterProps) => {
         </div>
 
         {/* The existing controls keep their own props; this wrapper only lifts
-            their hit area to the 44px touch minimum. */}
+            their hit area to the 44px touch minimum. No download control here:
+            `PDFDownloadLink` renders its document as soon as it mounts, so a
+            hidden or decorative one still builds a PDF in every reader's
+            browser (and throws inside pdfkit when the output stream is null).
+            Nothing is mounted unless a reader can actually press it. */}
         <div className="flex flex-wrap items-center gap-1 [&_button]:min-h-11 [&_button]:min-w-11">
           <CommentJumpButton count={totalComments ?? 0} />
           <BlogShare path={`/blogs/${slug}`} title={title} />
-          <PrintBlogButton blog={blog} />
         </div>
       </div>
     </section>

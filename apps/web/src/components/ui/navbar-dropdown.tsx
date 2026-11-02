@@ -54,7 +54,7 @@ const accountLinks = (user: {
     key: "profile",
     label: "Your profile",
     description: "Public page, photo and bio",
-    href: ownProfilePath(user.username),
+    href: ownProfilePath,
     icon: <HiOutlineUserCircle />,
   };
 

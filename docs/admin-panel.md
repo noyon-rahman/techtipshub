@@ -17,9 +17,11 @@ so the rail, the breadcrumb and the quick links cannot drift apart.
   (`src/proxy.ts`, `LEGACY_REDIRECTS` / `LEGACY_EXACT`). The member-facing old
   addresses follow the same table: `/me/blogs*` → `/profile/blogs*`, and
   `/settings`, `/settings/manage-blogs` and `/me/blogs` → the member's own
-  `/profile/@<handle>`, which is where the profile is now edited
+  `/profile`, which is where the profile is now edited
   (`LEGACY_SETTINGS`). That table needs the session to know whose profile, so a
-  signed-out visitor goes through the login redirect first. The composer and
+  signed-out visitor goes through the login redirect first. The old
+  handle-carrying addresses (`/profile/@<handle>`, `/profile/<handle>`) are a
+  permanent redirect to `/profile` that needs no session. The composer and
   editor live beside the articles (`/blogs/new`, `/blogs/<slug>/edit`); the
   older `/write-blog`, `/profile/blogs/new` and `/profile/blogs/<slug>/edit`
   addresses redirect there (`LEGACY_EXACT` / `LEGACY_REDIRECTS`).

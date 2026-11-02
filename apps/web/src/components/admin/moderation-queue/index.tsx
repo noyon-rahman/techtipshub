@@ -246,7 +246,9 @@ const ModerationQueue = () => {
   const [refreshing, setRefreshing] = useState(false);
   const commentWindow = useAdminListParams(COMMENT_WINDOW).values.within;
 
-  const blogsQuery = useGetAllBlogs({ limit: "6", sort: "-createdAt" });
+  // `newest` rather than a sort expression: the public feed only takes the two
+  // orders it documents, and newest is the one this column means.
+  const blogsQuery = useGetAllBlogs({ limit: "6", sort: "newest" });
   const commentsQuery = useLatestComments();
   const countsQuery = useCommentCounts();
   // A fixed small page of unread messages: the column shows a handful, and the

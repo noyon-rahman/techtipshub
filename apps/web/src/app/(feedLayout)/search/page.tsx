@@ -16,7 +16,8 @@ type Props = {
   searchParams: Promise<{ q?: string | string[] }>;
 };
 
-const INITIAL_NUMBERS_OF_BLOGS = "5";
+/** Articles on the first page of results; the rest load as the reader scrolls. */
+const INITIAL_NUMBERS_OF_BLOGS = "10";
 
 const termFrom = (raw?: string | string[]) =>
   (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
@@ -51,6 +52,7 @@ export default async function SearchFeed({ searchParams }: Props) {
   const data = await getBlogs({
     searchTerm: term || undefined,
     limit: INITIAL_NUMBERS_OF_BLOGS,
+    sort: "newest",
   });
   const blogs = (data?.data as IBlog[]) || [];
 
@@ -67,5 +69,5 @@ export default async function SearchFeed({ searchParams }: Props) {
     );
   }
 
-  return <FeedBlogs initialBlogs={blogs} searchTerm={term} />;
+  return <FeedBlogs initialBlogs={blogs} searchTerm={term} sort="newest" />;
 }

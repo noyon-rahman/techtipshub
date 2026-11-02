@@ -52,10 +52,43 @@ Conventions: [`Rules.md`](./Rules.md).
   gated body, votes, comments, follow, view counting, related reading. The feed
   card shows the top eight by blog count and links to `/categories`, which is
   the mobile entry point for the whole list.
-- Profile: public view and edit in one page at `/profile/@<handle>`, social
+- Feed tabs: one list in `components/modules/feed/feed-tabs.ts`, read by the
+  left rail and the phone row. `All` is `/` (everything published, in the site's
+  order, the one tab a signed-out visitor gets), `Personalized` is `/personalized`
+  (topics first), `Following` is `/following` (newest first, from the writers
+  followed).
+  The two personal tabs need a session, so they are not drawn without one.
+- Following: paged by the API from `readFollowingPage` in `blog.ranking.ts`, not
+  from `GET /blogs/feed` (that one leaves out the reader's own articles).
+  Following nobody is an empty page with authors to follow, never a 404; the
+  page tells the two empty states apart by `meta.following`.
+- Feed order: one engagement ranking for everyone (`blog.ranking.ts`), your
+  topics first for a signed-in reader who picked some, and a reason line that
+  says which one you are looking at. `/search` and `/categories/<name>` stay
+  newest first.
+- Interests: a one-time step at `/welcome` after a first password or Google
+  sign-in, skippable, changeable from the profile. The profile shows the picked
+  topics as a band under "Edit profile" (outside the editor), and both "Change
+  topics" and a `#topics` link from the feed's reason line open the editor on
+  the picker. The answer lives on the account as `interests[]` plus
+  `interestsAnsweredAt`.
+  The step keeps the site's own header and footer: it has to read as part of
+  TechTips Hub, not as a separate product. The topic Picker is quiet ink with an
+  amber tick, and the one amber fill on the screen is "Save and continue".
+- Usernames: the handle step sits at `/welcome/username`, before the topics step,
+  so the two prompts never stack. The API suggests a free handle from the full
+  name, the member confirms or replaces it, and that records
+  `usernameOnboardedAt` and starts the 30 day lock. A change from the profile
+  then waits `usernameChangedAt + 30 days`; the lock is computed, never stored.
+  Every retired handle stays in `username_history` for a year, refused to
+  everyone, and `/users/<old>` answers a permanent redirect to the current one
+  (`/followers`, `/following` included). Existing members were marked onboarded
+  by `pnpm migrate:username-onboarding`.
+- Profile: public view and edit in one page at `/profile`, social
   links, photo, followers and following lists.
 - Admin: all thirteen screens in `docs/admin-panel.md`, shared kit, activity log.
-- Newsletter: signup blocks, profile switch, issue builder, preview, test send,
+- Newsletter: signup blocks, the on/off switch on the profile page itself (no
+  editor needed), issue builder, preview, test send,
   batched sending with per-recipient claims, unsubscribe links, Resend webhook
   suppression, subscriber list, CSV export.
 - Site: legal pages (six), about, features, contact form, SEO metadata, sitemap,
@@ -64,7 +97,11 @@ Conventions: [`Rules.md`](./Rules.md).
 ### Not built
 
 - Unit and browser tests. `pnpm test` is a repository gate (typecheck, format,
-  invariants, the list filter check, lint, build), not a spec suite.
+  invariants, the list filter check, lint, build), not a spec suite. The username
+  rules do have a live run: `node scripts/test/username-onboarding.mjs` (with
+  `age-username-lock.ts` beside it) drives the real API through 19 checks,
+  including a lock aged in the database. It is not wired into the gate because it
+  needs a running API and writes throwaway `@example.invalid` accounts.
 - Email verification gate (intentional, see `PRD.md`).
 - Self-serve account deletion (members ask through the contact form).
 - Scheduled or resumable-without-a-press newsletter sends (blocked by the plan).
@@ -80,13 +117,22 @@ Things known to be wrong or unfinished, in the order they matter.
    the shapes around it, but a concurrent-send test needs a database.
 3. **`apps/web` lint carries about 33 warnings**, mostly unused imports. They
    do not fail the gate.
-4. **The admin account's password is the throwaway `Check-Admin-71a3`, and
-   `tokenVersion` is 2.** The hash was swapped during the category checks and
-   the saved original was lost with the scratch folder. It is the only Admin, so
-   the product cannot reset it: the owner has to run forget-password on
+4. **The admin account's password is unknown, and the entry below describing it
+   was wrong.** A login with `Check-Admin-71a3` now answers "Incorrect
+   credentials", so that note was stale or the hash moved again. It is the only
+   Admin, so the product cannot reset it: the owner has to run forget-password on
    `admin.techtipshub@noyonrahman.com`, or the hash is set by hand. Until then
-   the admin categories screen has not been opened by eye since the request tab
-   came out.
+   any admin-only path is covered only by typecheck and the live script's
+   non-admin stages.
+5. **Username verification leaves rows behind.** Each run of
+   `scripts/test/username-onboarding.mjs` adds a few `@example.invalid` accounts
+   and `username_history` entries in the dev database. They are harmless (the
+   addresses cannot receive mail) but they do hold their handles, so a reused
+   literal handle would fail on a second run; the script suffixes every run.
+6. **A real 301 has not been seen in a browser.** The redirect logic is covered
+   by the API stage (old handle points at the new one) and by the build, but
+   `permanentRedirect` was never observed over a network response, which needs
+   `next start` rather than `next dev`.
 
 ## Traps and hard-won notes
 
@@ -107,6 +153,11 @@ Things known to be wrong or unfinished, in the order they matter.
   unlisted env key that types cannot. `query-filter.mjs` runs the real
   `QueryBuilder` through the app's own tsx and needs no database: `.find()`
   builds a query and `getFilter()` reads it back without connecting.
+- **ESLint can abort on Windows with exit `3221226505` (`0xC0000409`) or
+  `Cannot find module './esnext.array'`.** Both come from the process, not the
+  code: nothing is reported and the same tree passes on the next run. Re-run
+  `pnpm install --frozen-lockfile`, then lint that package again before you
+  believe a lint failure.
 - **The article gate is per-article, and the API answers with `access`.** Three
   rules keep it in step. A missing `access` means members only, read in one
   place (`articleAccessOf` in the API's blog constants and in
@@ -117,6 +168,33 @@ Things known to be wrong or unfinished, in the order they matter.
   use `articleIndexablePath`, so a public article is indexed at
   `/blogs/<slug>` and a members-only one at `?view=preview`; the preview
   variant of a public article redirects to the plain address.
+- **The feed's order is decided in one file and nowhere else.**
+  `blog.ranking.ts` owns the score, the personalized lead, and the `sort`
+  vocabulary (`ranking` or `newest`, anything else is a 400). Three things about
+  it are easy to get wrong. An aggregation never runs the model's `pre("find")`
+  hook, so `LIVE_ARTICLE` is written into the match by hand. Inside an
+  aggregation `$in` does not compare a string id to an `ObjectId` field, so
+  interest ids are cast on the way in and the matched category ids come out as
+  ObjectIds from a `$group`, not as the strings `distinct` returns. And the lead
+  flag is sorted descending, so a topic article gets `1` and is named
+  `interestLead`: a flag with the sort the other way round silently puts the
+  reader's own topics last, which still looks like a plausible feed.
+- **`reason` is a sibling of `meta` in the ranking, and `meta` is what is sent.**
+  `readFeedPage` returns `{ result, meta, reason }`; the blog controller puts
+  `reason` into `meta` for the response (`TPaginationMeta` has the field). A
+  destructure of only `{ meta, result }` typechecks and quietly drops it, which
+  shows up as a feed that is correctly ordered but says nothing about why.
+- **A page must not call `getSession`.** `getSession` renews the session and
+  writes the cookies back, which only a proxy or a route handler may do. Calling
+  it from a prerendered page throws "Cookies can only be modified in a Server
+  Action or Route Handler" and drops the page to client rendering. `/welcome`
+  reads `readReaderSession` (cookie in, no write) and leaves the account's
+  answer to a server action.
+- **The homepage must stay prerendered.** `/` renders the order every reader
+  gets and `FeedBlogs` asks a server action for the reader's own page after
+  load. Reading the session, the interests or `searchParams` in the page would
+  turn it into a per-request render. Filtered views live at `/search` and
+  `/categories/<name>` for the same reason.
 - **The legal pages name a person, not a company.** `config/legal.ts` says
   `Novon Rahman, publishing as TechTipsHub` and gives the contact address as the
   address of record. Do not add a registered company or a street address that
@@ -177,6 +255,42 @@ Things known to be wrong or unfinished, in the order they matter.
   nothing and produced "Title must be a string" on every publish. `readBody`
   also ignores an empty `uploadedBody` for the same reason. Only the admin
   routes still upload a file.
+- **A `THInput` registers last, on purpose.** `register(name)` carries the ref
+  react-hook-form reads a value through; spreading it first let a caller's
+  `placeholder` replace it, and the field's value then never reached the form.
+  It typechecks, validates and saves, so the only symptom is a field that
+  silently is not sent. Pass `name` as that prop, never as a second spread.
+- **The handle is saved on its own, not with the profile.** `UsernameField`
+  calls the API through `changeUsernameAction`; the profile form deletes any
+  `username` from its payload. One save must not be able to change an address
+  and a name together, and a refused handle must not take a photo down with it.
+- **A handle is claimed through one rule, and the lock is never stored.**
+  `normaliseUsername`, `usernameProblem` and the reserved words live once in
+  `packages/shared/src/username.ts`, and validation, availability, the suggestion,
+  registration and Google signup all call them, so the same handle cannot be
+  described two ways. The 30 day wait is derived from `usernameChangedAt` in
+  `username.rules.ts` (`usernameLockEndsAt`); do not add a stored expiry, it will
+  drift. Two writes are deliberate: the onboarding step is exempt from the lock
+  but stamps `usernameChangedAt`, so a new member cannot rename immediately
+  after choosing, and a rename writes a `username_history` row before it moves,
+  which is what makes the old address redirect. That collection is separate from
+  the user on purpose: another member, and a deleted account, must be able to
+  block a claim.
+- **A `"use server"` module may export only async functions.** `typecheck` and
+  lint both pass on an arrow that returns a promise without `async`; only
+  `next build` refuses ("Server Actions must be async functions"). `services/
+  reader/username.ts` is an action module, so the public handle lookup lives
+  beside it in `services/reader/current-handle.ts`. A server component must
+  never import an action module for a read.
+- **The handle step is `/welcome/username`, not `/welcome`.** `afterSignInPath`
+  routes handle, then topics, then the destination, so the two one-time prompts
+  never stack; `afterUsernamePath` always continues to `/welcome`. `/welcome` is
+  in `PROTECTED_AREAS`, which is why both pages can stay prerendered and let the
+  proxy send a signed-out visitor to `/login`.
+- **The public profile address is `/users/<handle>`.** The issue that asked for
+  this work wrote `/profile/<handle>`, but that route is behind a session; the
+  handle step shows and links the real public one, so "your profile is
+  public at ..." is true.
 - **Every `DropdownItem`/`SelectItem`/`AutocompleteItem` whose label is not one
   plain string needs `textValue`.** `react-stately` warns once per item at mount
   ("`<Item>` with non-plain text contents…"), so a composer-only check misses it:
@@ -263,6 +377,62 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-11-02: Every feed request is one page of 10, throughout. The landing
+  page and `/personalized` used to render 5 and the list then asked for 5 again
+  on its first action; a full page is now the signal that another page exists,
+  so a 5-card first render would have ended the list after ten. All five screens
+  that share the list (`/`, `/personalized`, `/following`, `/search`,
+  `/categories/<slug>`) ask for 10 per call.
+- 2026-11-02: `POST /views/<slug>` read `validatedBody`, which nothing sets on
+  that route (it declares no validator), so `visitorId` was always undefined and
+  every guest view was a silent no-op: the count never moved. The controller now
+  reads its own JSON body, so a new reader adds one, the same reader adds
+  nothing, and a body without an id records nothing.
+- 2026-11-02: The article end matter no longer mounts a PDF download control.
+  `PDFDownloadLink` renders its document the moment it mounts, so it built a
+  PDF in every reader's browser to back a control with no visible glyph, and
+  threw inside pdfkit (`Cannot read properties of null (reading 'write')`) on
+  every article view. `@react-pdf/renderer` and `blog-document` stay installed:
+  a download belongs on a server route that streams the file, not in the tab.
+- 2026-11-02: The editor no longer has an Email section. The newsletter switch
+  exists only on the profile's read view, so the "Turn it on or off on your
+  profile" pointer it held is gone with it.
+- 2026-11-02: The profile's settings that need no typing (topics, newsletter)
+  are one row each under an "Account" heading, hairlines between rows, and the
+  switch writes "On"/"Off" beside itself. The stray rule above "Edit profile" is
+  gone (the header already ends in one), the profile's article actions moved up
+  beside the name instead of a separate button row, and the editor's newsletter
+  section points at the switch. Rules added to `DESIGN.md` under the account
+  area.
+- 2026-11-02: The newsletter switch sits on the profile itself, not behind
+  "Edit profile". "The monthly roundup" reads as one row with its switch and
+  saves on the press, so a member who wants to stop the email does not have to
+  open a form to do it. The editor's Email section now points at that switch
+  instead of holding a second one that could drift out of step.
+- 2026-11-02: The handle in the profile editor is its own control. The profile
+  form never carries a username: the field checks availability as typing
+  settles, then **Change username** asks for one confirmation and saves through
+  the API on its own press, so a refused handle cannot fail a profile save and a
+  save cannot leave half an address behind. The field also shows "that address
+  is free" before the press, not only refusals. The silent failure it replaces
+  came from `THInput` spreading caller props over `register()`, which dropped
+  the ref and sent no username at all.
+- 2026-11-02: The member's own profile moved from `/profile/@<handle>` to
+  `/profile`. The page describes whoever holds the session, so the address no
+  longer carries a handle that goes stale on a rename; every link to it (nav
+  menu, account rail, feed's topic links, settings card) is the constant
+  `ownProfilePath`. The public page keeps the handle at `/users/<handle>`, which
+  is what the share menu offers and the only profile address indexed. Old
+  `/profile/@<handle>` and `/profile/<handle>` addresses are a permanent
+  redirect to `/profile`.
+- 2026-11-02: Usernames (#19). A handle step at `/welcome/username` before the
+  topics step, with a free suggestion already filled in and the public address
+  shown as it is typed. Changes from the profile wait 30 days from the last one
+  (`usernameChangedAt`, computed, never stored), the onboarding step is exempt
+  but starts the clock. Retired handles are kept in `username_history` for a
+  year, refused to everyone, and answered with a permanent redirect from
+  `/users/<old>` to `/users/<new>`. `pnpm migrate:username-onboarding` marked
+  existing members as done.
 - 2026-11-01: Per-article access (#8). The composer, both editors and the admin
   composer ask "who can read it" with two explained choices, stored on the
   article as `access` (`members` by default, so no migration and no behaviour

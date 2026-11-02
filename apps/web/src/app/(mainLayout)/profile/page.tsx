@@ -2,13 +2,16 @@ import { AdSlot } from "@/components/adsense";
 import ProfileArticleList from "@/components/modules/profile/profile-article-list";
 import ProfileOwnPage from "@/components/modules/profile/profile-own";
 import ProfileHeader from "@/components/modules/profile/profile-header";
-import { manageBlogsPath, writeBlogPath } from "@/lib/blog-routes";
+import {
+  manageBlogsPath,
+  publicProfilePath,
+  writeBlogPath,
+} from "@/lib/blog-routes";
 import ButtonLink from "@/components/ui/button-link";
 import Container from "@/components/ui/container";
 import ProfileShareDropdown from "@/components/ui/profile-share-dropdown";
 import { getProfileInfo } from "@/services/auth";
 import { getBlogsByUserId } from "@/services/blog";
-import { normaliseRouteUsername } from "@/utils/username";
 import { IBlog, IUser } from "@/types";
 import { Metadata } from "next";
 import { BiSupport } from "react-icons/bi";
@@ -16,15 +19,9 @@ import { BiSupport } from "react-icons/bi";
 /** Articles requested on the first paint; the rest load a page at a time. */
 const PROFILE_PAGE_SIZE = 8;
 
-type Props = {
-  params: Promise<{ username: string }>;
-};
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { username: routeUsername } = await params;
+export async function generateMetadata(): Promise<Metadata> {
   const profileData = await getProfileInfo().catch(() => null);
   const { fullName } = (profileData?.data as IUser) ?? {};
-  const actualUsername = normaliseRouteUsername(routeUsername);
 
   if (!fullName) {
     return { title: "Your profile" };
@@ -33,21 +30,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${fullName}'s Profile`,
     description: `Explore ${fullName}'s profile on TechTipsHub - their articles, activity and links.`,
-    openGraph: {
-      title: `${fullName}'s Profile`,
-      description: `Check out ${fullName}'s profile on TechTipsHub.`,
-      url: `/profile/@${actualUsername}`,
-    },
   };
 }
 
 /**
- * The signed-in member's own profile.
+ * The signed-in member's own profile, at `/profile`.
  *
  * It is the profile page and the place its details are edited: "Edit profile"
  * turns the identity block into a form and opens the fields a reader never
  * sees (phone, birth date) below it. One screen, so a member always edits the
  * page they are looking at instead of a settings screen that mirrors it.
+ *
+ * The address carries no handle. Who this is comes from the session, and the
+ * public page a reader or a search engine sees is `/users/<handle>`. A handle
+ * in the account area would go stale the moment it changed, and the page shows
+ * it anyway.
  */
 const DynamicProfilePage = async () => {
   const profileData = await getProfileInfo().catch(() => null);
@@ -103,27 +100,29 @@ const DynamicProfilePage = async () => {
           <ProfileHeader
             user={user}
             blogCount={totalBlogs}
-            actions={<ProfileShareDropdown />}
+            actions={
+              <div className="flex flex-wrap items-center gap-2">
+                <ButtonLink
+                  href={manageBlogsPath}
+                  radius="lg"
+                  variant="bordered"
+                >
+                  Manage articles
+                </ButtonLink>
+                <ButtonLink href={writeBlogPath} radius="lg" color="primary">
+                  Write a new blog
+                </ButtonLink>
+                <ProfileShareDropdown
+                  profileUrl={publicProfilePath(user.username)}
+                />
+              </div>
+            }
           />
 
           {/* The editor owns the "Edit profile" button and the form it opens.
               Keyed by the stored timestamp so a save remounts it with the
               values the API now holds. */}
           <ProfileOwnPage key={user.updatedAt ?? "profile"} user={user} />
-
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <ButtonLink
-              href={manageBlogsPath}
-              radius="lg"
-              variant="bordered"
-              className="justify-between"
-            >
-              Manage articles
-            </ButtonLink>
-            <ButtonLink href={writeBlogPath} radius="lg" color="primary">
-              Write a new blog
-            </ButtonLink>
-          </div>
 
           <section className="mt-10" aria-labelledby="profile-articles">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">

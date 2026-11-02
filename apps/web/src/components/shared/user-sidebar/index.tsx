@@ -9,8 +9,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { FiEdit3, FiMenu, FiX } from "react-icons/fi";
 import { HiOutlineArrowLeft } from "react-icons/hi2";
-import { userLinks as buildUserLinks } from "./user-links";
-
+import { userLinks } from "./user-links";
 /**
  * Which profile page the path belongs to.
  *
@@ -19,7 +18,7 @@ import { userLinks as buildUserLinks } from "./user-links";
  */
 const resolvePage = (
   pathname: string | null,
-  links: ReturnType<typeof buildUserLinks>,
+  links: typeof userLinks,
 ) => {
   const section =
     links
@@ -56,7 +55,6 @@ const UserSidebar = () => {
     setOpenForPath(next ? pathname : null);
   };
 
-  const userLinks = buildUserLinks(user?.username);
   const { section: current } = resolvePage(pathname, userLinks);
   const page: { label: string; description?: string } | null = current;
 

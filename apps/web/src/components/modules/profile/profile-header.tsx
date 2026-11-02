@@ -70,9 +70,10 @@ const Stat = ({
 };
 
 /**
- * Identity block for a public member profile. Both `/users/@…` (someone else)
- * and `/profile/@…` (signed-in visitor) share the same structure; only the
- * action slot differs.
+ * Identity block for a public member profile. Both `/users/<handle>` (a reader
+ * looking at someone) and `/profile` (a signed-in member's own page, whose
+ * address carries no handle) share the same structure; only the action slot
+ * differs.
  */
 const ProfileHeader = ({ user, actions, blogsHref, blogCount }: IProps) => {
   const {

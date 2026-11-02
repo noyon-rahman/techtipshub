@@ -84,6 +84,21 @@ web app. The handoff is stateless: a short-lived JWT signed with
 written to the database. Both apps read the same variable, which is why it is
 in the web app's environment too.
 
+Both ways in ask one question before they land the reader: after a password
+sign-in the form calls `afterSignInAction`, and the Google callback route asks
+the API directly with the token the handoff just produced. A reader whose
+account has no `interestsAnsweredAt` goes to `/welcome` and is sent on to
+the page they came from afterwards. `/welcome` sits outside `/profile`, so
+`proxy.ts` does not gate it: the page tells "signed out" from "not asked yet"
+itself, and the saved answer is read by a server action after load, the same
+way `ArticleAccess` decides who may read an article.
+
+The profile shows the picked topics as a band under "Edit profile"
+(`topics-summary.tsx`), read the same way after load, so `/profile` stays
+a server render. The full picker lives in the editor; both the band's "Change
+topics" and a `#topics` link from the feed's reason line open the editor on that
+section.
+
 ## API inside
 
 `apps/api/src`
@@ -121,7 +136,8 @@ their stored spelling, because documents already hold them.
 
 | Collection | Model | Notes |
 | --- | --- | --- |
-| `users` | `User` | role `User`/`Admin`, status `Active`/`Blocked`, `tokenVersion`, `googleId`, soft delete `isDeleted`, counted fields for followers/following/posts |
+| `users` | `User` | role `User`/`Admin`, status `Active`/`Blocked`, `tokenVersion`, `googleId`, soft delete `isDeleted`, counted fields for followers/following/posts, `interests[]` (category ids the reader picked) and `interestsAnsweredAt` (set the first time they answered, including a skip), `usernameOnboardedAt` (set at the handle step) and `usernameChangedAt` (the last change, which the 30 day lock is counted from) |
+| `username_history` | `UsernameHistory` | one row per handle a member gave up: `username` (unique), `userId`, `reservedUntil` (a year on). Kept apart from the user so a deleted account and another member both block a claim |
 | `posts` | `Blog` (model named `Post`) | author, title, unique slug, contentType, content, cover, category, images, tags, `status` `draft`/`published`, `publishedAt`, counters for votes/comments/views, `isDeleted`, `createdBy` when an admin wrote it |
 | `categories` | `Category` | slug and name, soft delete `isDeleted`; an admin adds them from the panel, a signed-in member can add one from the composer (`POST /categories`) |
 | `comments` | `Comment` | on an article, optional images, counted on the article |
@@ -154,6 +170,60 @@ draft content without remembering to.
 Counters on the article (votes, comments, views) are updated with the write that
 causes them, not recomputed on read.
 
+## Usernames
+
+A handle is an address people save and search engines rank, so it is claimed
+once, changed rarely, and never silently moves. The rules live in
+`packages/shared/src/username.ts` (shape, reserved words, suggestion) and
+`apps/api/src/modules/user/username.rules.ts` (lock length, reservation length,
+date wording). Both the API and the web form call the shared ones, so a form
+never refuses a handle the API would accept.
+
+| Step | Endpoint | Rule |
+| --- | --- | --- |
+| Offer | `GET /users/username/onboarding` | a free handle from the full name, never a refused one |
+| Check | `GET /users/username/availability?username=` | takes half-typed input and answers with the shared rule's own sentence |
+| Claim | `POST /users/username/onboarding` | once per account; exempt from the lock but stamps `usernameChangedAt`; a second submit is a 409 |
+| State | `GET /users/username/state` | `canChange` and `lockedUntil`, derived from `usernameChangedAt` |
+| Rename | `PATCH /users/update-profile` with only `username` | waits 30 days from the last change; writes the old handle to `username_history` first. The profile editor sends the handle on its own press, never with the rest of the form |
+| Follow | `GET /users/username/current/:handle` | public; the current handle for a retired one, `null` if nobody held it |
+
+The waiting period is never stored: `usernameLockEndsAt` adds 30 days to
+`usernameChangedAt`, so there is one source of truth and no cleanup job. A
+retired handle is refused to everyone, its old owner included, for 365 days from
+the rename. `/users/<retired>` answers a permanent redirect to
+`/users/<current>`, carrying `/followers` or `/following` along, through
+`lib/profile-redirect.ts`.
+
+`pnpm migrate:username-onboarding` marks every account that predates the step as
+done and stamps `usernameChangedAt`, so the first change of an older member is
+not immediate. Existing members never see the screen.
+
+After a first sign-in the order is handle, then topics, then wherever they were
+going (`afterSignInPath` in `lib/blog-routes.ts`), so the two one-time prompts
+never stack.
+
+## Feed order
+
+One file decides the order: `apps/api/src/modules/blog/blog.ranking.ts`. The web
+app never re-sorts a page; it asks for `sort` and renders what comes back.
+
+- `sort=ranking` (the default) is the engagement score: upvotes times 4,
+  comments times 5, views times 0.1, minus downvotes times 3, plus 1.5 per day
+  since publication over a 45 day window. For a signed-in reader with at least
+  one live interest, articles in those categories come first and the rest
+  follow, each group in that same score order.
+- `sort=newest` is publication order, for the screens that mean it (`/search`,
+  `/categories/<name>`).
+- Anything else is a `400`. Every order ends on `_id: -1`, so paging by offset
+  repeats itself exactly and a card cannot appear twice as the reader scrolls.
+- `GET /blogs` is open to guests and takes `optionalAuth`, so a signed-in reader
+  already gets their own order from it. `GET /blogs/feed` is the same page for
+  the token holder, and is what the site's server action calls.
+- `meta.reason` is `personalized` only when the page actually matched one of the
+  reader's interests, else `engagement`. The feed's reason line reads it, so a
+  page never claims a personalization it did not do.
+
 ## Contracts
 
 - **Success:** `{ data, meta? }`, `meta` is `{ page, limit, total, totalPages }`.
@@ -168,7 +238,9 @@ causes them, not recomputed on read.
 
 Lists take `page`, `limit`, `sort`, `searchTerm` and filters through
 `QueryBuilder`, which caps page size and escapes every search term before it
-reaches Mongo.
+reaches Mongo. The feed is the exception: its filter and its `sort` are parsed
+by hand in `blog.ranking.ts`, because `sort` there is a name (`ranking`,
+`newest`) rather than a field list.
 
 ## Web app inside
 
@@ -176,7 +248,7 @@ reaches Mongo.
 
 | Area | Where |
 | --- | --- |
-| Routes | `app/(mainLayout)`, `app/(feedLayout)`, `app/(adminLayout)` |
+| Routes | `app/(mainLayout)`, `app/(feedLayout)`, `app/(adminLayout)`, `app/(welcomeLayout)` |
 | Browser API proxies | `app/api/v1`, `app/api/admin`, `app/api/views`, `app/api/auth/google` |
 | Data access | `services/<domain>/` (+ `services/admin/*`) |
 | Query hooks | `hooks/` one per domain, TanStack Query |

@@ -7,6 +7,7 @@ import { useUser } from "@/context/user.provider";
 import { useUserLogin } from "@/hooks/auth.hook";
 import { safeRedirectPath } from "@/lib/blog-routes";
 import { googleFailureMessage } from "@/lib/google-auth";
+import { afterSignInAction } from "@/services/reader/sign-in";
 import { signInValidationSchema } from "@/schemas";
 import { TLogin } from "@/types";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,16 +41,21 @@ const LoginForm = () => {
   useEffect(() => {
     if (!isPending && data?.success) {
       setUserLoading(false);
-      // Only same-site paths are followed, so a crafted `?redirect=` cannot
-      // send a freshly signed-in member somewhere else.
-      //
+
       // A full load, not `router.push`. The article they were sent back to was
       // rendered before they had a session, and a client-side navigation reuses
       // that document and asks the server who is reading only once hydrated -
       // seconds of the members prompt over an article they are now allowed to
       // read. Requesting it after the session exists means the header, the
       // article and its body are all correct on the first paint.
-      window.location.replace(safeRedirectPath(redirect));
+      //
+      // The destination goes through a server action first: a reader who has
+      // not answered the interests step is sent there, and on to the page they
+      // came for afterwards. Only same-site paths are followed, so a crafted
+      // `?redirect=` cannot send a freshly signed-in member somewhere else.
+      afterSignInAction(safeRedirectPath(redirect))
+        .then((destination) => window.location.replace(destination))
+        .catch(() => window.location.replace(safeRedirectPath(redirect)));
     }
   }, [isPending, data, redirect, setUserLoading]);
 

@@ -11,4 +11,6 @@ export type TRouteParams = {
   slug: string;
   userId: string;
   transactionId: string;
+  /** The handle an old profile address still carries. */
+  handle: string;
 };

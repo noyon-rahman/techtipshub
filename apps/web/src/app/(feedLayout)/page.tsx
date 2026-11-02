@@ -14,7 +14,7 @@ import { Metadata } from "next";
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: "Feed",
+  title: "All articles",
   description:
     "Stay updated with the latest tech tips, tutorials, and articles. Explore our feed to discover trending posts and expert insights across various technology topics.",
   keywords:
@@ -22,15 +22,21 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     url: "/",
-    title: "Feed",
+    title: "All articles",
     description:
       "Discover the latest tech tips, tutorials, and trends on the TechTipsHub feed. Stay informed with expert insights and curated content.",
   },
 };
 
-/** Articles in the first prerendered page; the rest load a page at a time. */
-const INITIAL_NUMBERS_OF_BLOGS = "5";
+/** Articles in the first page; the rest load a page at a time, same size. */
+const INITIAL_NUMBERS_OF_BLOGS = "10";
 
+/**
+ * The landing page renders the order every reader gets, and the browser asks
+ * for the signed-in reader's own order after load (see `FeedBlogs`). The API's
+ * default is that same ranking, so the prerendered list and the first page the
+ * browser asks for are the same request.
+ */
 export default async function Home() {
   const data = await getBlogs({
     limit: INITIAL_NUMBERS_OF_BLOGS,

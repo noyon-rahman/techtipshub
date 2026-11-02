@@ -124,7 +124,7 @@ the mark and the primary button speak the same language. Full assets and sizes:
 
 ## The account area (`/profile`)
 
-The member's profile (`/profile/@handle`) and the article list (`/profile/blogs`)
+The member's profile (`/profile`) and the article list (`/profile/blogs`)
 share one shell: the sticky account rail on the left, the content column beside
 it. The composer (`/blogs/new`) and the article editor (`/blogs/<slug>/edit`)
 sit at the site root beside the published article they are about, and keep the
@@ -136,6 +136,19 @@ account rail.
 never sees below it, and one save writes the details, the photo and the social
 links. A member edits what they are looking at, so the preview and the result
 cannot drift apart.
+
+**The actions live with the identity.** Managing articles, writing one and
+sharing the profile sit beside the member's name, because they are what the page
+is for. The page does not repeat them in a button row below, or repeat them again
+under an empty article list.
+
+**Settings that need no typing sit on the page, under one "Account" heading.**
+Topics and the newsletter are one row each: what it is on the left in the
+section label style, the control on the right, one hairline between rows. A
+setting with two positions writes its state ("On", "Off") beside the control:
+a switch alone asks the reader to decode a colour. These settings do not appear
+in the editor at all. The editor holds what is saved together, and a second
+copy of a control that saves on its own is a copy that can disagree.
 
 **Job of the screen:** find the article you want to change and open it, or start
 a new one. The decision is "which article", so the articles are the page and

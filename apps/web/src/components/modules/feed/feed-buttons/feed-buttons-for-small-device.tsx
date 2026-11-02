@@ -4,47 +4,60 @@ import { useUser } from "@/context/user.provider";
 import { Button } from "@heroui/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PiMagicWandLight, PiUsers } from "react-icons/pi";
+import { PiListBulletsLight, PiMagicWandLight, PiUsers } from "react-icons/pi";
+import { visibleFeedTabs } from "../feed-tabs";
 
 /**
- * Feed switch: every feed or following. The current item gets the amber wash
- * with an ink label; the other one is quiet. HeroUI's own `flat primary`
- * paints the label in raw amber-600, which fails on paper, so the state is
- * expressed with tokens here instead.
+ * The same icons the rail uses, keyed by the label the tab carries: a list for
+ * everything published, a wand for the order built from the reader's topics,
+ * people for the writers they follow.
+ */
+const icons: Record<string, React.ReactNode> = {
+  All: <PiListBulletsLight className="text-lg" />,
+  Personalized: <PiMagicWandLight className="text-lg" />,
+  Following: <PiUsers className="text-lg" />,
+};
+
+/**
+ * Three tabs have to share the row with Categories on a 390px phone, so the
+ * bar scrolls sideways instead of wrapping onto a second line.
  */
 const itemClass = (active: boolean) => {
-  const base = "w-full justify-start font-medium transition-colors";
+  const base = "shrink-0 px-2 font-medium transition-colors min-[420px]:px-3";
 
   return active
     ? `${base} bg-primary-100 text-foreground hover:bg-primary-200 dark:bg-primary-200/20 dark:hover:bg-primary-200/30`
     : `${base} bg-transparent text-default-600 hover:bg-default-100 hover:text-foreground`;
 };
 
+/**
+ * The feed switch, for the widths where the rail is hidden.
+ *
+ * The same three tabs the rail lists, from one source: `Personalized` and
+ * `Following` are built from the reader's account, so they are not drawn until
+ * a session exists. Signed out the row holds `All` and `Categories` only, which
+ * are the two things a visitor can actually open.
+ */
 const FeedButtons = () => {
   const { user: loggedInUser } = useUser();
-  const pathName = usePathname();
+  const pathname = usePathname();
+  const tabs = visibleFeedTabs(Boolean(loggedInUser));
 
   return (
     <>
-      <Button
-        as={Link}
-        className={itemClass(pathName === "/")}
-        href="/"
-        radius="full"
-        startContent={<PiMagicWandLight className="text-lg" />}
-      >
-        Personalized
-      </Button>
-      <Button
-        as={Link}
-        className={itemClass(pathName === "/following")}
-        href="/following"
-        isDisabled={!loggedInUser}
-        radius="full"
-        startContent={<PiUsers className="text-lg" />}
-      >
-        Following
-      </Button>
+      {tabs.map((tab) => (
+        <Button
+          key={tab.href}
+          as={Link}
+          className={itemClass(pathname === tab.href)}
+          href={tab.href}
+          radius="full"
+          startContent={icons[tab.label]}
+        >
+          <span className="hidden min-[420px]:inline">{tab.label}</span>
+          <span className="sr-only min-[420px]:hidden">{tab.label}</span>
+        </Button>
+      ))}
     </>
   );
 };

@@ -78,7 +78,7 @@ comments intact.
 ### 3. Belong to the site
 
 - Sign up, log in, sign in with Google, forget and reset password.
-- Profile at `/profile/@<handle>`, which is also the edit screen: one form writes
+- Profile at `/profile`, which is also the edit screen: one form writes
   the details, photo and social links.
 - Follow and unfollow from a member's page or the article author block.
 - Comment on an article, edit or remove your own comment.

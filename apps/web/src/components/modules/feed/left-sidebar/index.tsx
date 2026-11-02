@@ -5,31 +5,16 @@ import { writeBlogPath } from "@/lib/blog-routes";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@/context/user.provider";
-import { PiMagicWandLight, PiUsers } from "react-icons/pi";
-import { HiOutlinePencilSquare } from "react-icons/hi2";
 import { FiBookOpen, FiInfo, FiMail } from "react-icons/fi";
+import { HiOutlinePencilSquare } from "react-icons/hi2";
 import { AdSlot } from "@/components/adsense";
+import { FeedButtonsForSideBar } from "@/components/modules/feed/feed-buttons";
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ReactNode;
-  requiresAuth?: boolean;
 }
-
-const browseItems: NavItem[] = [
-  {
-    href: "/",
-    label: "Personalized",
-    icon: <PiMagicWandLight className="text-lg" />,
-  },
-  {
-    href: "/following",
-    label: "Following",
-    icon: <PiUsers className="text-lg" />,
-    requiresAuth: true,
-  },
-];
 
 const exploreItems: NavItem[] = [
   {
@@ -97,13 +82,7 @@ const LeftSideBar = () => {
           )}
 
           <NavSection title="Browse">
-            {browseItems.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                active={!!isActive(item.href)}
-              />
-            ))}
+            <FeedButtonsForSideBar />
           </NavSection>
 
           <NavSection title="Explore">

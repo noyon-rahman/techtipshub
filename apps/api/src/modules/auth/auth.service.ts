@@ -1,5 +1,11 @@
 import httpStatus from "http-status";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import {
+  USERNAME_MIN_LENGTH,
+  isReservedUsername,
+  normaliseUsername,
+  usernameWithSuffix,
+} from "@techtipshub/shared";
 import config from "../../config";
 import {
   durationLabel,
@@ -11,6 +17,7 @@ import { isEmailConfigured, sendEmail } from "../../utils";
 import { IUser } from "../user/user.interface";
 import type { IGoogleProfile } from "./google-oauth";
 import User from "../user/user.model";
+import UsernameHistory from "../user/username-history.model";
 
 /** Said when a reset token arrives after the password it belongs to changed. */
 const RESET_USED_MESSAGE =
@@ -44,6 +51,16 @@ const register = async (payload: IUser) => {
       );
     }
     throw new AppError(409, "Username already exists");
+  }
+
+  // A handle a member gave up is still forwarding to their profile, so it is
+  // refused here too: registration is the other way one could be claimed.
+  const reserved = await UsernameHistory.exists({
+    username: payload.username,
+    reservedUntil: { $gt: new Date() },
+  });
+  if (reserved) {
+    throw new AppError(409, "Username is reserved");
   }
 
   const newUser = await User.create(payload);
@@ -230,7 +247,10 @@ const googleLogin = async (profile: IGoogleProfile) => {
     account ??
     (await User.create({
       fullName: profile.name,
-      username: await uniqueUsername(usernameBase(profile)),
+      // The handle Google signup invents is a placeholder, not a choice: the
+      // member sees it at the username step, where the shared suggestion is
+      // prefilled and this value is only what they are moving away from.
+      username: await uniqueUsername(profile),
       email: profile.email,
       profilePicture: profile.picture,
       isVerified: true,
@@ -249,33 +269,59 @@ const googleLogin = async (profile: IGoogleProfile) => {
   return issueSession(user);
 };
 
-/** `ada.lovelace@example.com` reads as `adalovelace`, never as an empty name. */
+/**
+ * `ada.lovelace@example.com` reads as `adalovelace`, never as an empty name.
+ *
+ * The name is preferred over the address because it is what a reader will look
+ * for, and it is the same normaliser the onboarding step offers, so the handle
+ * a Google member first holds and the one they are offered are the same shape.
+ */
 const usernameBase = (profile: IGoogleProfile) => {
-  const fromEmail = profile.email
-    .split("@")[0]
-    .toLowerCase()
-    .replace(/\W/g, "");
+  const fromName = normaliseUsername(profile.name ?? "");
+  if (fromName.length >= USERNAME_MIN_LENGTH && !isReservedUsername(fromName)) {
+    return fromName;
+  }
 
-  return fromEmail || "reader";
+  const fromEmail = normaliseUsername((profile.email ?? "").split("@")[0] ?? "");
+  if (fromEmail.length >= USERNAME_MIN_LENGTH && !isReservedUsername(fromEmail)) {
+    return fromEmail;
+  }
+
+  return "member";
 };
 
 /**
  * A username nobody holds yet.
  *
- * The schema requires one and the existing social sign-in built it from the
- * full name, which collides for two people called the same. A numeric suffix
- * keeps it readable until the reader changes it in settings.
+ * A numeric suffix keeps it readable until the reader changes it at the
+ * username step, which follows a first sign-in. Historical handles count as
+ * held: a Google member may not be handed an address that still redirects to
+ * somebody else's profile.
  */
-const uniqueUsername = async (base: string) => {
-  let candidate = base;
-  let suffix = 1;
+const uniqueUsername = async (profile: IGoogleProfile) => {
+  const base = usernameBase(profile);
 
-  while (await User.exists({ username: candidate })) {
-    candidate = `${base}${suffix}`;
-    suffix += 1;
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const candidate = usernameWithSuffix(base, attempt);
+
+    if (await takenOrReserved(candidate)) continue;
+
+    return candidate;
   }
 
-  return candidate;
+  return usernameWithSuffix(base, Date.now() % 1000);
+};
+
+const takenOrReserved = async (username: string) => {
+  const [held, reserved] = await Promise.all([
+    User.exists({ username }),
+    UsernameHistory.exists({
+      username,
+      reservedUntil: { $gt: new Date() },
+    }),
+  ]);
+
+  return Boolean(held || reserved);
 };
 
 const getMe = async (payload: JwtPayload) => {
@@ -564,6 +610,7 @@ const publicUser = (user: {
   username: string;
   profilePicture?: string;
   role: string;
+  usernameOnboardedAt?: Date | null;
 }) => ({
   _id: String(user._id),
   email: user.email,
@@ -571,6 +618,10 @@ const publicUser = (user: {
   username: user.username,
   profilePicture: user.profilePicture ?? "",
   role: user.role,
+  // The site decides where a sign-in lands from this one flag, so it is
+  // reported here rather than inferred from a handle that looks unset: an
+  // account may share its handle's shape with a provisional one.
+  usernameOnboarded: Boolean(user.usernameOnboardedAt),
 });
 
 /**
@@ -599,7 +650,7 @@ const readSession = async (
 
       const current = decoded.email
         ? await User.findOne({ email: decoded.email }).select(
-            "email fullName username profilePicture role tokenVersion status isDeleted",
+            "email fullName username profilePicture role tokenVersion status isDeleted usernameOnboardedAt",
           )
         : null;
 
