@@ -1,7 +1,7 @@
 <!-- markdownlint-disable MD033 -->
 <div align="center">
 
-<img src="https://i.ibb.co.com/8dwgWQk/tech-tips-hub-logo.png" alt="TechTipsHub logo" width="96" height="96" />
+<img src="./apps/web/public/brand/logo-dark.svg" alt="TechTipsHub logo" height="96" />
 
 # TechTipsHub
 
@@ -387,8 +387,8 @@ Released under the [MIT License](./apps/web/LICENSE).
 
 <!-- Reference links -->
 [site-url]: https://techtipshub.vercel.app
-[api-url]: https://techtipshub-api.noyonrahman.xyz
-[api-health-url]: https://techtipshub-api.noyonrahman.xyz/health
+[api-url]: https://api-techtipshub.vercel.app
+[api-health-url]: https://api-techtipshub.vercel.app/health
 [license-url]: ./apps/web/LICENSE
 [prs-url]: https://github.com/noyonalways/techtipshub/pulls
 [issues-url]: https://github.com/noyonalways/techtipshub/issues
@@ -409,7 +409,7 @@ Released under the [MIT License](./apps/web/LICENSE).
 
 <!-- Badges -->
 [badge-site]: https://img.shields.io/badge/live-techtipshub.vercel.app-16a34a?logo=vercel&logoColor=white
-[badge-api]: https://img.shields.io/badge/api-techtipshub--api-0ea5e9?logo=hono&logoColor=white
+[badge-api]: https://img.shields.io/badge/api-api--techtipshub-0ea5e9?logo=hono&logoColor=white
 [badge-license]: https://img.shields.io/badge/license-MIT-blue
 [badge-prs]: https://img.shields.io/badge/PRs-welcome-brightgreen
 
