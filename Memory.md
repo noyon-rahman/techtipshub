@@ -136,6 +136,25 @@ Things known to be wrong or unfinished, in the order they matter.
 
 ## Traps and hard-won notes
 
+- **HeroUI's `Modal` is dismissable unless told otherwise.** `isDismissable`
+  defaults to `true`, so a press anywhere outside the panel closes it. For a
+  confirm or a dialog with typed input that reads as the dialog "auto-closing"
+  on a stray click; pass `isDismissable={false}` and leave Escape and Cancel as
+  the close paths.
+- **A React portal does not move a click out of the React tree.** HeroUI's
+  `Modal` renders through `createPortal` to `document.body`, but the portalled
+  content still bubbles to its React-tree ancestors. So a menu panel whose
+  `onClick` closes itself will unmount any dialog rendered inside it. Close on
+  the menu item, not on the panel.
+- **`useDisclosure().onOpenChange` takes no argument and toggles.**
+  `@heroui/use-disclosure` picks open or close from the `isOpen` it captured at
+  its last render, so it cannot carry a target state. Use `onOpen`/`onClose`
+  when a caller passes one.
+- **HeroUI's `Textarea` ignores an `onChange` prop.** React Aria's
+  `useTextField` owns the value, and `getInputProps` spreads the caller's props
+  through `filterDOMProps` with `omitEventNames` set to the Aria handlers, so a
+  raw `onChange` is dropped rather than chained. Write through `onValueChange`
+  and read through `value`; do not hand a `<textarea>` registration to it.
 - **The admin footer sits on the fold of a short page.** The admin column in
   `(adminLayout)/layout.tsx` is `min-h-dvh` with a `flex-col` `main` that
   grows, so the sign-off rule lands at the same height on every screen. Do not
@@ -377,6 +396,30 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-11-11: Admin delete dialogs closed on a press outside the panel. HeroUI's
+  `Modal` defaults `isDismissable` to `true`, so clicking the page behind the
+  dialog, which the user was aiming at, discarded the question and the typed
+  reason. `ConfirmDialog` and the article delete dialog now set
+  `isDismissable={false}`: the answer comes from the dialog, and Escape or
+  Cancel is the way out that does not answer.
+- 2026-11-11: Admin row-menu confirm dialogs were inert (#21's sibling). `RowMenu`
+  had `onClick={() => setOpen(false)}` on its portalled panel. HeroUI portals a
+  modal to `document.body`, but a React portal keeps the React-tree parent, so a
+  click on the dialog's confirm button still bubbled through that panel and
+  unmounted the `ConfirmDialog` and its pending mutation. That hit every confirm
+  action on `/admin/manage-users` (block, unblock, make admin, delete) and
+  `/admin/manage-blogs` (publish, trash), and only those two, since they are the
+  only screens whose confirm dialog lives inside a `RowMenu`. The panel now
+  closes only when the click lands on a `[role="menuitem"]`.
+- 2026-11-11: #21 fixed. The admin delete-article dialog's Confirm did nothing:
+  `THTextarea` spread `{...props}` over `{...register(name)}`, and HeroUI's
+  `Textarea` drops an `onChange` prop entirely (it chains only React Aria's), so
+  react-hook-form never saw a keystroke and `handleSubmit` failed silently. The
+  registration now goes last, as in `THInput`, which also repairs the contact
+  form, the comment forms and the profile bio. The dialog itself is now
+  controlled with no `THForm` (it mounted its own `useForm`, so its submit never
+  received the value anyway), requires a trimmed reason, stays open on
+  `success: false`, and names the article it deletes.
 - 2026-11-02: Every feed request is one page of 10, throughout. The landing
   page and `/personalized` used to render 5 and the list then asked for 5 again
   on its first action; a full page is now the signal that another page exists,

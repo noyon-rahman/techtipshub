@@ -183,7 +183,17 @@ export default function RowMenu({ label, children }: IProps) {
             role="menu"
             aria-label={label}
             onKeyDown={onPanelKeyDown}
-            onClick={() => setOpen(false)}
+            // A row action that opens a dialog does not unmount the panel:
+            // HeroUI portals its modal to document.body, but a React portal
+            // keeps the React-tree parent, so a click inside that dialog still
+            // bubbles through this panel. Unmounting here would destroy the
+            // dialog and its pending mutation mid-flight, which is what made
+            // confirm buttons look inert. A menuitem closes by its own click.
+            onClick={(event) => {
+              if ((event.target as Element).closest('[role="menuitem"]')) {
+                setOpen(false);
+              }
+            }}
             onContextMenu={(event) => event.preventDefault()}
             style={{
               width: MENU_WIDTH,
