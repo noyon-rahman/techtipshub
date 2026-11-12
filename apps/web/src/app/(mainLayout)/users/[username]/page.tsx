@@ -91,7 +91,7 @@ const GetUserByIdPage = async ({ params }: Props) => {
 
   const user = (data?.data as IUser) ?? undefined;
 
-  if (!user?._id || user.isDeleted) {
+  if (!user?._id) {
     return (
       <section className="py-16 lg:py-24">
         <Container>

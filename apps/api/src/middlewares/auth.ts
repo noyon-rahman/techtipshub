@@ -30,7 +30,7 @@ const auth = (
 
     const { email, role, iat } = decoded;
 
-    const user = await User.findOne({ email: email });
+    const user = await User.findOne({ email: email }).select("+isDeleted");
     if (!user) {
       throw new AppError(httpStatus.NOT_FOUND, "User not found");
     }

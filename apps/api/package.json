@@ -15,7 +15,8 @@
     "format": "prettier ./src --write",
     "format:check": "prettier ./src --check",
     "migrate:collections": "tsx --env-file=.env.development ./src/scripts/rename-collections.ts",
-    "migrate:username-onboarding": "tsx --env-file=.env.development ./src/scripts/username-onboarding-backfill.ts"
+    "migrate:username-onboarding": "tsx --env-file=.env.development ./src/scripts/username-onboarding-backfill.ts",
+    "migrate:remove-is-premium-user": "tsx --env-file=.env.development ./src/scripts/remove-is-premium-user.ts"
   },
   "repository": {
     "type": "git",

@@ -21,6 +21,7 @@ const commentSchema = new Schema<IComment>(
     isDeleted: {
       type: Boolean,
       default: false,
+      select: false,
     },
     images: [
       {
@@ -38,6 +39,12 @@ const commentSchema = new Schema<IComment>(
   },
   {
     timestamps: true,
+    toJSON: {
+      transform(_doc, ret: Record<string, unknown>) {
+        delete ret.isDeleted;
+        return ret;
+      },
+    },
   },
 );
 

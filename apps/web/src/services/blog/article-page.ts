@@ -76,7 +76,7 @@ const fetchArticle = async (slug: string) => {
 /** A published article's comments, straight from the API. */
 const fetchComments = async (blogId: string) => {
   const body = await readApi<{ data?: IComment[] }>(commentsUrl(blogId));
-  return (body?.data ?? []).filter((comment) => !comment.isDeleted);
+  return body?.data ?? [];
 };
 
 /**

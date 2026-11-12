@@ -210,7 +210,15 @@ export const readFeedPage = async ({
       },
     },
     { $set: { category: { $first: "$@category" } } },
-    { $unset: ["@category"] },
+    {
+      $unset: [
+        "@category",
+        "isDeleted",
+        "author.isDeleted",
+        "author.isPremiumUser",
+        "category.isDeleted",
+      ],
+    },
   ]);
 
   return {
@@ -280,7 +288,15 @@ export const readFollowingPage = async ({
         },
       },
       { $set: { category: { $first: "$@category" } } },
-      { $unset: ["@category"] },
+      {
+        $unset: [
+          "@category",
+          "isDeleted",
+          "author.isDeleted",
+          "author.isPremiumUser",
+          "category.isDeleted",
+        ],
+      },
     ]),
   ]);
 

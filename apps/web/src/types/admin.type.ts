@@ -178,7 +178,6 @@ export interface TAdminComment {
   downVotes: number;
   createdAt: string;
   updatedAt?: string;
-  isDeleted: boolean;
   user: TAdminCommentUser;
   post: TAdminCommentPost;
 }

@@ -28,15 +28,12 @@ const INITIAL_NUMBERS_OF_BLOGS = "10";
 /** The published category whose slug is `slug`, or undefined. */
 const findCategory = async (slug: string) => {
   const categories = await siteCategories();
-  return categories.find(
-    (category) => categorySlug(category.name) === slug && !category.isDeleted,
-  );
+  return categories.find((category) => categorySlug(category.name) === slug);
 };
 
 export async function generateStaticParams() {
   const categories = await siteCategories();
   return categories
-    .filter((category) => !category.isDeleted)
     .map((category) => ({ slug: categorySlug(category.name) }))
     .filter((entry) => entry.slug);
 }

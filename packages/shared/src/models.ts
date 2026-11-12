@@ -21,7 +21,6 @@ export interface ICategory {
   name: string;
   description: string;
   blogCount: number;
-  isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
   __v: number;
@@ -44,7 +43,6 @@ export interface IUser {
   totalFollowing: number;
   dateOfBirth: string;
   isVerified: boolean;
-  isDeleted: boolean;
   socialLinks: TSocialLink[];
   /**
    * The categories the reader asked to see. Category ids, stored as strings.
@@ -88,7 +86,6 @@ export interface IBlog {
   downVotes: number;
   totalComments: number;
   totalViews: number;
-  isDeleted: boolean;
   /**
    * Whether readers can see it. A draft is only open to its author and the
    * admins. Rows stored before drafts existed have no value and are published.
@@ -229,7 +226,6 @@ export interface IComment {
   post: ICommentBlog;
   user: ICommentUser;
   content: string;
-  isDeleted: boolean;
   images: string[];
   upVotes: number;
   downVotes: number;

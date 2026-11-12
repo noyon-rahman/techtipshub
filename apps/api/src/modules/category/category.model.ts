@@ -22,13 +22,20 @@ const categorySchema = new Schema<ICategory>(
     isDeleted: {
       type: Boolean,
       default: false,
+      select: false,
     },
   },
   {
     timestamps: true,
     // Without this the virtual below never reaches the JSON, and every caller
     // that reads `blogCount` sees `undefined` from a category that has articles.
-    toJSON: { virtuals: true },
+    toJSON: {
+      virtuals: true,
+      transform(_doc, ret: Record<string, unknown>) {
+        delete ret.isDeleted;
+        return ret;
+      },
+    },
     toObject: { virtuals: true },
   },
 );

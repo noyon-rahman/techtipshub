@@ -441,7 +441,7 @@ const findCurrentHandle = async (handle: string) => {
   if (!entry) return null;
 
   const holder = await User.findById(entry.userId)
-    .select("username isDeleted")
+    .select("username +isDeleted")
     .setOptions({ bypassMiddleware: true })
     .lean();
 
@@ -774,7 +774,7 @@ const unBlockUser = async (id: string, adminEmail?: string) => {
 };
 
 const makeAdmin = async (id: string, adminEmail?: string) => {
-  const user = await User.findById(id);
+  const user = await User.findById(id).select("+isDeleted");
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
@@ -868,7 +868,7 @@ const purgeMemberContent = async (
 };
 
 const deleteUserAccount = async (id: string, adminEmail?: string) => {
-  const user = await User.findById(id);
+  const user = await User.findById(id).select("+isDeleted");
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
@@ -1494,7 +1494,7 @@ const resendVerificationEmail = async (id: string, adminEmail?: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid user Id");
   }
 
-  const user = await User.findById(id);
+  const user = await User.findById(id).select("+isDeleted");
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }

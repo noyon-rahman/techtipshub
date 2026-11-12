@@ -174,9 +174,19 @@ const userSchema = new Schema<IUser, IUserModel>(
     isDeleted: {
       type: Boolean,
       default: false,
+      select: false,
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: {
+      transform(_doc, ret: Record<string, unknown>) {
+        delete ret.isDeleted;
+        delete ret.isPremiumUser;
+        return ret;
+      },
+    },
+  },
 );
 
 // The field is stored as `totalPosts` so existing documents keep working, but

@@ -27,6 +27,7 @@ const register = async (payload: IUser) => {
   const existedEmail = await User.findOne({
     email: payload.email,
   })
+    .select("+isDeleted")
     .lean()
     .setOptions({ bypassMiddleware: true });
 
@@ -41,6 +42,7 @@ const register = async (payload: IUser) => {
   }
 
   const existedUsername = await User.findOne({ username: payload.username })
+    .select("+isDeleted")
     .lean()
     .setOptions({ bypassMiddleware: true });
   if (existedUsername) {
@@ -145,7 +147,9 @@ const issueSession = (user: {
 };
 
 const login = async (payload: IUser) => {
-  const user = await User.findOne({ email: payload.email }).select("+password");
+  const user = await User.findOne({ email: payload.email }).select(
+    "+password +isDeleted",
+  );
 
   if (!user) {
     throw new AppError(404, "User not found");
@@ -196,9 +200,11 @@ const login = async (payload: IUser) => {
  * signed in as a Google user this site already knows.
  */
 const googleLogin = async (profile: IGoogleProfile) => {
-  const byGoogleId = await User.findOne({ googleId: profile.sub }).setOptions({
-    bypassMiddleware: true,
-  });
+  const byGoogleId = await User.findOne({ googleId: profile.sub })
+    .select("+isDeleted")
+    .setOptions({
+      bypassMiddleware: true,
+    });
 
   if (byGoogleId?.isDeleted) {
     throw new AppError(
@@ -219,9 +225,11 @@ const googleLogin = async (profile: IGoogleProfile) => {
     );
   }
 
-  const byEmail = await User.findOne({ email: profile.email }).setOptions({
-    bypassMiddleware: true,
-  });
+  const byEmail = await User.findOne({ email: profile.email })
+    .select("+isDeleted")
+    .setOptions({
+      bypassMiddleware: true,
+    });
 
   if (byEmail?.isDeleted) {
     throw new AppError(
@@ -342,7 +350,7 @@ const changePassword = async (
   payload: { oldPassword: string; newPassword: string },
 ) => {
   const user = await User.findOne({ email: userData.email }).select(
-    "+password",
+    "+password +isDeleted",
   );
 
   if (!user) {
@@ -386,7 +394,7 @@ const changePassword = async (
 };
 
 const forgetPassword = async (email: string) => {
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select("+isDeleted");
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
@@ -474,7 +482,7 @@ const resetPassword = async (
     throw new AppError(httpStatus.FORBIDDEN, message);
   }
 
-  const user = await User.findOne({ email: decoded.email });
+  const user = await User.findOne({ email: decoded.email }).select("+isDeleted");
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
@@ -545,7 +553,7 @@ const userForRefreshToken = async (refreshToken: string) => {
     );
   }
 
-  const user = await User.findOne({ email: decoded.email });
+  const user = await User.findOne({ email: decoded.email }).select("+isDeleted");
   if (!user) {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
@@ -655,7 +663,7 @@ const readSession = async (
 
       const current = decoded.email
         ? await User.findOne({ email: decoded.email }).select(
-            "email fullName username profilePicture role tokenVersion status isDeleted usernameOnboardedAt",
+            "email fullName username profilePicture role tokenVersion status +isDeleted usernameOnboardedAt",
           )
         : null;
 
