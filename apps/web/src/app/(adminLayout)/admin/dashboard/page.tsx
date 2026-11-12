@@ -29,6 +29,7 @@ const AdminDashboard = () => {
   return (
     <div>
       <AdminPageHeader
+        showHeading
         title={title}
         description={`${today} · TechTipsHub Admin · Overview of the last 7 days`}
       />

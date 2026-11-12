@@ -22,6 +22,8 @@ interface AdminShellValue {
   isSearchOpen: boolean;
   openSearch: () => void;
   closeSearch: () => void;
+  hasPageActions: boolean;
+  setHasPageActions: (has: boolean) => void;
 }
 
 const AdminShellContext = createContext<AdminShellValue | undefined>(undefined);
@@ -35,6 +37,7 @@ export function AdminShellProvider({
 }) {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [hasPageActions, setHasPageActions] = useState(false);
   // Read once on mount: the rail choice is a display preference, not screens
   // state, and reading it lazily keeps the server markup stable.
   const [isRailCollapsed, setIsRailCollapsed] = useState(() => {
@@ -78,6 +81,8 @@ export function AdminShellProvider({
       isSearchOpen,
       openSearch,
       closeSearch,
+      hasPageActions,
+      setHasPageActions,
     }),
     [
       isNavOpen,
@@ -88,6 +93,7 @@ export function AdminShellProvider({
       isSearchOpen,
       openSearch,
       closeSearch,
+      hasPageActions,
     ],
   );
 

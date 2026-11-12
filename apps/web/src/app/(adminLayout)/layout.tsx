@@ -64,13 +64,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             <main
               id="admin-content"
               tabIndex={-1}
-              className="w-full flex-1 px-4 pb-14 pt-5 focus:outline-none sm:px-6 lg:px-7 lg:pt-6"
+              className="w-full min-w-0 flex-1 px-4 pb-14 pt-5 focus:outline-none sm:px-6 lg:px-7 lg:pt-6"
             >
-              <div className="mx-auto w-full max-w-page">{children}</div>
+              <div className="w-full min-w-0">{children}</div>
             </main>
 
             <footer className="border-t border-default/60 px-4 py-3.5 sm:px-6 lg:px-7">
-              <div className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-default-600">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-default-600">
                 <span>TechTipsHub admin</span>
                 <span>
                   Every change is recorded in the{" "}

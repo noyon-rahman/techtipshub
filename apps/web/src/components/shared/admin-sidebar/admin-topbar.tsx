@@ -18,7 +18,16 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import { FiExternalLink, FiLogOut, FiPlus, FiSearch } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiExternalLink,
+  FiFileText,
+  FiList,
+  FiLogOut,
+  FiPlus,
+  FiSearch,
+  FiShield,
+} from "react-icons/fi";
 import { HiOutlinePencilSquare, HiOutlineUserCircle } from "react-icons/hi2";
 import { MdMenu } from "react-icons/md";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
@@ -53,6 +62,92 @@ interface SearchPayload {
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+interface TopbarAction {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
+  tone?: "primary" | "quiet";
+}
+
+const getTopbarAction = (
+  pathname: string | null,
+  pageId?: string,
+): TopbarAction | null => {
+  if (pathname === "/admin/manage-blogs/new" || pathname?.endsWith("/edit")) {
+    return {
+      label: "All articles",
+      href: "/admin/manage-blogs",
+      icon: <FiArrowLeft aria-hidden className="size-3.5" />,
+      tone: "quiet",
+    };
+  }
+
+  if (
+    pathname?.startsWith("/admin/manage-users/") &&
+    pathname !== "/admin/manage-users"
+  ) {
+    return {
+      label: "All members",
+      href: "/admin/manage-users",
+      icon: <FiArrowLeft aria-hidden className="size-3.5" />,
+      tone: "quiet",
+    };
+  }
+
+  switch (pageId) {
+    case "dashboard":
+    case "manage-blogs":
+    case "profile":
+      return {
+        label: "New article",
+        href: "/admin/manage-blogs/new",
+        icon: <FiPlus aria-hidden className="size-3.5" />,
+        tone: "primary",
+      };
+    case "analytics":
+    case "moderation":
+      return {
+        label: "Articles",
+        href: "/admin/manage-blogs",
+        icon: <FiFileText aria-hidden className="size-3.5" />,
+        tone: "quiet",
+      };
+    case "manage-comments":
+    case "messages":
+    case "manage-users":
+      return {
+        label: "Moderation queue",
+        href: "/admin/moderation",
+        icon: <FiShield aria-hidden className="size-3.5" />,
+        tone: "quiet",
+      };
+    case "categories":
+    case "trash":
+      return {
+        label: "Activity log",
+        href: "/admin/activity-log",
+        icon: <FiList aria-hidden className="size-3.5" />,
+        tone: "quiet",
+      };
+    case "newsletter":
+      return {
+        label: "View site",
+        href: "/",
+        icon: <FiExternalLink aria-hidden className="size-3.5" />,
+        tone: "quiet",
+      };
+    case "activity-log":
+      return {
+        label: "Dashboard",
+        href: "/admin/dashboard",
+        icon: <FiArrowLeft aria-hidden className="size-3.5" />,
+        tone: "quiet",
+      };
+    default:
+      return null;
+  }
+};
 
 const EDITABLE_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 
@@ -406,11 +501,12 @@ export default function AdminTopbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, setIsLoading: setUserLoading } = useUser();
-  const { openNav, isNavOpen } = useAdminShell();
+  const { openNav, isNavOpen, hasPageActions } = useAdminShell();
 
   const current = findAdminLink(pathname);
   const group = current?.group ?? "Overview";
   const label = current?.label ?? "Admin";
+  const action = getTopbarAction(pathname, current?.id);
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -452,13 +548,23 @@ export default function AdminTopbar() {
 
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
           <AdminSearch key={pathname} />
-          <Link
-            href="/admin/manage-blogs/new"
-            className={`hidden h-8 items-center gap-1.5 rounded-[7px] bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-500 sm:inline-flex ${focusRing}`}
-          >
-            <FiPlus aria-hidden className="size-3.5" />
-            New article
-          </Link>
+          <div
+            id="admin-topbar-actions"
+            className="hidden items-center gap-2 sm:flex"
+          />
+          {!hasPageActions && action && (
+            <Link
+              href={action.href}
+              className={`hidden h-8 items-center gap-1.5 rounded-[7px] px-3 text-xs font-semibold transition-colors sm:inline-flex ${focusRing} ${
+                action.tone === "primary"
+                  ? "bg-primary text-primary-foreground hover:bg-primary-500"
+                  : "border border-default/70 bg-content-1 text-foreground hover:bg-default-100"
+              }`}
+            >
+              {action.icon}
+              {action.label}
+            </Link>
+          )}
           <span
             aria-hidden
             className="mx-0.5 hidden h-5 w-px bg-default/60 sm:block"
