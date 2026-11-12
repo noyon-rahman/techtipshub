@@ -282,8 +282,13 @@ const usernameBase = (profile: IGoogleProfile) => {
     return fromName;
   }
 
-  const fromEmail = normaliseUsername((profile.email ?? "").split("@")[0] ?? "");
-  if (fromEmail.length >= USERNAME_MIN_LENGTH && !isReservedUsername(fromEmail)) {
+  const fromEmail = normaliseUsername(
+    (profile.email ?? "").split("@")[0] ?? "",
+  );
+  if (
+    fromEmail.length >= USERNAME_MIN_LENGTH &&
+    !isReservedUsername(fromEmail)
+  ) {
     return fromEmail;
   }
 
@@ -684,6 +689,59 @@ const readSession = async (
   return { signedIn: false as const };
 };
 
+/**
+ * Confirm an email address from the verification link sent at registration or
+ * resent by an admin.
+ */
+const verifyEmail = async (email: string, token: string) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail || !token.trim()) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Verification link is incomplete.",
+    );
+  }
+
+  let decoded: JwtPayload;
+  try {
+    decoded = User.verifyToken(
+      token,
+      config.JWT_RESET_PASSWORD_SECRET,
+    ) as JwtPayload;
+  } catch {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Verification link is invalid or has expired.",
+    );
+  }
+
+  if (
+    typeof decoded.email !== "string" ||
+    decoded.email.trim().toLowerCase() !== normalizedEmail
+  ) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Verification link does not match this email address.",
+    );
+  }
+
+  const user = await User.findOne({ email: normalizedEmail });
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found.");
+  }
+
+  if (user.status === "Blocked") {
+    throw new AppError(httpStatus.FORBIDDEN, "This account is blocked.");
+  }
+
+  if (!user.isVerified) {
+    user.isVerified = true;
+    await user.save();
+  }
+
+  return { email: user.email, verified: true };
+};
+
 export const authService = {
   register,
   login,
@@ -692,6 +750,7 @@ export const authService = {
   changePassword,
   forgetPassword,
   resetPassword,
+  verifyEmail,
   generateNewAccessToken,
   logOut,
   readSession,

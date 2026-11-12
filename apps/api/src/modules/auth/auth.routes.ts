@@ -93,4 +93,6 @@ authRoutes.post(
   authController.resetPassword,
 );
 
+authRoutes.get("/verify-email", authController.verifyEmail);
+
 export default authRoutes;

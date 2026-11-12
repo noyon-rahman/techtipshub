@@ -318,6 +318,21 @@ const failedGoogleSignIn = (
   return c.redirect(url.toString(), httpStatus.FOUND);
 };
 
+const verifyEmail = async (c: Context<TAppBindings>) => {
+  const email = c.req.query("email") ?? "";
+  const token = c.req.query("token") ?? "";
+
+  const url = new URL(`${siteUrl()}/login`);
+  try {
+    await authService.verifyEmail(email, token);
+    url.searchParams.set("verified", "1");
+  } catch {
+    url.searchParams.set("verified", "0");
+  }
+
+  return c.redirect(url.toString(), httpStatus.FOUND);
+};
+
 export const authController = {
   register,
   login,
@@ -327,6 +342,7 @@ export const authController = {
   changePassword,
   forgetPassword,
   resetPassword,
+  verifyEmail,
   generateNewAccessToken,
   claimSession,
   readSession,
