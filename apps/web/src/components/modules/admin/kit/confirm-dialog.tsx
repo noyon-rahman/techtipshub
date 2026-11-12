@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from "react";
 import { focusRing } from "./tau";
+import { useReportMenuDialog } from "./menu-dialog-open";
 
 interface ITriggerProps {
   onPress?: () => void;
@@ -78,6 +79,10 @@ export default function ConfirmDialog({
     : (next: boolean) => (next ? own.onOpen() : own.onClose());
   const onClose = controlled ? () => setOpen?.(false) : own.onClose;
   const onOpen = controlled ? () => setOpen?.(true) : own.onOpen;
+
+  // A row menu stands down while this is open, so the press on the page behind
+  // it cannot close the menu and unmount the dialog with the answer inside.
+  useReportMenuDialog(open);
 
   const danger = tone === "danger";
 

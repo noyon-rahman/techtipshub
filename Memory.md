@@ -146,6 +146,16 @@ Things known to be wrong or unfinished, in the order they matter.
   content still bubbles to its React-tree ancestors. So a menu panel whose
   `onClick` closes itself will unmount any dialog rendered inside it. Close on
   the menu item, not on the panel.
+- **A menu must not close while a dialog opened from its items is open.** That
+  was the remaining half of the row-menu bug. `RowMenu` also closes on a
+  document `pointerdown` outside the panel, and the press on a dialog's own
+  button is outside it: the panel unmounted between `pointerdown` and `click`,
+  so the click never landed and Confirm did nothing. `ConfirmDialog` reports
+  its open state through `menu-dialog-open.tsx` (`useReportMenuDialog`, from
+  the provider each `RowMenu` mounts), and the panel's `pointerdown`, Escape,
+  `scroll` and `resize` closers stand down while it is set. Any new dialog
+  opened from a row-menu item should render a `ConfirmDialog` so it is covered,
+  or report through the same context.
 - **`useDisclosure().onOpenChange` takes no argument and toggles.**
   `@heroui/use-disclosure` picks open or close from the `isOpen` it captured at
   its last render, so it cannot carry a target state. Use `onOpen`/`onClose`
@@ -396,6 +406,15 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-11-12: Row-menu confirm dialogs actually run their action now. The panel
+  was still closing on the document `pointerdown` that starts a press on the
+  dialog's own button, so the dialog unmounted before the `click` fired: the
+  button looked inert. `RowMenu` mounts a `MenuDialogOpenProvider`, the shared
+  `ConfirmDialog` reports its open state, and the panel leaves Escape, presses,
+  scrolls and resizes to the dialog while one is open. Verified on
+  `/admin/manage-users` (block, unblock, make admin, delete) and
+  `/admin/manage-blogs` (publish, trash): the action lands, the row and the
+  counters follow.
 - 2026-11-11: Admin delete dialogs closed on a press outside the panel. HeroUI's
   `Modal` defaults `isDismissable` to `true`, so clicking the page behind the
   dialog, which the user was aiming at, discarded the question and the typed
