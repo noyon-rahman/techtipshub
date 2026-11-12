@@ -1,4 +1,6 @@
 import axiosInstance from "@/lib/AxiosInstance";
+import { getTrashedCategories } from "@/services/admin/categories";
+import { getTrashedComments } from "@/services/admin/comments";
 import type {
   IAdminTrashParams,
   ITrashedBlog,
@@ -13,6 +15,16 @@ import {
 } from "./shared";
 
 export interface ITrashParams extends IAdminTrashParams {}
+
+/**
+ * Members keep their single-row trash here; the bulk actions live with the
+ * rest of the member writes and are re-exported so a caller of the trash
+ * needs one import.
+ */
+export {
+  deleteUsersInBulk,
+  deleteUsersPermanentlyInBulk,
+} from "@/services/user";
 
 /**
  * `GET /admin/blogs/trash` (Admin) -> `{ success, data: IBlog[], meta }`.
@@ -129,21 +141,34 @@ export const getTrashedUserCount = async (): Promise<number | undefined> => {
   }
 };
 
-/** Trash tab badges in one call; either count is `undefined` when unmeasured. */
+/** Trash tab badges in one call; a count is `undefined` when unmeasured. */
 export const getTrashCounts = async (): Promise<{
   blogs?: number;
   users?: number;
+  categories?: number;
+  comments?: number;
 }> => {
-  const [blogs, users] = await Promise.all([
+  const [blogs, users, categories, comments] = await Promise.all([
     getTrashedBlogs({ page: 1, limit: 1 })
       .then((payload) =>
         isSuccessful(payload) ? readTrashCount(payload) : undefined,
       )
       .catch(() => undefined),
     getTrashedUserCount(),
+    // The two newer trash lists are not paged, so their length is the count.
+    getTrashedCategories()
+      .then((payload) =>
+        isSuccessful(payload) ? readRows<unknown>(payload).length : undefined,
+      )
+      .catch(() => undefined),
+    getTrashedComments()
+      .then((payload) =>
+        isSuccessful(payload) ? readRows<unknown>(payload).length : undefined,
+      )
+      .catch(() => undefined),
   ]);
 
-  return { blogs, users };
+  return { blogs, users, categories, comments };
 };
 
 const readTrashCount = (payload: unknown): number | undefined => {

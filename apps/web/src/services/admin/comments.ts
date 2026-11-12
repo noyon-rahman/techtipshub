@@ -89,3 +89,30 @@ export const getLatestComments = async (limit = 10) => {
     throw toServiceError(error, "Recent comments did not load.");
   }
 };
+
+/** `GET /admin/comments/trash` (Admin). Every removed comment, newest first. */
+export const getTrashedComments = async () => {
+  try {
+    const res = await axiosInstance.get("/admin/comments/trash");
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "Removed comments did not load.");
+  }
+};
+
+/**
+ * `POST /admin/comments/trash/permanent` (Admin). Erases removed comments for
+ * good; one comment that is not in the trash refuses the whole selection.
+ */
+export const deleteCommentsPermanently = async (ids: string[]) => {
+  try {
+    const res = await axiosInstance.post("/admin/comments/trash/permanent", {
+      ids,
+    });
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The comments could not be deleted for good.");
+  }
+};

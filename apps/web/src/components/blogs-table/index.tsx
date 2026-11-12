@@ -16,11 +16,14 @@ import DataToolbar from "@/components/modules/admin/kit/data-toolbar";
 import EmptyState from "@/components/modules/admin/kit/empty-state";
 import ListFooter from "@/components/modules/admin/kit/list-footer";
 import ListFrame from "@/components/modules/admin/kit/list-frame";
+import SelectionBar from "@/components/modules/admin/kit/selection-bar";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import Thumbnail from "@/components/modules/admin/kit/thumbnail";
+import useRowSelection from "@/components/modules/admin/kit/use-row-selection";
 import {
   useAdminBlogs,
   useDeleteAdminBlog,
+  useDeleteAdminBlogsInBulk,
   usePublishAdminBlog,
 } from "@/hooks/admin-blogs";
 import { useAdminCategories } from "@/hooks/admin-categories";
@@ -256,6 +259,8 @@ const BlogsTable = () => {
   });
 
   const { mutate: deleteBlog, isPending: isDeleting } = useDeleteAdminBlog();
+  const { mutate: deleteBlogsInBulk, isPending: isDeletingInBulk } =
+    useDeleteAdminBlogsInBulk();
   const { mutate: publishBlog, isPending: isPublishing } =
     usePublishAdminBlog();
 
@@ -277,6 +282,13 @@ const BlogsTable = () => {
   const isFiltered = Boolean(searchTerm) || category !== "all";
   const isDrafts = tab === "draft";
   const noun = isDrafts ? "draft" : "article";
+
+  const selection = useRowSelection({
+    rows,
+    getKey: (blog) => blog._id,
+    resetWith: `${tab}:${category}:${searchTerm}:${sort}:${page}`,
+    selectAllLabel: `Select every ${noun} on this page`,
+  });
 
   const clearFilters = () => {
     setQuery("");
@@ -396,12 +408,47 @@ const BlogsTable = () => {
         }
       />
 
+      <SelectionBar
+        count={selection.count}
+        noun={noun}
+        onClear={selection.clear}
+      >
+        <ConfirmDialog
+          trigger={
+            <button
+              type="button"
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-[6px] border border-danger/40 px-2.5 text-sm font-medium text-danger transition-colors hover:bg-danger/10 sm:min-h-9 ${focusRing}`}
+            >
+              <FiTrash2 aria-hidden className="size-4" />
+              Move to Trash
+            </button>
+          }
+          title={`Move ${selection.count} ${noun}${selection.count === 1 ? "" : "s"} to the trash?`}
+          description="They leave the feed and their authors' profiles, with their comments, views and votes. Trash keeps them restorable. No email goes to the authors from a bulk move; the activity log names every title."
+          confirmLabel="Move to Trash"
+          isPending={isDeletingInBulk}
+          onConfirm={() =>
+            deleteBlogsInBulk(selection.keys, {
+              onSuccess: () => {
+                const leaving = selection.count;
+                selection.clear();
+                if (page > 1 && rows.length <= leaving) {
+                  filters.set({ page: page - 1 });
+                }
+              },
+            })
+          }
+        />
+      </SelectionBar>
+
       <DataTable
         caption="Articles, newest first"
         columns={COLUMNS}
         rows={rows}
         getRowKey={(blog) => blog._id}
         isLoading={isLoading}
+        selection={selection}
+        rowLabel={(blog) => `Select ${displayName(blog)}`}
         skeletonRows={Math.min(limit, 10)}
         emptyState={emptyState}
         minWidth="64rem"

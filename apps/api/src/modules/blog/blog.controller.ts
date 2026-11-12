@@ -155,6 +155,23 @@ const deleteBlogByAdminUsingId = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+const deleteBlogsInBulk = async (c: Context<TAppBindings>) => {
+  const { ids } = c.get("validatedBody") as { ids: string[] };
+  const result = await blogService.deleteBlogsInBulk(ids, c.get("user").email);
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const deleteBlogsPermanently = async (c: Context<TAppBindings>) => {
+  const { ids } = c.get("validatedBody") as { ids: string[] };
+  const result = await blogService.deleteBlogsPermanently(
+    ids,
+    c.get("user").email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 // admin article table: every live article, server-side filtered and paged
 const getAdminList = async (c: Context<TAppBindings>) => {
   const { result, meta } = await blogService.getAdminList(c.req.query());
@@ -244,6 +261,8 @@ export const blogController = {
   getVoteStatus,
   getFollowingUsersBlogs,
   deleteBlogByAdminUsingId,
+  deleteBlogsInBulk,
+  deleteBlogsPermanently,
   deleteBlogByUserUsingId,
   updateBlogByUserUsingId,
   updateBlogByAdmin,

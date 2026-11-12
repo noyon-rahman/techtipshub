@@ -805,6 +805,65 @@ const makeAdmin = async (id: string, adminEmail?: string) => {
   return result;
 };
 
+/**
+ * Erase a member's footprint inside a caller's transaction: the articles and
+ * the counters they were counted in, comments, views, votes and follows.
+ *
+ * The account row itself is left alone; the caller decides whether to flag it
+ * (trash) or delete it (permanent). Shared by both paths so a bulk delete
+ * cannot clean up less than a single one does.
+ */
+const purgeMemberContent = async (
+  userId: mongoose.Types.ObjectId,
+  session: mongoose.ClientSession,
+) => {
+  await Blog.deleteMany({ author: userId }, { session });
+
+  // `comment.post` is the stored field name.
+  const userComments = await Comment.find({ user: userId }).session(session);
+  for (const comment of userComments) {
+    await Blog.findByIdAndUpdate(
+      comment.post,
+      { $inc: { totalComments: -1 } },
+      { session },
+    );
+  }
+  await Comment.deleteMany({ user: userId }, { session });
+
+  // `view.post` is the stored field name.
+  const userViews = await View.find({ user: userId }).session(session);
+  for (const view of userViews) {
+    await Blog.findByIdAndUpdate(
+      view.post,
+      { $inc: { totalViews: -1 } },
+      { session },
+    );
+  }
+  await View.deleteMany({ user: userId }, { session });
+
+  // `vote.post` is the stored field name.
+  const userVotes = await Vote.find({ user: userId }).session(session);
+  for (const vote of userVotes) {
+    if (vote.type === "upvote") {
+      await Blog.findByIdAndUpdate(
+        vote.post,
+        { $inc: { upVotes: -1 } },
+        { session },
+      );
+    } else if (vote.type === "downvote") {
+      await Blog.findByIdAndUpdate(
+        vote.post,
+        { $inc: { downVotes: -1 } },
+        { session },
+      );
+    }
+  }
+  await Vote.deleteMany({ user: userId }, { session });
+
+  await Follower.deleteMany({ follower: userId }, { session });
+  await Follower.deleteMany({ following: userId }, { session });
+};
+
 const deleteUserAccount = async (id: string, adminEmail?: string) => {
   const user = await User.findById(id);
   if (!user) {
@@ -825,51 +884,7 @@ const deleteUserAccount = async (id: string, adminEmail?: string) => {
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    await Blog.deleteMany({ author: user._id }, { session });
-
-    // `comment.post` is the stored field name.
-    const userComments = await Comment.find({ user: user._id });
-    for (const comment of userComments) {
-      await Blog.findByIdAndUpdate(
-        comment.post,
-        { $inc: { totalComments: -1 } },
-        { session },
-      );
-    }
-    await Comment.deleteMany({ user: user._id }, { session });
-
-    // `view.post` is the stored field name.
-    const userViews = await View.find({ user: user._id });
-    for (const view of userViews) {
-      await Blog.findByIdAndUpdate(
-        view.post,
-        { $inc: { totalViews: -1 } },
-        { session },
-      );
-    }
-    await View.deleteMany({ user: user._id }, { session });
-
-    // `vote.post` is the stored field name.
-    const userVotes = await Vote.find({ user: user._id });
-    for (const vote of userVotes) {
-      if (vote.type === "upvote") {
-        await Blog.findByIdAndUpdate(
-          vote.post,
-          { $inc: { upVotes: -1 } },
-          { session },
-        );
-      } else if (vote.type === "downvote") {
-        await Blog.findByIdAndUpdate(
-          vote.post,
-          { $inc: { downVotes: -1 } },
-          { session },
-        );
-      }
-    }
-    await Vote.deleteMany({ user: user._id }, { session });
-
-    await Follower.deleteMany({ follower: user._id }, { session });
-    await Follower.deleteMany({ following: user._id }, { session });
+    await purgeMemberContent(user._id, session);
 
     user.isDeleted = true;
     await user.save({ session });
@@ -986,6 +1001,39 @@ const restoreUser = async (id: string, adminEmail?: string) => {
  * the member, and there is nobody left to forward to, so the handles are free
  * for someone else rather than reserved forever.
  */
+/**
+ * Erase trashed members for good, inside a caller's transaction.
+ *
+ * Only members already in the trash go, so their articles, comments, views and
+ * votes were purged on the way in; anything older is deleted again so it
+ * cannot outlive the account. The handle records go too: they exist to forward
+ * an old address to the member, and there is nobody left to forward to, so if
+ * they stayed, nobody could ever use those handles again. Returns the accounts
+ * erased, for the log line.
+ */
+const eraseTrashedMembers = async (objectIds: mongoose.Types.ObjectId[]) => {
+  await Promise.all([
+    Blog.deleteMany({ author: { $in: objectIds } }),
+    Comment.deleteMany({ user: { $in: objectIds } }),
+    View.deleteMany({ user: { $in: objectIds } }),
+    Vote.deleteMany({ user: { $in: objectIds } }),
+    Follower.deleteMany({ follower: { $in: objectIds } }),
+    Follower.deleteMany({ following: { $in: objectIds } }),
+    UsernameHistory.deleteMany({
+      userId: { $in: objectIds.map((id) => String(id)) },
+    }),
+  ]);
+
+  const raws = await User.collection
+    .find({ _id: { $in: objectIds } })
+    .project({ fullName: 1, username: 1 })
+    .toArray();
+
+  await User.deleteMany({ _id: { $in: objectIds } });
+
+  return raws;
+};
+
 const deleteUserAccountPermanently = async (
   id: string,
   adminEmail?: string,
@@ -1009,17 +1057,7 @@ const deleteUserAccountPermanently = async (
     );
   }
 
-  await Promise.all([
-    Blog.deleteMany({ author: raw._id }),
-    Comment.deleteMany({ user: raw._id }),
-    View.deleteMany({ user: raw._id }),
-    Vote.deleteMany({ user: raw._id }),
-    Follower.deleteMany({ follower: raw._id }),
-    Follower.deleteMany({ following: raw._id }),
-    UsernameHistory.deleteMany({ userId: String(raw._id) }),
-  ]);
-
-  await User.deleteOne({ _id: raw._id });
+  await eraseTrashedMembers([raw._id]);
 
   await adminLogService.record({
     adminEmail,
@@ -1035,6 +1073,119 @@ const deleteUserAccountPermanently = async (
     fullName: raw.fullName,
     username: raw.username,
   };
+};
+
+/**
+ * Move several members to the trash in one step.
+ *
+ * An admin account refuses the whole selection, because the single action
+ * refuses it too. A member already in the trash is skipped rather than
+ * refused: its content was purged the first time, so counting it again would
+ * take nothing from anyone.
+ */
+const deleteUsersInBulk = async (ids: string[], adminEmail?: string) => {
+  const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+  const raws = await User.collection
+    .find({ _id: { $in: objectIds } })
+    .project({ fullName: 1, username: 1, role: 1, isDeleted: 1 })
+    .toArray();
+
+  if (raws.length !== ids.length) {
+    throw new AppError(httpStatus.NOT_FOUND, "Some members were not found");
+  }
+
+  const admins = raws.filter((raw) => raw.role === USER_ROLE.ADMIN);
+  if (admins.length > 0) {
+    const names = admins
+      .map((raw) => `${raw.fullName} (@${raw.username})`)
+      .join(", ");
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      `Admin accounts cannot be deleted: ${names}`,
+    );
+  }
+
+  const targets = raws.filter((raw) => raw.isDeleted !== true);
+  if (targets.length === 0) return { deleted: 0, skipped: raws.length };
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    for (const raw of targets) {
+      await purgeMemberContent(raw._id, session);
+    }
+
+    await User.updateMany(
+      { _id: { $in: targets.map((raw) => raw._id) } },
+      { isDeleted: true },
+      { session, runValidators: true },
+    );
+
+    await session.commitTransaction();
+    await session.endSession();
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
+
+  await adminLogService.record({
+    adminEmail,
+    action: "user.delete",
+    targetType: "user",
+    targetId: ids[0],
+    summary:
+      targets.length === 1
+        ? `Deleted account ${targets[0].fullName} (@${targets[0].username})`
+        : `Deleted ${targets.length} accounts`,
+    meta: {
+      count: targets.length,
+      usernames: targets.map((raw) => raw.username),
+    },
+  });
+
+  return { deleted: targets.length, skipped: raws.length - targets.length };
+};
+
+/**
+ * Erase several trashed members for good.
+ *
+ * Every id must already be in the trash, the same rule the single endpoint
+ * keeps, and one live account refuses the whole selection.
+ */
+const deleteUsersPermanently = async (ids: string[], adminEmail?: string) => {
+  const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+  const raws = await User.collection
+    .find({ _id: { $in: objectIds } })
+    .project({ fullName: 1, username: 1, isDeleted: 1 })
+    .toArray();
+
+  if (raws.length !== ids.length) {
+    throw new AppError(httpStatus.NOT_FOUND, "Some members were not found");
+  }
+  if (raws.some((raw) => raw.isDeleted !== true)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Move the account to the trash before deleting it permanently",
+    );
+  }
+
+  const erased = await eraseTrashedMembers(objectIds);
+
+  await adminLogService.record({
+    adminEmail,
+    action: "user.delete_permanent",
+    targetType: "user",
+    targetId: ids[0],
+    summary:
+      erased.length === 1
+        ? `Permanently deleted account ${erased[0].fullName} (@${erased[0].username})`
+        : `Permanently deleted ${erased.length} accounts`,
+    meta: { count: erased.length },
+  });
+
+  return { deleted: erased.length };
 };
 
 const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
@@ -1362,4 +1513,6 @@ export const userService = {
   getDeletedUsers,
   restoreUser,
   deleteUserAccountPermanently,
+  deleteUsersInBulk,
+  deleteUsersPermanently,
 };

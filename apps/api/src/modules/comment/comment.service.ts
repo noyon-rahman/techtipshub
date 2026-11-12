@@ -1,6 +1,6 @@
 import httpStatus from "http-status";
 import mongoose from "mongoose";
-import { QueryBuilder } from "../../builder";
+import { escapeRegex, parseSearchTerms, QueryBuilder } from "../../builder";
 import { AppError } from "../../errors";
 import { adminLogService } from "../admin/admin-log.service";
 import Blog from "../blog/blog.model";
@@ -223,8 +223,88 @@ const getCounts = async () => {
   return { total, last24h, last7d };
 };
 
+/**
+ * Trashed comments, for the trash's own tab.
+ *
+ * The find hook hides deleted rows, so this is the one place that asks for
+ * them. The article title rides along because "removed from X" is how an admin
+ * tells two comments apart.
+ */
+const getDeletedComments = async (query: Record<string, unknown> = {}) => {
+  const terms = parseSearchTerms(query.searchTerm);
+  const search = terms.length
+    ? {
+        $and: terms.map((term) => {
+          const escaped = escapeRegex(term);
+          return {
+            content: {
+              $regex: escaped.length >= 3 ? `^${escaped}` : escaped,
+              $options: "i",
+            },
+          };
+        }),
+      }
+    : {};
+
+  const comments = await Comment.find({ ...search, isDeleted: true })
+    .setOptions({ bypassMiddleware: true })
+    .populate({ path: "user", select: "fullName username" })
+    .populate({ path: "post", select: "title" })
+    .sort({ updatedAt: -1, _id: -1 });
+
+  return {
+    result: comments.map((comment) => comment.toJSON()),
+  };
+};
+
+/**
+ * Erase trashed comments for good.
+ *
+ * The article counter went down when the comment moved to the trash, so
+ * nothing else changes here; the owning article keeps its number. Every id
+ * must already be trashed, the same rule articles and members keep.
+ */
+const deleteCommentsPermanently = async (
+  ids: string[],
+  adminEmail?: string,
+) => {
+  const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+  const raws = await Comment.collection
+    .find({ _id: { $in: objectIds } })
+    .project({ isDeleted: 1 })
+    .toArray();
+
+  if (raws.length !== ids.length) {
+    throw new AppError(httpStatus.NOT_FOUND, "Some comments were not found");
+  }
+  if (raws.some((raw) => raw.isDeleted !== true)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Move the comment to the trash before deleting it permanently",
+    );
+  }
+
+  await Comment.deleteMany({ _id: { $in: objectIds } });
+
+  await adminLogService.record({
+    adminEmail,
+    action: "comment.delete_permanent",
+    targetType: "comment",
+    targetId: ids[0],
+    summary:
+      raws.length === 1
+        ? "Permanently deleted a comment"
+        : `Permanently deleted ${raws.length} comments`,
+    meta: { count: raws.length },
+  });
+
+  return { deleted: raws.length };
+};
+
 export const commentService = {
   deleteComment,
+  getDeletedComments,
+  deleteCommentsPermanently,
   updateComment,
   getAll,
   getLatest,

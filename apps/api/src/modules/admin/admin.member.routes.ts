@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { TAppBindings } from "../../interface/bindings";
 import { validate, withUploads } from "../../middlewares";
 import { commentController } from "../comment/comment.controller";
+import { categoryValidationSchema } from "../category/category.validation";
 import { contactController } from "../contact/contact.controller";
 import { contactValidationSchema } from "../contact/contact.validation";
 import { userController } from "../user/user.controller";
@@ -41,6 +42,20 @@ adminUserRouter.delete(
   userController.deleteUserAccountPermanently,
 );
 
+// Literal above "/:id". A list of ids in the body: a bulk move to the trash,
+// then erasing the ones already there. The saved user endpoints carry no path
+// parameter, so they fit the one declaration route.
+adminUserRouter.post(
+  "/bulk-delete",
+  validate({ json: categoryValidationSchema.bulkDelete }),
+  userController.deleteUsersInBulk,
+);
+adminUserRouter.post(
+  "/trash/permanent",
+  validate({ json: categoryValidationSchema.bulkDelete }),
+  userController.deleteUsersPermanently,
+);
+
 const adminCommentRouter = new Hono<TAppBindings>();
 
 // Literal paths must stay above "/:id".
@@ -49,6 +64,15 @@ adminCommentRouter.get("/latest", commentController.getLatest);
 adminCommentRouter.get("/counts", commentController.getCounts);
 
 adminCommentRouter.delete("/:id", adminCommentController.deleteComment);
+
+// Trash: a removed comment waits here before it can be erased for good.
+adminCommentRouter.get("/trash", adminCommentController.getDeletedComments);
+
+adminCommentRouter.post(
+  "/trash/permanent",
+  validate({ json: categoryValidationSchema.bulkDelete }),
+  adminCommentController.deleteCommentsPermanently,
+);
 
 const adminMessageRouter = new Hono<TAppBindings>();
 

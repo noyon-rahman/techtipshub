@@ -170,6 +170,23 @@ const deleteUserAccountPermanently = async (
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+const deleteUsersInBulk = async (c: Context<TAppBindings>) => {
+  const { ids } = c.get("validatedBody") as { ids: string[] };
+  const result = await userService.deleteUsersInBulk(ids, c.get("user").email);
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const deleteUsersPermanently = async (c: Context<TAppBindings>) => {
+  const { ids } = c.get("validatedBody") as { ids: string[] };
+  const result = await userService.deleteUsersPermanently(
+    ids,
+    c.get("user").email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const followUser = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams; // user id want's to follow
   const result = await userService.followUser(c.get("user"), id);
@@ -256,4 +273,6 @@ export const userController = {
   getDeletedUsers,
   restoreUser,
   deleteUserAccountPermanently,
+  deleteUsersInBulk,
+  deleteUsersPermanently,
 };

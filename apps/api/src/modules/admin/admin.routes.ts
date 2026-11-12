@@ -24,6 +24,8 @@
  *   PATCH  /admin/users/:id/make-admin
  *   DELETE /admin/users/:id
  *   DELETE /admin/users/:id/permanent
+ *   POST   /admin/users/bulk-delete             (body: `{ ids }`)
+ *   POST   /admin/users/trash/permanent         (body: `{ ids }`)
  *
  * Blogs
  *   GET    /admin/blogs?page=&limit=&searchTerm=&category=&author=&sort=&status=
@@ -31,18 +33,27 @@
  *   PATCH  /admin/blogs/:id/restore
  *   PUT    /admin/blogs/:id          (multipart: `image` + `data`)
  *   DELETE /admin/blogs/:id
+ *   DELETE /admin/blogs/:id/permanent
+ *   POST   /admin/blogs/bulk-delete             (body: `{ ids }`)
+ *   POST   /admin/blogs/trash/permanent         (body: `{ ids }`)
  *
  * Categories
  *   GET    /admin/categories?searchTerm=&page=&limit=
+ *   GET    /admin/categories/trash
  *   POST   /admin/categories
+ *   POST   /admin/categories/bulk-delete        (body: `{ ids }`)
  *   PATCH  /admin/categories/:id
+ *   PATCH  /admin/categories/:id/restore
  *   DELETE /admin/categories/:id
+ *   DELETE /admin/categories/:id/permanent
  *
  * Comments
  *   GET    /admin/comments?page=&limit=&sort=&searchTerm=&within=&post=&user=
  *   GET    /admin/comments/latest
  *   GET    /admin/comments/counts
+ *   GET    /admin/comments/trash
  *   DELETE /admin/comments/:id
+ *   POST   /admin/comments/trash/permanent      (body: `{ ids }`)
  *
  * Messages (contact form)
  *   GET    /admin/messages?page=&limit=&sort=&status=&searchTerm=

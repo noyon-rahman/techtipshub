@@ -42,12 +42,17 @@ const commentSchema = new Schema<IComment>(
 );
 
 commentSchema.pre("find", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  // The trash list is the one caller that has to see removed rows.
+  if (!this.getOptions()?.bypassMiddleware) {
+    this.find({ isDeleted: { $ne: true } });
+  }
   next();
 });
 
 commentSchema.pre("findOne", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  if (!this.getOptions()?.bypassMiddleware) {
+    this.find({ isDeleted: { $ne: true } });
+  }
   next();
 });
 

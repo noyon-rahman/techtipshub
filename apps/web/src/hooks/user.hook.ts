@@ -2,6 +2,7 @@ import { readMemberPage } from "@/services/admin/members";
 import {
   blockUser,
   deleteUserAccount,
+  deleteUsersInBulk,
   followUser,
   getAllUsers,
   getUserFollowingStatus,
@@ -16,7 +17,12 @@ import type { TLegacyBody } from "@/lib/api-contract";
 import { TSocialLink } from "@/types";
 import type { IAdminMembersParams } from "@/types/admin.type";
 import type { IFollowResult } from "@techtipshub/shared";
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 
 /**
@@ -218,6 +224,42 @@ export const useDeleteUserAccount = () => {
           id: "delete-user-account",
         });
       }
+    },
+  });
+};
+
+/**
+ * Moves picked members to the trash in one press.
+ *
+ * Unlike the single delete, a failed request is an error rather than an
+ * answer: the selection is all or nothing, and the admin needs the API's
+ * reason (an admin account in the list) to see which row is in the way.
+ */
+export const useDeleteUsersInBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string[]>({
+    mutationKey: ["DELETE_USERS_BULK"],
+    mutationFn: async (ids) => await deleteUsersInBulk(ids),
+    onSuccess: (data) => {
+      const deleted = Number(data?.data?.deleted ?? 0);
+      const skipped = Number(data?.data?.skipped ?? 0);
+
+      toast.success(
+        `${deleted} ${deleted === 1 ? "member" : "members"} moved to Trash${
+          skipped > 0 ? `. ${skipped} were already there.` : "."
+        }`,
+        { id: "delete-users-bulk" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_MEMBERS"] });
+      queryClient.invalidateQueries({ queryKey: ["TRASHED_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_TRASH_COUNTS"] });
+      queryClient.invalidateQueries({ queryKey: ["TRASHED_USER_COUNT"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "delete-users-bulk" });
     },
   });
 };

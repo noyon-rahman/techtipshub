@@ -88,6 +88,9 @@ Conventions: [`Rules.md`](./Rules.md).
 - Profile: public view and edit in one page at `/profile`, social
   links, photo, followers and following lists.
 - Admin: all thirteen screens in `docs/admin-panel.md`, shared kit, activity log.
+  Bulk delete on all four lists that own removable rows (articles, members,
+  categories, comments) and on all four Trash tabs. Every bulk move is
+  reversible; only Trash erases for good.
 - Newsletter: signup blocks, the on/off switch on the profile page itself (no
   editor needed), issue builder, preview, test send,
   batched sending with per-recipient claims, unsubscribe links, Resend webhook
@@ -253,6 +256,12 @@ Things known to be wrong or unfinished, in the order they matter.
   query that returns "nothing" is usually a missing option, not a missing row.
   On `User` the deleted flag is `isDeleted`; the restore and permanent delete
   services read it with `User.collection.findOne`, which no hook rewrites.
+- **A trash hook must check the option, not just merge a filter.** A `pre` hook
+  that always calls `this.find({ isDeleted: { $ne: true } })` turns the trash
+  list into a list of every live row, because `bypassMiddleware` only skips the
+  branch that checks it. Category and comment did this until the bulk delete
+  work; article and member always guarded the call. A new soft-deleted model
+  needs the same `if (!this.getOptions()?.bypassMiddleware)` branch.
 - **A success answer carries no message.** `sendResponse` sends `{ data, meta? }`
   and `legacyBody` drops nothing but invents nothing either, so
   `toast.success(data?.message)` shows an empty box. Word the success toast at the
@@ -412,6 +421,29 @@ Things known to be wrong or unfinished, in the order they matter.
 
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
+
+- 2026-11-12: Bulk delete, on all four lists that own removable rows and on all
+  four Trash tabs. Selection lives in the kit (`use-row-selection.ts`,
+  `row-checkbox.tsx`, `selection-bar.tsx`, `DataTable`'s `selection` prop); a
+  row the action would refuse cannot be ticked, so "select all" skips in-use
+  categories and admin accounts. Every bulk move is a trash move and sends no
+  author email; only Trash erases, through a bulk "Delete permanently". API
+  gained `POST /admin/{blogs,users,categories}/bulk-delete` (body `{ ids }`,
+  1-200), `POST /admin/{blogs,users,comments}/trash/permanent`,
+  `DELETE /admin/blogs|categories/:id/permanent`,
+  `GET /admin/categories|comments/trash` and `PATCH /admin/categories/:id/restore`.
+  Bulk is all-or-nothing; already-trashed ids are skipped and counted, and a
+  live id in a permanent bulk refuses the whole set. Members refuse the whole
+  selection if any admin account is in it. Categories and comments move one
+  request per id (their single path holds the transaction and the log line) and
+  the error says how many went before the failure. Trash now has four tabs.
+  Verified in the browser against seeded throwaway rows: articles, members,
+  categories and comments all moved, appeared under the right tab with the right
+  count, and were erased for good; the seeded rows and their activity lines were
+  removed afterwards. Two browser-found bugs fixed: "categorys" in the selection
+  bar, footer and bulk dialog (`SelectionBar`, `ListFooter` and the trash bulk
+  dialog take an optional `pluralNoun`), and `pre("find")` on Category ignoring
+  `bypassMiddleware`, which listed every live category under Trash.
 
 - 2026-11-12: The delete toast on Members showed an empty box. `sendResponse`
   puts no `message` on a success body, and `legacyBody` keeps none on purpose, so

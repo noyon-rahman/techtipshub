@@ -19,11 +19,15 @@
  *
  * useTrashCounts() -> data: { blogs?, users? }
  * Mutations: useDeleteAdminBlog(), useDeleteAdminBlogPermanently(),
+ * useDeleteAdminBlogsInBulk(), useDeleteAdminBlogsPermanentlyInBulk(),
  * useRestoreTrashedBlog(), useCreateAdminBlog(), usePublishAdminBlog().
- */ import {
+ */
+import {
   createAdminBlog,
   deleteAdminBlog,
   deleteAdminBlogPermanently,
+  deleteAdminBlogsInBulk,
+  deleteAdminBlogsPermanentlyInBulk,
   getAdminBlogList,
   getAdminTrashedBlogList,
   publishAdminBlog,
@@ -226,6 +230,68 @@ export const useCreateAdminBlog = () => {
 
       queryClient.invalidateQueries({ queryKey: ADMIN_BLOGS_KEY });
       queryClient.invalidateQueries({ queryKey: ["GET_ALL_BLOGS"] });
+    },
+  });
+};
+
+/**
+ * Moves picked articles to the trash in one press.
+ *
+ * No author email leaves from here, unlike the single-row delete: a selection
+ * of twenty must not become twenty inboxes. Everything else the single action
+ * touches (counters, comments, votes, the category total) moves the same way.
+ */
+export const useDeleteAdminBlogsInBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string[]>({
+    mutationKey: ["ADMIN_DELETE_BLOGS_BULK"],
+    mutationFn: async (ids) => await deleteAdminBlogsInBulk(ids),
+    onSuccess: (data) => {
+      const deleted = Number(data?.data?.deleted ?? 0);
+      const skipped = Number(data?.data?.skipped ?? 0);
+
+      toast.success(
+        `${deleted} ${deleted === 1 ? "article" : "articles"} moved to Trash${
+          skipped > 0 ? `. ${skipped} were already there.` : "."
+        }`,
+        { id: "admin-delete-blogs-bulk" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: ADMIN_BLOGS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_BLOGS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASH_COUNTS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_BLOGS"] });
+      queryClient.invalidateQueries({ queryKey: ["GET_FEED_BLOGS"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "admin-delete-blogs-bulk" });
+    },
+  });
+};
+
+/** Erases picked trashed articles for good. */
+export const useDeleteAdminBlogsPermanentlyInBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string[]>({
+    mutationKey: ["ADMIN_DELETE_BLOGS_PERMANENT_BULK"],
+    mutationFn: async (ids) => await deleteAdminBlogsPermanentlyInBulk(ids),
+    onSuccess: (data) => {
+      const deleted = Number(data?.data?.deleted ?? 0);
+
+      toast.success(
+        `${deleted} ${deleted === 1 ? "article" : "articles"} deleted for good.`,
+        { id: "admin-delete-blogs-permanent-bulk" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: ADMIN_BLOGS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_BLOGS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASH_COUNTS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_BLOGS"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "admin-delete-blogs-permanent-bulk" });
     },
   });
 };

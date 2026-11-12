@@ -45,6 +45,28 @@ so the rail, the breadcrumb and the quick links cannot drift apart.
 | Trash         | `/admin/trash`             | What did we remove, and does it need to come back?          |
 | Activity log  | `/admin/activity-log`      | What have admins changed, and who did it?                   |
 
+## Bulk delete
+
+The four lists that own rows an admin removes (articles, members, categories,
+comments) and all four tabs of Trash can act on a ticked selection. The kit
+carries it: `useRowSelection` holds the ids, `RowCheckbox` is the per-row tick,
+`SelectionBar` is the bar that appears above the table, and `DataTable` takes a
+`selection` prop to render the column.
+
+- Every tick is a trash move. Nothing in a live list erases a row; Trash is the
+  only place with a permanent delete, and it takes the same selection.
+- A row the action would refuse cannot be ticked either, so "select all" means
+  all the rows the action can actually take: an in-use category and an admin
+  account are skipped by both.
+- A selection resets when the tab, search, sort or page changes, because those
+  ids no longer describe what is on screen.
+- Bulk is all-or-nothing on the API. Already-trashed ids are skipped and counted
+  in the answer; a live id in a permanent bulk refuses the whole request.
+- A bulk article move sends no author email; a single-row delete still does.
+
+`SelectionBar` and `ListFooter` take an optional `pluralNoun` for nouns that do
+not take a plain "s" (`categories`); the default is `noun + "s"`.
+
 ## Categories
 
 `/admin/categories` lists every category with the number of published articles
@@ -86,10 +108,17 @@ or fail outright.
 | Area       | Endpoints                                                                                                                                                                                                        |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Overview   | `GET /admin/overview`, `GET /admin/search?q=`, `GET /admin/activity?days=`, `GET /admin/logs?limit=`                                                                                                             |
-| Members    | `GET /admin/users`, `GET /admin/users/trash`, `PATCH /admin/users/:id/restore`, `PATCH /admin/users/:id/block`, `PATCH /admin/users/:id/unblock`, `PATCH /admin/users/:id/make-admin`, `DELETE /admin/users/:id` |
-| Articles   | `GET /admin/blogs/trash`, `PATCH /admin/blogs/:id/restore`, `DELETE /admin/blogs/:id` (body `{ reason }`), `PUT /admin/blogs/:id` (multipart `data` + optional `image`)                                          |
-| Categories | `GET /admin/categories`, `POST /admin/categories`, `PATCH /admin/categories/:id`, `DELETE /admin/categories/:id`                                                                                                 |
-| Comments   | `GET /admin/comments`, `GET /admin/comments/latest`, `GET /admin/comments/counts`, `DELETE /admin/comments/:id`                                                                                                  |
+| Members    | `GET /admin/users`, `GET /admin/users/trash`, `PATCH /admin/users/:id/restore`, `PATCH /admin/users/:id/block`, `PATCH /admin/users/:id/unblock`, `PATCH /admin/users/:id/make-admin`, `DELETE /admin/users/:id`, `POST /admin/users/bulk-delete` (body `{ ids }`), `POST /admin/users/trash/permanent` (body `{ ids }`) |
+| Articles   | `GET /admin/blogs/trash`, `PATCH /admin/blogs/:id/restore`, `DELETE /admin/blogs/:id` (body `{ reason }`), `POST /admin/blogs/bulk-delete` (body `{ ids }`), `DELETE /admin/blogs/:id/permanent`, `POST /admin/blogs/trash/permanent` (body `{ ids }`), `PUT /admin/blogs/:id` (multipart `data` + optional `image`) |
+| Categories | `GET /admin/categories`, `POST /admin/categories`, `PATCH /admin/categories/:id`, `DELETE /admin/categories/:id`, `POST /admin/categories/bulk-delete` (body `{ ids }`), `GET /admin/categories/trash`, `PATCH /admin/categories/:id/restore`, `DELETE /admin/categories/:id/permanent` |
+| Comments   | `GET /admin/comments`, `GET /admin/comments/latest`, `GET /admin/comments/counts`, `DELETE /admin/comments/:id`, `GET /admin/comments/trash`, `POST /admin/comments/trash/permanent` (body `{ ids }`) |
+
+Categories and comments have no bulk route for moving rows to the trash: those
+screens send one request per id, and report how many went if one fails, because
+the single-row path is the one with the transaction and the log line. Category
+permanent delete is per id for the same reason; the permanent delete of articles,
+members and comments takes the whole selection in one request.
+
 | Messages   | `GET /admin/messages`, `GET /admin/messages/:id`, `PATCH /admin/messages/:id/status`                                                                                                                             |
 | Newsletter | `GET/POST /admin/newsletter/subscribers`, `GET /admin/newsletter/subscribers/:id`, `POST /admin/newsletter/subscribers/unsubscribe`, `GET /admin/newsletter/subscribers/export`                                     |
 | Roundups   | `GET/POST /admin/newsletter/campaigns`, `GET/PUT/DELETE /admin/newsletter/campaigns/:id`, `GET …/suggestion`, `GET …/preview`, `GET …/progress`, `POST …/test`, `POST …/start`, `POST …/continue`                 |
