@@ -12,7 +12,7 @@ import { AdSlot } from "@/components/adsense";
  */
 const RightSideBar = () => {
   return (
-    <aside className="tth-rail hidden w-72 shrink-0 border-l border-default/60 xl:block">
+    <aside className="tth-rail hidden w-72 shrink-0 xl:block">
       <div className="tth-rail-inner flex flex-col gap-5 px-4 py-5">
         <div className="shrink-0">
           <CategoriesCard />

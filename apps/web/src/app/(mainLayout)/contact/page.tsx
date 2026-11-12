@@ -8,7 +8,6 @@ import Container from "@/components/ui/container";
 import { legalConfig } from "@/config/legal";
 import { Metadata } from "next";
 import Link from "next/link";
-import { BiChevronRight } from "react-icons/bi";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -49,12 +48,11 @@ const reasons = [
 const Contact = () => {
   return (
     <div>
-      {/* Hero. The same opening as About and Features: the heading on the left,
-          the details a reader wants first on the right. */}
-      <section className="border-b border-default/60">
+      {/* Hero */}
+      <section className="border-b border-default/60 bg-content-1/50">
         <Container>
-          <div className="py-14 lg:py-24">
-            <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1fr)_20rem] lg:gap-20">
+          <div className="py-10 sm:py-14 lg:py-20">
+            <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21rem] lg:gap-14">
               <PageHero
                 eyebrow="Contact"
                 title={
@@ -70,16 +68,15 @@ const Contact = () => {
                   <div className="flex flex-wrap items-center gap-3">
                     <ButtonLink
                       href="#contact-form"
-                      radius="lg"
+                      radius="md"
                       color="primary"
-                      endContent={<BiChevronRight />}
                       className="font-semibold"
                     >
                       Send a message
                     </ButtonLink>
                     <ButtonLink
                       href={`mailto:${CONTACT_EMAIL}`}
-                      radius="lg"
+                      radius="md"
                       variant="bordered"
                     >
                       Email instead
@@ -88,16 +85,21 @@ const Contact = () => {
                 }
               />
 
-              <aside className="lg:pt-2">
-                <h2 className="tth-label">Where to write</h2>
-                <FactList label="Contact details" className="mt-4">
+              <aside className="rounded-[10px] border border-default/70 border-t-2 border-t-primary bg-content-1 p-5 shadow-[0_1px_2px_rgba(20,19,21,0.04)] dark:shadow-none sm:p-6">
+                <h2 className="font-[family-name:var(--type-editorial)] text-lg font-semibold tracking-[-0.01em]">
+                  Where to write
+                </h2>
+                <p className="mt-1 text-xs text-default-600">
+                  Direct editorial and support inbox.
+                </p>
+                <FactList label="Contact details" className="mt-4 border-b-0">
                   <FactLink term="Email" href={`mailto:${CONTACT_EMAIL}`}>
                     {CONTACT_EMAIL}
                   </FactLink>
                   <Fact term="Form">
                     <Link
                       href="#contact-form"
-                      className="text-primary-accessible underline-offset-4 hover:underline"
+                      className="text-primary-accessible underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       On this page
                     </Link>
@@ -111,118 +113,124 @@ const Contact = () => {
       </section>
 
       <Container>
-        {/* What reaches us. A directory of reasons, set the same way as the
-            topics list on About. */}
-        <section
-          aria-labelledby="reasons"
-          className="grid gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16"
-        >
-          <div className="lg:pt-2">
-            <h2 id="reasons" className="tth-label leading-6">
-              What reaches us
-            </h2>
-            <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">
-              If your message fits one of these, say so in the subject so it is
-              routed sooner.
-            </p>
-          </div>
-
-          <ol className="divide-y divide-default/60 border-t border-default/60 md:grid md:grid-cols-2 md:gap-x-12 md:divide-y-0">
-            {reasons.map((reason, index) => (
-              <li
-                key={reason.title}
-                className="border-b border-default/60 py-6"
-              >
-                <span className="text-xs font-semibold tabular-nums tracking-wider text-primary-accessible">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <h3 className="mt-2 font-semibold tracking-tight">
-                  {reason.title}
-                </h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-default-600">
-                  {reason.body}
-                </p>
-              </li>
-            ))}
-          </ol>
-        </section>
-
-        {/* The form. It is the page's one job, so it gets the full measure. */}
+        {/* Main workspace: Form on the left, routing guide on the right */}
         <section
           aria-labelledby="contact-form"
-          className="grid scroll-mt-24 gap-10 border-b border-default/60 py-16 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16 lg:py-20"
+          className="scroll-mt-24 border-b border-default/60 py-12 sm:py-16"
         >
-          <div className="lg:pt-2">
-            <h2 id="contact-form" className="tth-label leading-6">
-              Send a message
-            </h2>
-            <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">
-              Every field is required. Replies come from the address you enter.
-            </p>
-            <p className="mt-4 max-w-[16rem] text-sm leading-relaxed text-default-600">
-              Read the{" "}
-              <Link
-                href="/community-guidelines"
-                className="font-medium text-primary-accessible underline-offset-4 hover:underline"
-              >
-                community guidelines
-              </Link>{" "}
-              or browse the{" "}
-              <Link
-                href="/"
-                className="font-medium text-primary-accessible underline-offset-4 hover:underline"
-              >
-                published articles
-              </Link>{" "}
-              first if the question may already be answered.
-            </p>
-          </div>
+          <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-10">
+            <div className="rounded-[10px] border border-default/70 bg-content-1 p-5 shadow-[0_1px_2px_rgba(20,19,21,0.04)] dark:shadow-none sm:p-7">
+              <div className="mb-6 border-b border-default/60 pb-4">
+                <h2
+                  id="contact-form"
+                  className="font-[family-name:var(--type-editorial)] text-2xl font-semibold tracking-[-0.015em]"
+                >
+                  Send a message
+                </h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-default-600">
+                  Every field is required. Replies go to the email address you
+                  enter.
+                </p>
+              </div>
+              <ContactForm />
+            </div>
 
-          <div>
-            <ContactForm />
+            <div className="space-y-4">
+              <div className="px-1">
+                <h2 id="reasons" className="tth-label">
+                  What reaches us
+                </h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-default-600">
+                  Include one of these in the subject so your note reaches the
+                  right person sooner.
+                </p>
+              </div>
+
+              <ol className="space-y-3">
+                {reasons.map((reason, index) => (
+                  <li
+                    key={reason.title}
+                    className="rounded-[10px] border border-default/70 bg-content-1 p-4 shadow-[0_1px_2px_rgba(20,19,21,0.04)] dark:shadow-none"
+                  >
+                    <div className="flex items-baseline gap-2.5">
+                      <span className="inline-flex rounded-[6px] bg-primary/12 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-primary-accessible">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <h3 className="font-[family-name:var(--type-editorial)] text-base font-semibold tracking-[-0.01em]">
+                        {reason.title}
+                      </h3>
+                    </div>
+                    <p className="mt-1.5 text-sm leading-relaxed text-default-600">
+                      {reason.body}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+
+              <p className="px-1 pt-1 text-xs leading-relaxed text-default-600">
+                Before writing, check the{" "}
+                <Link
+                  href="/community-guidelines"
+                  className="font-medium text-primary-accessible underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  community guidelines
+                </Link>{" "}
+                or browse{" "}
+                <Link
+                  href="/"
+                  className="font-medium text-primary-accessible underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  published articles
+                </Link>
+                .
+              </p>
+            </div>
           </div>
         </section>
 
-        {/* The form is this page's one job, so the unit sits after it and before
-            the sign-up block, never between the form and the hero. */}
-        <div className="pb-4">
+        <div className="pt-4">
           <AdSlot variant="display" placement="contact-form-end" />
         </div>
 
-        {/* The list, for readers with no question of their own. It sits beside
-            the closing invitation so the page ends on two ways to stay in
-            touch rather than one. */}
+        {/* Newsletter card */}
         <section
           aria-labelledby="newsletter"
-          className="grid gap-8 border-b border-default/60 py-12 lg:grid-cols-[16rem_minmax(0,1fr)] lg:gap-16"
+          className="border-b border-default/60 py-12"
         >
-          <div className="lg:pt-2">
-            <h2 id="newsletter" className="tth-label leading-6">
-              The newsletter
-            </h2>
-            <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-default-600">
-              Nothing to say yet? Get the monthly roundup instead, and write to
-              us when something comes up.
-            </p>
+          <div className="grid items-center gap-6 rounded-[10px] border border-default/70 bg-content-1 p-5 shadow-[0_1px_2px_rgba(20,19,21,0.04)] dark:shadow-none sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:gap-12">
+            <div>
+              <h2
+                id="newsletter"
+                className="font-[family-name:var(--type-editorial)] text-xl font-semibold tracking-[-0.01em]"
+              >
+                The monthly roundup
+              </h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-default-600">
+                Nothing to ask right now? Get the monthly roundup instead, and
+                write to us when something comes up.
+              </p>
+            </div>
+            <NewsletterSignup layout="stack" className="max-w-xl" />
           </div>
-          <NewsletterSignup layout="stack" className="max-w-xl" />
         </section>
 
-        {/* Close, matching the other editorial pages. */}
-        <section className="py-16 lg:py-20">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-pretty text-2xl font-semibold tracking-tight md:text-3xl">
-              Want to write here instead?
-            </h2>
-            <p className="mx-auto mt-3 max-w-xl leading-relaxed text-default-600">
-              Publishing is open to anyone with an account. The About page
-              explains what we publish and the standards every article meets.
-            </p>
-            <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <ButtonLink href="/signup" radius="lg" color="primary">
+        {/* Closing invitation banner */}
+        <section className="py-12 sm:py-16">
+          <div className="flex flex-col justify-between gap-6 rounded-[10px] border border-default/70 bg-content-1 p-6 shadow-[0_1px_2px_rgba(20,19,21,0.04)] dark:shadow-none sm:p-8 lg:flex-row lg:items-center">
+            <div className="max-w-xl">
+              <h2 className="font-[family-name:var(--type-editorial)] text-pretty text-2xl font-semibold tracking-[-0.015em] md:text-[1.75rem]">
+                Want to write here instead?
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-default-600 sm:text-base">
+                Publishing is open to anyone with an account. The About page
+                explains what we publish and the standards every article meets.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-3">
+              <ButtonLink href="/signup" radius="md" color="primary">
                 Create a free account
               </ButtonLink>
-              <ButtonLink href="/about" radius="lg" variant="bordered">
+              <ButtonLink href="/about" radius="md" variant="bordered">
                 About the publication
               </ButtonLink>
             </div>

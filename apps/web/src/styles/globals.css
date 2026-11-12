@@ -248,29 +248,20 @@
   top: var(--header-height);
   align-self: flex-start;
   max-height: calc(100dvh - var(--header-height));
-}
-
-.tth-rail > .tth-rail-inner {
-  display: flex;
-  flex-direction: column;
-  height: calc(100dvh - var(--header-height));
-  min-height: calc(100dvh - var(--header-height));
-  max-height: calc(100dvh - var(--header-height));
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
 
-.tth-rail > .tth-rail-inner::-webkit-scrollbar {
+.tth-rail::-webkit-scrollbar {
   display: none;
 }
 
-/* A rail advert is a full-height block, never a squeezed one. Its wrapper used
-   to cap itself below the card's height and clip the overflow, which cut the
-   bottom off the unit as soon as the rail ran short. It now takes the height
-   its card needs; if the column is too short for everything, `.tth-rail-inner`
-   scrolls instead of cropping the advert. The clipping stays on the wrapper so
-   a creative that overflows its own frame cannot spill over the rail. */
+.tth-rail > .tth-rail-inner {
+  display: flex;
+  flex-direction: column;
+}
+
 .tth-rail-ad {
   flex: 0 0 auto;
   overflow: hidden;

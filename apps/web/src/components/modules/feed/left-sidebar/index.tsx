@@ -68,7 +68,7 @@ const LeftSideBar = () => {
     href === "/" ? pathname === "/" : pathname?.startsWith(href);
 
   return (
-    <aside className="tth-rail hidden w-56 shrink-0 border-r border-default/60 lg:block">
+    <aside className="tth-rail hidden w-56 shrink-0 lg:block">
       <div className="tth-rail-inner flex flex-col px-3 py-5">
         <nav aria-label="Feed navigation" className="space-y-6">
           {user && (
