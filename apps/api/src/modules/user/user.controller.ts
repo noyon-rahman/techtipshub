@@ -157,6 +157,19 @@ const restoreUser = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+const deleteUserAccountPermanently = async (
+  c: Context<TAppBindings, string>,
+) => {
+  const { id } = c.req.param() as TRouteParams;
+
+  const result = await userService.deleteUserAccountPermanently(
+    id,
+    c.get("user").email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const followUser = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams; // user id want's to follow
   const result = await userService.followUser(c.get("user"), id);
@@ -242,4 +255,5 @@ export const userController = {
   deleteUserAccount,
   getDeletedUsers,
   restoreUser,
+  deleteUserAccountPermanently,
 };

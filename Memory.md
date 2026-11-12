@@ -42,7 +42,8 @@ Conventions: [`Rules.md`](./Rules.md).
   only") shown in both composer rails, both editors, the member article list,
   the admin table and the moderation queue. Member list at `/profile/blogs`,
   admin list, admin composer writing on a member's behalf, permanent delete and
-  restore.
+  restore. Members follow the same two steps: delete moves the login to Trash,
+  "Delete permanently" in Trash erases it.
 - Categories: searchable picker in every composer, showing each category with
   its published article count. A signed-in member who needs one the list does
   not have types the name and picks the `Create <name>` row, which posts
@@ -250,6 +251,12 @@ Things known to be wrong or unfinished, in the order they matter.
 - **Mongo filters live in model middleware.** `find`/`findOne` hide trashed rows
   and drafts unless the call passes `bypassMiddleware` / `includeDrafts`. A
   query that returns "nothing" is usually a missing option, not a missing row.
+  On `User` the deleted flag is `isDeleted`; the restore and permanent delete
+  services read it with `User.collection.findOne`, which no hook rewrites.
+- **A success answer carries no message.** `sendResponse` sends `{ data, meta? }`
+  and `legacyBody` drops nothing but invents nothing either, so
+  `toast.success(data?.message)` shows an empty box. Word the success toast at the
+  hook, and give every error toast a fallback.
 - **The browser API proxy is an allowlist.** A route that works from the server
   component fails from the browser until it is added to
   `app/api/v1/[...path]/route.ts`. That is on purpose. `POST /uploads/cover` and
@@ -406,6 +413,22 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-11-12: The delete toast on Members showed an empty box. `sendResponse`
+  puts no `message` on a success body, and `legacyBody` keeps none on purpose, so
+  a hook that toasts `data?.message` after a success says nothing at all. Delete,
+  make admin and save social links now name the outcome ("Account moved to
+  Trash") and their failures have a fallback. Checked in the browser on
+  `/admin/manage-users`: the toast reads, the row leaves, the member is in Trash.
+- 2026-11-12: Deleting a member matches deleting an article: two steps. Delete
+  from Members or the member screen still moves the login to Trash (and purges
+  its articles, comments, views and votes, as before), and Trash > Members now
+  carries "Delete permanently" beside "Restore", as the articles tab always did.
+  `DELETE /admin/users/:id/permanent` erases the account, refuses anything not in
+  the trash ("Move the account to the trash before deleting it permanently"),
+  and clears its `username_history` rows so the handles are free again. Verified
+  on `/admin/trash?tab=members`: the row leaves, the badge counts down, the
+  "was deleted permanently" notice shows, the activity log records
+  `user.delete_permanent`, and the API answers 400 for a live account.
 - 2026-11-12: Row-menu confirm dialogs actually run their action now. The panel
   was still closing on the document `pointerdown` that starts a press on the
   dialog's own button, so the dialog unmounted before the `click` fired: the

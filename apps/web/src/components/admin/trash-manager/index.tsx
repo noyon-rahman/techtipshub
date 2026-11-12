@@ -16,6 +16,7 @@ import ListFooter from "@/components/modules/admin/kit/list-footer";
 import ListFrame from "@/components/modules/admin/kit/list-frame";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import {
+  useDeleteUserPermanently,
   useRestoreBlog,
   useRestoreUser,
   useTrashedBlogs,
@@ -129,6 +130,8 @@ const TrashManager = () => {
 
   const { mutate: restoreBlog, isPending: isRestoringBlog } = useRestoreBlog();
   const { mutate: restoreUser, isPending: isRestoringUser } = useRestoreUser();
+  const { mutate: deleteUserForever, isPending: isDeletingUserForever } =
+    useDeleteUserPermanently();
   const { mutate: deleteForever, isPending: isDeletingForever } =
     useDeleteAdminBlogPermanently();
 
@@ -188,6 +191,17 @@ const TrashManager = () => {
           href: `/admin/manage-users/${user._id}`,
           what: "account",
         });
+        stepBackIfEmpty(usersQuery.rows.length);
+      },
+    });
+  };
+
+  const onDeleteUserForever = (user: ITrashedUser) => {
+    deleteUserForever(user._id, {
+      onSuccess: (response) => {
+        if (response?.success === false) return;
+        setRestored(null);
+        setRemoved(user.fullName || "The member");
         stepBackIfEmpty(usersQuery.rows.length);
       },
     });
@@ -485,23 +499,48 @@ const TrashManager = () => {
 
             case "actions":
               return (
-                <ConfirmDialog
-                  trigger={
-                    <button
-                      type="button"
-                      className={restoreButton}
-                      aria-label={`Restore ${user.fullName || "this member"}`}
-                    >
-                      <RiArrowGoBackLine aria-hidden className="size-4" />
-                      Restore
-                    </button>
-                  }
-                  title="Restore this member?"
-                  description="The login and profile come back. The articles, comments and votes removed with the account do not, so it returns with an empty history."
-                  confirmLabel="Restore account"
-                  isPending={isRestoringUser}
-                  onConfirm={() => onRestoreUser(user)}
-                />
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <ConfirmDialog
+                    trigger={
+                      <button
+                        type="button"
+                        className={restoreButton}
+                        aria-label={`Restore ${user.fullName || "this member"}`}
+                      >
+                        <RiArrowGoBackLine aria-hidden className="size-4" />
+                        Restore
+                      </button>
+                    }
+                    title="Restore this member?"
+                    description="The login and profile come back. The articles, comments and votes removed with the account do not, so it returns with an empty history."
+                    confirmLabel="Restore account"
+                    isPending={isRestoringUser}
+                    onConfirm={() => onRestoreUser(user)}
+                  />
+
+                  <ConfirmDialog
+                    trigger={
+                      <button
+                        type="button"
+                        className={dangerButton}
+                        aria-label={`Delete ${
+                          user.fullName || "this member"
+                        } permanently`}
+                      >
+                        <RiDeleteBinLine aria-hidden className="size-4" />
+                        Delete permanently
+                      </button>
+                    }
+                    title={`Delete "${
+                      user.fullName || "this member"
+                    }" permanently?`}
+                    description="This erases the account for good, and the name, handle and address can be used by someone else. The address stops answering, and nothing here can bring the member back."
+                    confirmLabel="Delete permanently"
+                    tone="danger"
+                    isPending={isDeletingUserForever}
+                    onConfirm={() => onDeleteUserForever(user)}
+                  />
+                </div>
               );
 
             default:

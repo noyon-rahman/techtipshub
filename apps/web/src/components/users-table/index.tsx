@@ -494,7 +494,7 @@ const UsersTable = () => {
                       </button>
                     }
                     title={`Delete ${name}'s account?`}
-                    description="Their articles, comments, views and votes go with the account and do not come back. The login can be restored from Trash."
+                    description="Their articles, comments, views and votes go with the account. The login moves to Trash, where it can be restored or deleted for good."
                     confirmLabel="Delete account"
                     tone="danger"
                     isPending={isDeleting}

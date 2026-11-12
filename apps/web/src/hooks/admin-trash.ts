@@ -16,11 +16,12 @@
  * useTrashedUserCount() -> data: number | undefined   (member tab badge)
  * useTrashCounts()      -> data: { blogs?, users? }   (both tab badges)
  *
- * Mutations: useRestoreUser(), useRestoreBlog(), useDeleteAdminBlog() (from
- * `admin-blogs.ts`). Each invalidates the list, the counts and the
- * public/admin article and member lists.
+ * Mutations: useRestoreUser(), useRestoreBlog(), useDeleteUserPermanently(),
+ * useDeleteAdminBlog() (from `admin-blogs.ts`). Each invalidates the list, the
+ * counts and the public/admin article and member lists.
  */
 import {
+  deleteUserPermanently,
   getTrashedUserCount,
   getTrashedUsers,
   readTrashedUserPage,
@@ -117,6 +118,40 @@ export const useRestoreUser = () => {
     onError: (error) => {
       toast.error(error?.message || "The member could not be restored", {
         id: "restore-user-error",
+      });
+    },
+  });
+};
+
+/** Erases a trashed member for good; refreshes the trash and both badges. */
+export const useDeleteUserPermanently = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string>({
+    mutationKey: ["DELETE_USER_PERMANENT"],
+    mutationFn: async (id) => await deleteUserPermanently(id),
+    onSuccess: (data) => {
+      if (data?.success === false) {
+        toast.error(data?.message || "The member could not be deleted.", {
+          id: "delete-user-permanent",
+        });
+        return;
+      }
+
+      toast.success(data?.message || "Member deleted for good", {
+        id: "delete-user-permanent",
+      });
+
+      queryClient.invalidateQueries({ queryKey: TRASHED_USERS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASH_COUNTS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_USER_COUNT_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_MEMBERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_USERS_TRASH"] });
+    },
+    onError: (error) => {
+      toast.error(error?.message || "The member could not be deleted.", {
+        id: "delete-user-permanent",
       });
     },
   });

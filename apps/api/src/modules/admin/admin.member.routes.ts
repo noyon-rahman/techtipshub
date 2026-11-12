@@ -35,6 +35,11 @@ adminUserRouter.patch(
   userController.updateProfileByAdmin,
 );
 adminUserRouter.delete("/:id", userController.deleteUserAccount);
+// Only a trashed account, the same rule the article endpoint keeps.
+adminUserRouter.delete(
+  "/:id/permanent",
+  userController.deleteUserAccountPermanently,
+);
 
 const adminCommentRouter = new Hono<TAppBindings>();
 

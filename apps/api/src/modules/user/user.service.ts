@@ -321,10 +321,7 @@ const usernameRefusal = async (username: string, excludeId?: string) => {
  * The wording is the shared rule's own, so the form, the API's validation and
  * this answer cannot describe the same handle three different ways.
  */
-const checkUsernameAvailability = async (
-  userData: JwtPayload,
-  raw: string,
-) => {
+const checkUsernameAvailability = async (userData: JwtPayload, raw: string) => {
   const user = await readerForUsername(userData);
   const username = normaliseUsername(raw);
 
@@ -454,7 +451,6 @@ const findCurrentHandle = async (handle: string) => {
 const getUsernameState = async (userData: JwtPayload) =>
   usernameChangeState(await readerForUsername(userData));
 
-
 const updateProfile = async (userData: JwtPayload, payload: IUser) => {
   const user = await User.findOne({ email: userData.email });
   if (!user) {
@@ -495,7 +491,9 @@ const updateProfile = async (userData: JwtPayload, payload: IUser) => {
           usernameChangedAt: new Date(),
           // A member who changes a handle has, by that act, seen and chosen it
           // even if they never reached the step: the step is not asked again.
-          ...(user.usernameOnboardedAt ? {} : { usernameOnboardedAt: new Date() }),
+          ...(user.usernameOnboardedAt
+            ? {}
+            : { usernameOnboardedAt: new Date() }),
         },
         { new: true, runValidators: true },
       );
@@ -637,9 +635,7 @@ const updateSocialLinks = async (
 const liveInterests = async (ids: string[]) => {
   if (ids.length === 0) return [];
 
-  const categories = await Category.find({ _id: { $in: ids } }).select(
-    "name",
-  );
+  const categories = await Category.find({ _id: { $in: ids } }).select("name");
   const byId = new Map(categories.map((row) => [String(row._id), row.name]));
 
   return ids.flatMap((id) => {
@@ -980,6 +976,67 @@ const restoreUser = async (id: string, adminEmail?: string) => {
   return result;
 };
 
+/**
+ * Erase a deleted member for good.
+ *
+ * Only a member already in the trash can be erased, so the accounts, articles,
+ * comments, views and votes were purged on the way in and are not touched
+ * here; each is deleted again to keep an older leftover from outliving the
+ * account. The handle records go too: they exist to forward an old address to
+ * the member, and there is nobody left to forward to, so the handles are free
+ * for someone else rather than reserved forever.
+ */
+const deleteUserAccountPermanently = async (
+  id: string,
+  adminEmail?: string,
+) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid user Id");
+  }
+
+  // The find hook hides deleted members, so read the raw document.
+  const raw = await User.collection.findOne({
+    _id: new mongoose.Types.ObjectId(id),
+  });
+  if (!raw) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (raw.isDeleted !== true) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Move the account to the trash before deleting it permanently",
+    );
+  }
+
+  await Promise.all([
+    Blog.deleteMany({ author: raw._id }),
+    Comment.deleteMany({ user: raw._id }),
+    View.deleteMany({ user: raw._id }),
+    Vote.deleteMany({ user: raw._id }),
+    Follower.deleteMany({ follower: raw._id }),
+    Follower.deleteMany({ following: raw._id }),
+    UsernameHistory.deleteMany({ userId: String(raw._id) }),
+  ]);
+
+  await User.deleteOne({ _id: raw._id });
+
+  await adminLogService.record({
+    adminEmail,
+    action: "user.delete_permanent",
+    targetType: "user",
+    targetId: String(raw._id),
+    summary: `Permanently deleted account ${raw.fullName} (@${raw.username})`,
+    meta: { email: raw.email },
+  });
+
+  return {
+    _id: String(raw._id),
+    fullName: raw.fullName,
+    username: raw.username,
+  };
+};
+
 const followUser = async (userData: JwtPayload, userIdToFollow: string) => {
   const session = await mongoose.startSession();
   let totalFollowers;
@@ -1304,4 +1361,5 @@ export const userService = {
   deleteUserAccount,
   getDeletedUsers,
   restoreUser,
+  deleteUserAccountPermanently,
 };

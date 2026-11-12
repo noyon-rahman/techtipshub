@@ -94,6 +94,17 @@ export const restoreUser = async (id: string) => {
   }
 };
 
+/** `DELETE /admin/users/:id/permanent` (Admin). Only a trashed account. */
+export const deleteUserPermanently = async (id: string) => {
+  try {
+    const res = await axiosInstance.delete(`/admin/users/${id}/permanent`);
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The member could not be deleted.");
+  }
+};
+
 /**
  * How many accounts are in the trash.
  *

@@ -23,6 +23,7 @@
  *   PATCH  /admin/users/:id/unblock
  *   PATCH  /admin/users/:id/make-admin
  *   DELETE /admin/users/:id
+ *   DELETE /admin/users/:id/permanent
  *
  * Blogs
  *   GET    /admin/blogs?page=&limit=&searchTerm=&category=&author=&sort=&status=

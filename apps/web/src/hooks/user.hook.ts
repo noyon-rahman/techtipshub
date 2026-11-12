@@ -184,13 +184,13 @@ export const useMakeAdmin = () => {
     mutationFn: async (userId) => await makeAdmin(userId),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The member was not made an admin.", {
           id: "user-make-admin",
         });
       }
 
       if (data?.success) {
-        toast.success(data?.message, {
+        toast.success("Member is now an admin", {
           id: "user-make-admin",
         });
       }
@@ -206,13 +206,15 @@ export const useDeleteUserAccount = () => {
     mutationFn: async (userId) => await deleteUserAccount(userId),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The account was not deleted.", {
           id: "delete-user-account",
         });
       }
 
       if (data?.success) {
-        toast.success(data?.message, {
+        // The API sends no message on success, so saying nothing here would
+        // leave an empty toast.
+        toast.success("Account moved to Trash", {
           id: "delete-user-account",
         });
       }
@@ -245,13 +247,13 @@ export const useUpdateSocialLinks = () => {
     mutationFn: async (payload) => await updateSocialLinks(payload),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The links were not saved.", {
           id: "user-social-links-updated",
         });
       }
 
       if (data?.success) {
-        toast.success(data?.message, {
+        toast.success("Links saved", {
           id: "user-social-links-updated",
         });
       }
