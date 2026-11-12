@@ -114,7 +114,7 @@
   --color-primary-foreground: hsl(var(--heroui-primary-foreground));
 
   /* Single source of truth for the sticky header height: the 4rem bar plus
-     its 1px bottom border, which is the box the rails offset themselves by. */
+     its 1px bottom border, which the sticky rails offset by. */
   --header-height: calc(4rem + 1px);
 
   /* Page widths. Every shell on the site measures from here, so the header,
@@ -176,21 +176,6 @@
     border-radius: 10px;
   }
 
-  /* Amber as *text*. One utility, two themes: amber 800 on paper reaches
-     7.5:1 and amber 400 on charcoal reaches 9.3:1. Each theme is declared
-     once; an earlier version repeated `.dark .text-primary-accessible` in
-     both blocks, so one rule silently won and future edits would have been
-     lost. */
-  .text-primary-accessible {
-    color: hsl(var(--heroui-primary-800));
-  }
-
-  .dark .text-primary-accessible,
-  .dark .group:hover .text-primary-accessible,
-  .dark .group:focus-visible .text-primary-accessible {
-    color: hsl(var(--heroui-primary-400));
-  }
-
   /* A vote this reader holds, on the button itself: amber for an upvote,
      rose for a downvote. HeroUI's light variant sets the icon colour from its
      own `data-*` rule, which outranks a Tailwind colour utility appended in
@@ -211,6 +196,17 @@
 
   .dark .tth-vote-down {
     color: hsl(var(--heroui-danger-400)) !important;
+  }
+}
+
+/* Amber as *text*. Declared as a Tailwind v4 `@utility` so variants like
+   `hover:text-primary-accessible` and `group-hover:text-primary-accessible`
+   work in both light and dark themes. */
+@utility text-primary-accessible {
+  color: hsl(var(--heroui-primary-800));
+
+  .dark & {
+    color: hsl(var(--heroui-primary-400));
   }
 }
 
