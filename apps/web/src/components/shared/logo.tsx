@@ -12,11 +12,11 @@ interface MarkProps {
 }
 
 /**
- * The TechTipsHub mark: a square tile with a T carved into it. The square is
- * the code block, the letter is the name. The tile is fixed amber 400 and the
- * T is fixed ink in both themes: the carved letter needs a light tile to keep
- * its edge, and the mark is the one element that must look identical on paper
- * and on charcoal.
+ * The TechTipsHub mark: an amber code-block tile with a chisel-cut T and a
+ * grounded cursor block. The tile is fixed amber 400 and the mark is fixed ink
+ * in both themes: the carved letter needs a light tile to keep its edge, and
+ * the mark is the one element that must look identical on paper and on
+ * charcoal.
  */
 export const LogoMark = ({ size = "md", className = "" }: MarkProps) => {
   const { box } = markMetrics[size];
@@ -32,7 +32,11 @@ export const LogoMark = ({ size = "md", className = "" }: MarkProps) => {
       xmlns="http://www.w3.org/2000/svg"
     >
       <rect fill="currentColor" height="128" rx="28" width="128" />
-      <path d="M42 44h44v11H75v27H63V55H53v27H42V55z" fill="#141315" />
+      <path
+        d="M28 32H88L100 44V50H73V96H67L55 84V50H28V32Z"
+        fill="#141315"
+      />
+      <rect fill="#141315" height="18" rx="3" width="18" x="82" y="78" />
     </svg>
   );
 };

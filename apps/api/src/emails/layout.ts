@@ -1,4 +1,5 @@
 import mjml2html from "mjml";
+import env from "../config/env";
 import { MAIL_REPLY_TO } from "../config/mail";
 
 export type TEmailMessage = {
@@ -99,8 +100,10 @@ const layout = ({
       <mj-column>
         <mj-table cellpadding="0" cellspacing="0" role="presentation" width="100%" padding="0">
           <tr>
-            <td width="40" aria-hidden="true" style="width:40px;height:40px;background-color:${brand.amber};border-radius:6px;text-align:center;vertical-align:middle;font-family:${displayFont};font-size:24px;font-weight:600;line-height:40px;color:${brand.ink};">T</td>
-            <td style="padding-left:12px;vertical-align:middle;font-family:${displayFont};font-size:18px;color:${brand.ink};letter-spacing:-0.01em;">TechTipsHub</td>
+            <td width="36" style="width:36px;height:36px;vertical-align:middle;">
+              <img src="${env.CLIENT_BASE_URL.replace(/\/$/, "")}/brand/icon-192.png" width="36" height="36" alt="" style="display:block;width:36px;height:36px;border-radius:8px;background-color:${brand.amber};" />
+            </td>
+            <td style="padding-left:12px;vertical-align:middle;font-family:${displayFont};font-size:18px;font-weight:700;color:${brand.ink};letter-spacing:-0.01em;">TechTips<span style="color:${brand.amberText};">Hub</span></td>
           </tr>
         </mj-table>
       </mj-column>

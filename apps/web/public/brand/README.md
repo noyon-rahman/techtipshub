@@ -7,11 +7,12 @@ platforms fetch by hard-coded name (`/favicon.ico` and
 
 ## The mark
 
-A square tile with a **T** carved into it. The square is a code block, the
-letter is the name. Two shapes only, on one grid (128 units): the tile is
-`x 26, y 26, 76 × 76, r 14`, the T is a 6-unit stem with an 11-unit crossbar.
-The tile is always amber 400 and the T is always ink, in every asset and in
-both themes: a white T on amber only reaches 2:1, an ink T reaches 9.3:1.
+A square amber tile with a **chisel-cut T and grounded cursor block** carved into it.
+The square is a code block, the bevelled T is editorial writing and tips, and the
+cursor block anchors the hub. Built on one `128 × 128` grid (`rx 28` outer tile,
+`18`-unit strokes, `12 × 12` 45° bevels, and an `18 × 18` cursor block).
+The tile is always amber 400 and the mark is always ink, in every asset and in
+both themes: white on amber only reaches 2:1, ink reaches 9.3:1.
 `Hub` is set separately in the wordmark, so `TechTips` and `Hub` can take two
 colours without the letterforms fighting each other.
 

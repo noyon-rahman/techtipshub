@@ -8,6 +8,7 @@ import {
   DropdownTrigger,
 } from "@heroui/react";
 import UserAvatar from "@/components/ui/user-avatar";
+import { LogoMark } from "@/components/shared/logo";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef } from "react";
@@ -134,11 +135,7 @@ const AdminSidebar = () => {
       {/* The mark is the one amber fill at rest, here paired with a small
           section switcher affordance so the rail reads as the panel's own
           header rather than more nav. */}
-      <span className="relative shrink-0">
-        <span className="flex size-8 items-center justify-center rounded-[6px] bg-primary text-sm font-bold text-primary-foreground">
-          T
-        </span>
-      </span>
+      <LogoMark size="md" className="shrink-0 text-primary-400" />
       {!collapsed && (
         <span className="flex min-w-0 flex-col leading-none">
           <span className="truncate font-[family-name:var(--type-editorial)] text-[0.9375rem] font-semibold tracking-[-0.01em] text-foreground">
