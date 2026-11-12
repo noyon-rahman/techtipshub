@@ -276,7 +276,7 @@ export const useUpdateProfile = () => {
         return;
       }
 
-      toast.success(data?.message, {
+      toast.success("Your profile was saved.", {
         id: "user-profile-updated",
       });
     },

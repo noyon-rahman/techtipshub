@@ -156,7 +156,8 @@ export const useDeleteAdminBlog = () => {
         return;
       }
 
-      toast.success(data?.message || "Article moved to the trash", {
+      // A success body carries no `message`, so the wording is the hook's.
+      toast.success("Article moved to Trash.", {
         id: "admin-delete-blog",
       });
 
@@ -189,7 +190,7 @@ export const useDeleteAdminBlogPermanently = () => {
         return;
       }
 
-      toast.success(data?.message || "Article deleted for good", {
+      toast.success("Article deleted for good.", {
         id: "admin-delete-blog-permanent",
       });
 

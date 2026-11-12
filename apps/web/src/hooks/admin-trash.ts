@@ -104,7 +104,7 @@ export const useRestoreUser = () => {
     mutationFn: async (id) => await restoreUser(id),
     onSuccess: (data) => {
       if (data?.success) {
-        toast.success(data?.message || "Member restored", {
+        toast.success("Member restored.", {
           id: "restore-user",
         });
       } else if (data?.message) {
@@ -141,7 +141,7 @@ export const useDeleteUserPermanently = () => {
         return;
       }
 
-      toast.success(data?.message || "Member deleted for good", {
+      toast.success("Member deleted for good.", {
         id: "delete-user-permanent",
       });
 
@@ -233,7 +233,7 @@ export const useRestoreBlog = () => {
     mutationFn: async (id) => await restoreBlog(id),
     onSuccess: (data) => {
       if (data?.success) {
-        toast.success(data?.message || "Article restored", {
+        toast.success("Article restored.", {
           id: "restore-blog",
         });
       } else if (data?.message) {

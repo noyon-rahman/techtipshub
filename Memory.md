@@ -422,6 +422,13 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-11-12: The single-row delete and restore toasts on the articles list, and
+  the profile save toast, fell through to `data?.message`. A success body has no
+  message, so the profile one rendered empty. They now word themselves ("Article
+  moved to Trash.", "Article deleted for good.", "Member restored.", "Member
+  deleted for good.", "Article restored.", "Your profile was saved."). Checked on
+  `/admin/manage-blogs` with a seeded row: the toast reads and the row leaves.
+
 - 2026-11-12: Bulk delete, on all four lists that own removable rows and on all
   four Trash tabs. Selection lives in the kit (`use-row-selection.ts`,
   `row-checkbox.tsx`, `selection-bar.tsx`, `DataTable`'s `selection` prop); a
