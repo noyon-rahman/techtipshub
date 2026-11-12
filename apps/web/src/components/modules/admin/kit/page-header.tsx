@@ -27,9 +27,9 @@ export default function AdminPageHeader({
   meta,
 }: IProps) {
   return (
-    <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-balance font-[family-name:var(--type-editorial)] text-[1.75rem] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[2rem]">
+        <h1 className="text-balance font-[family-name:var(--type-editorial)] text-[1.5rem] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[1.75rem]">
           {title}
         </h1>
         {description && (

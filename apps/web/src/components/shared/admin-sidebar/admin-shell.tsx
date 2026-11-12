@@ -19,6 +19,9 @@ interface AdminShellValue {
   closeNav: () => void;
   isRailCollapsed: boolean;
   toggleRail: () => void;
+  isSearchOpen: boolean;
+  openSearch: () => void;
+  closeSearch: () => void;
 }
 
 const AdminShellContext = createContext<AdminShellValue | undefined>(undefined);
@@ -31,6 +34,7 @@ export function AdminShellProvider({
   children: React.ReactNode;
 }) {
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   // Read once on mount: the rail choice is a display preference, not screens
   // state, and reading it lazily keeps the server markup stable.
   const [isRailCollapsed, setIsRailCollapsed] = useState(() => {
@@ -46,6 +50,8 @@ export function AdminShellProvider({
 
   const openNav = useCallback(() => setIsNavOpen(true), []);
   const closeNav = useCallback(() => setIsNavOpen(false), []);
+  const openSearch = useCallback(() => setIsSearchOpen(true), []);
+  const closeSearch = useCallback(() => setIsSearchOpen(false), []);
 
   const toggleRail = useCallback(() => {
     setIsRailCollapsed((current) => {
@@ -69,8 +75,20 @@ export function AdminShellProvider({
       closeNav,
       isRailCollapsed,
       toggleRail,
+      isSearchOpen,
+      openSearch,
+      closeSearch,
     }),
-    [isNavOpen, openNav, closeNav, isRailCollapsed, toggleRail],
+    [
+      isNavOpen,
+      openNav,
+      closeNav,
+      isRailCollapsed,
+      toggleRail,
+      isSearchOpen,
+      openSearch,
+      closeSearch,
+    ],
   );
 
   return (

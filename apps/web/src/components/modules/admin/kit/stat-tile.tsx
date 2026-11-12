@@ -22,6 +22,10 @@ interface IProps {
   delta?: StatDelta;
   /** Links the whole tile when set. */
   href?: string;
+  /** Optional small glyph beside the label, matching the overview card style. */
+  icon?: ReactNode;
+  /** Marks the primary/lead KPI with the brand's 2px amber rule. */
+  accent?: boolean;
 }
 
 const trendStyles = (trend: StatDelta["trend"]) =>
@@ -64,30 +68,55 @@ const Trend = ({ delta }: { delta: StatDelta }) => {
  * is a real comparison against a named period, and it carries an arrow plus a
  * spoken word so the direction does not depend on colour alone.
  */
-export default function StatTile({ label, value, hint, delta, href }: IProps) {
+export default function StatTile({
+  label,
+  value,
+  hint,
+  delta,
+  href,
+  icon,
+  accent = false,
+}: IProps) {
   const body = (
-    <>
-      <p className="tth-label-sm">{label}</p>
-      <p className="mt-1.5 font-[family-name:var(--type-editorial)] text-[1.75rem] font-semibold leading-none tracking-[-0.02em] tabular-nums sm:text-[2rem]">
-        {value}
-      </p>
-      <div className="mt-2.5 flex min-h-6 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-        {delta ? <Trend delta={delta} /> : null}
-        {hint && <span className="text-default-600">{hint}</span>}
+    <div className="flex h-full flex-col justify-between">
+      <div>
+        <div className="flex items-center gap-2 text-default-500">
+          {icon && (
+            <span aria-hidden className="shrink-0 text-default-500">
+              {icon}
+            </span>
+          )}
+          <p className="tth-label-sm truncate">{label}</p>
+        </div>
+        <p className="mt-2 font-[family-name:var(--type-editorial)] text-[1.75rem] font-semibold leading-none tracking-[-0.02em] tabular-nums sm:text-[2rem]">
+          {value}
+        </p>
       </div>
-    </>
+      <div className="mt-3 flex min-h-6 flex-wrap items-end justify-between gap-x-2 gap-y-1 text-xs">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          {delta ? <Trend delta={delta} /> : null}
+          {hint && <span className="text-default-600">{hint}</span>}
+        </div>
+        {accent && (
+          <span
+            aria-hidden
+            className="ml-auto h-0.5 w-12 rounded-full bg-primary"
+          />
+        )}
+      </div>
+    </div>
   );
 
   if (href) {
     return (
       <Link
         href={href}
-        className={`block h-full bg-content-1 p-4 transition-colors hover:bg-default-50 ${focusRing}`}
+        className={`block h-full bg-content-1 p-4 transition-colors hover:bg-default-50/70 sm:p-5 ${focusRing}`}
       >
         {body}
       </Link>
     );
   }
 
-  return <div className="h-full bg-content-1 p-4">{body}</div>;
+  return <div className="h-full bg-content-1 p-4 sm:p-5">{body}</div>;
 }

@@ -73,7 +73,7 @@ export default function DataTable<T>({
 
   return (
     <div className="overflow-hidden bg-content-1">
-      <div className="max-h-[70vh] overflow-auto">
+      <div className="overflow-x-auto">
         <table
           className="w-full border-separate border-spacing-0 text-left text-sm"
           style={{ minWidth }}

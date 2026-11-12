@@ -17,15 +17,16 @@ import {
   useRef,
   useState,
 } from "react";
-import { FiExternalLink, FiLogOut, FiSearch } from "react-icons/fi";
+import { createPortal } from "react-dom";
+import { FiExternalLink, FiLogOut, FiPlus, FiSearch } from "react-icons/fi";
 import { HiOutlinePencilSquare, HiOutlineUserCircle } from "react-icons/hi2";
 import { MdMenu } from "react-icons/md";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 import { useUser } from "@/context/user.provider";
 import { useAdminSearch } from "@/hooks/admin";
-import { manageBlogsPath, ownProfilePath } from "@/lib/blog-routes";
+import { manageBlogsPath } from "@/lib/blog-routes";
 import { logOutUser } from "@/services/auth";
-import { findAdminLink } from "./admin-links";
+import { adminLinks, findAdminLink, navIcon } from "./admin-links";
 import { useAdminShell } from "./admin-shell";
 
 interface SearchResult {
@@ -35,6 +36,7 @@ interface SearchResult {
   title: string;
   detail?: string;
   avatar?: string;
+  icon?: React.ReactNode;
 }
 
 interface SearchPayload {
@@ -67,14 +69,12 @@ const isTypingTarget = (target: EventTarget | null) => {
  */
 function AdminSearch() {
   const router = useRouter();
+  const { isSearchOpen, openSearch, closeSearch } = useAdminShell();
   const [query, setQuery] = useState("");
-  const [isOpen, setIsOpen] = useState(false);
   const [picked, setPicked] = useState(0);
 
   const baseId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const rootRef = useRef<HTMLDivElement>(null);
 
   const trimmed = query.trim();
   const { data, isFetching, isError } = useAdminSearch(trimmed);
@@ -82,6 +82,25 @@ function AdminSearch() {
 
   const results = useMemo<SearchResult[]>(() => {
     const items: SearchResult[] = [];
+    const lower = trimmed.toLowerCase();
+
+    adminLinks.forEach((link) => {
+      if (
+        !lower ||
+        link.label.toLowerCase().includes(lower) ||
+        (link.group && link.group.toLowerCase().includes(lower)) ||
+        link.description.toLowerCase().includes(lower)
+      ) {
+        items.push({
+          key: `page-${link.id}`,
+          group: "Pages",
+          href: link.href,
+          title: link.label,
+          detail: link.group,
+          icon: navIcon(link.icon, 16),
+        });
+      }
+    });
 
     (payload?.blogs ?? []).forEach((blog, index) => {
       if (!blog?.slug || !blog?.title) return;
@@ -121,13 +140,15 @@ function AdminSearch() {
     });
 
     return items;
-  }, [payload]);
+  }, [payload, trimmed]);
 
-  // Clamped rather than stored-and-reset: a late answer for an older query
-  // can never leave the highlight pointing past the end of the list.
   const activeIndex = Math.min(picked, Math.max(results.length - 1, 0));
 
-  const closeSearch = useCallback(() => setIsOpen(false), []);
+  const handleClose = useCallback(() => {
+    setQuery("");
+    setPicked(0);
+    closeSearch();
+  }, [closeSearch]);
 
   // Ctrl K opens from anywhere; "/" opens when the caret is not in a field.
   useEffect(() => {
@@ -142,38 +163,31 @@ function AdminSearch() {
 
       if (!isShortcut && !isSlash) return;
       event.preventDefault();
-      setIsOpen(true);
-      window.requestAnimationFrame(() => inputRef.current?.focus());
+      openSearch();
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [openSearch]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isSearchOpen) return;
+    const frame = window.requestAnimationFrame(() => inputRef.current?.focus());
 
-    const onPointerDown = (event: PointerEvent) => {
-      if (rootRef.current?.contains(event.target as Node)) return;
-      closeSearch();
-    };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      closeSearch();
-      triggerRef.current?.focus();
+      handleClose();
     };
 
-    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
+      window.cancelAnimationFrame(frame);
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [isOpen, closeSearch]);
+  }, [isSearchOpen, handleClose]);
 
   const goToResult = (result: SearchResult) => {
-    setQuery("");
-    closeSearch();
+    handleClose();
     router.push(result.href);
   };
 
@@ -192,160 +206,193 @@ function AdminSearch() {
     }
   };
 
-  const field = (
-    <input
-      ref={inputRef}
-      type="search"
-      value={query}
-      role="combobox"
-      aria-label="Search the admin"
-      aria-expanded={isOpen}
-      aria-autocomplete="list"
-      aria-controls={`${baseId}-results`}
-      aria-activedescendant={
-        isOpen && results.length ? `${baseId}-option-${activeIndex}` : undefined
-      }
-      onChange={(event) => {
-        setQuery(event.target.value);
-        setPicked(0);
-        setIsOpen(true);
-      }}
-      onFocus={() => setIsOpen(true)}
-      onKeyDown={onInputKeyDown}
-      placeholder="Search articles, members, categories"
-      className={`h-9 w-full rounded-[6px] border border-default-200 bg-background pl-8 pr-16 text-sm text-foreground transition-colors placeholder:text-default-600 hover:border-default-300 focus:border-default-400 ${focusRing}`}
-    />
-  );
-
   return (
-    <div ref={rootRef} className="flex min-w-0 flex-1 sm:flex-none">
-      <div className="relative hidden w-full max-w-md items-center sm:flex">
-        <FiSearch
-          aria-hidden
-          className="pointer-events-none absolute left-2.5 size-4 text-default-600"
-        />
-        {field}
-        <kbd
-          aria-hidden
-          className="pointer-events-none absolute right-2 hidden rounded border border-default-200 bg-default-50 px-1.5 py-0.5 text-[0.6875rem] font-medium text-default-600 md:block"
-        >
-          Ctrl K
-        </kbd>
-      </div>
-
+    <>
       <button
-        ref={triggerRef}
         type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        aria-expanded={isOpen}
-        aria-controls={`${baseId}-popover`}
-        className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-default-700 transition-colors hover:bg-default-100 hover:text-foreground sm:hidden ${focusRing}`}
+        onClick={openSearch}
+        aria-expanded={isSearchOpen}
+        aria-controls={`${baseId}-dialog`}
+        className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[6px] text-default-700 transition-colors hover:bg-default-100 hover:text-foreground lg:hidden ${focusRing}`}
       >
         <FiSearch aria-hidden className="size-5" />
-        <span className="sr-only">Search the admin</span>
+        <span className="sr-only">Search pages and actions</span>
       </button>
 
-      {isOpen && (
-        <div
-          id={`${baseId}-popover`}
-          className="absolute inset-x-3 top-[calc(100%+0.25rem)] z-40 overflow-hidden rounded-[10px] border border-default/60 bg-content-1 shadow-lg sm:left-1/2 sm:right-auto sm:w-[min(30rem,calc(100vw-3rem))] sm:-translate-x-1/2 lg:inset-x-auto lg:right-6 lg:translate-x-0"
-        >
-          <div className="relative flex items-center border-b border-default/60 p-2 sm:hidden">
-            <FiSearch
-              aria-hidden
-              className="pointer-events-none absolute left-4 size-4 text-default-600"
-            />
-            {field}
-          </div>
+      {isSearchOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 pt-[12vh] backdrop-blur-[2px]"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) handleClose();
+            }}
+          >
+            <div
+              id={`${baseId}-dialog`}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Search pages, articles, members, and categories"
+              className="w-full max-w-[34rem] overflow-hidden rounded-xl border border-default/60 bg-content-1 shadow-2xl"
+            >
+              <div className="flex items-center gap-2.5 border-b border-default/60 px-3.5 py-2.5">
+                <FiSearch
+                  aria-hidden
+                  className="size-4 shrink-0 text-default-500"
+                />
+                <input
+                  ref={inputRef}
+                  type="search"
+                  value={query}
+                  role="combobox"
+                  aria-label="Search pages, articles, members, or categories"
+                  aria-expanded={isSearchOpen}
+                  aria-autocomplete="list"
+                  aria-controls={`${baseId}-results`}
+                  aria-activedescendant={
+                    results.length
+                      ? `${baseId}-option-${activeIndex}`
+                      : undefined
+                  }
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setPicked(0);
+                  }}
+                  onKeyDown={onInputKeyDown}
+                  placeholder="Search pages, articles, members, or categories..."
+                  className="h-8 min-w-0 flex-1 bg-transparent text-sm text-foreground placeholder:text-default-500 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className={`rounded border border-default/70 bg-default-50 px-1.5 py-0.5 text-[0.6875rem] font-medium text-default-600 transition-colors hover:bg-default-100 hover:text-foreground ${focusRing}`}
+                >
+                  esc
+                </button>
+              </div>
 
-          <div className="max-h-80 overflow-y-auto py-1">
-            {trimmed.length === 0 ? (
-              <p className="px-3 py-3 text-xs leading-relaxed text-default-600">
-                Search articles, members and categories. Press Ctrl K or / to
-                come back here.
-              </p>
-            ) : trimmed.length < 2 ? (
-              <p className="px-3 py-3 text-xs text-default-600">
-                Keep typing: two characters is the minimum.
-              </p>
-            ) : isFetching && results.length === 0 ? (
-              <p className="px-3 py-3 text-xs text-default-600" role="status">
-                Searching for “{trimmed}”...
-              </p>
-            ) : isError ? (
-              <p
-                className="px-3 py-3 text-xs leading-relaxed text-danger"
-                role="alert"
-              >
-                Search is unavailable right now: the admin API did not answer.
-                Try again in a moment.
-              </p>
-            ) : results.length === 0 ? (
-              <p className="px-3 py-3 text-xs leading-relaxed text-default-600">
-                Nothing matches “{trimmed}”. Try part of a title, an email or a
-                category name.
-              </p>
-            ) : (
-              <ul
-                id={`${baseId}-results`}
-                role="listbox"
-                aria-label="Search results"
-              >
-                {results.map((result, index) => {
-                  const showGroup =
-                    index === 0 || results[index - 1].group !== result.group;
-                  return (
-                    <li key={result.key}>
-                      {showGroup && (
-                        <p className="tth-label-sm px-3 pb-1 pt-2" aria-hidden>
-                          {result.group}
-                        </p>
-                      )}
-                      <Link
-                        href={result.href}
-                        id={`${baseId}-option-${index}`}
-                        role="option"
-                        aria-selected={index === activeIndex}
-                        onClick={() => goToResult(result)}
-                        onMouseEnter={() => setPicked(index)}
-                        className={`flex min-h-11 items-center gap-2.5 px-3 text-sm ${
-                          index === activeIndex
-                            ? "bg-default-100 text-foreground"
-                            : "text-default-700"
-                        }`}
-                      >
-                        {result.avatar !== undefined ? (
-                          <UserAvatar
-                            src={result.avatar || undefined}
-                            size="sm"
-                            className="size-7 shrink-0"
-                          />
-                        ) : (
-                          <span
-                            aria-hidden
-                            className="h-4 w-0.5 shrink-0 bg-default-300"
-                          />
-                        )}
-                        <span className="min-w-0">
-                          <span className="block truncate font-medium">
-                            {result.title}
-                          </span>
-                          {result.detail && (
-                            <span className="block truncate text-xs text-default-600">
-                              {result.detail}
-                            </span>
+              <div className="max-h-[22rem] overflow-y-auto p-1.5">
+                {isFetching && results.length === 0 ? (
+                  <p
+                    className="px-3 py-4 text-xs text-default-600"
+                    role="status"
+                  >
+                    Searching for “{trimmed}”...
+                  </p>
+                ) : isError && results.length === 0 ? (
+                  <p
+                    className="px-3 py-4 text-xs leading-relaxed text-danger"
+                    role="alert"
+                  >
+                    Search is unavailable right now: the admin API did not
+                    answer. Try again in a moment.
+                  </p>
+                ) : results.length === 0 ? (
+                  <p className="px-3 py-4 text-xs leading-relaxed text-default-600">
+                    Nothing matches “{trimmed}”. Try a page name, article title,
+                    member email, or category.
+                  </p>
+                ) : (
+                  <ul
+                    id={`${baseId}-results`}
+                    role="listbox"
+                    aria-label="Search results"
+                  >
+                    {results.map((result, index) => {
+                      const showGroup =
+                        index === 0 ||
+                        results[index - 1].group !== result.group;
+                      const active = index === activeIndex;
+
+                      return (
+                        <li key={result.key}>
+                          {showGroup && (
+                            <p
+                              className="tth-label-sm px-2.5 pb-1 pt-2.5 first:pt-1"
+                              aria-hidden
+                            >
+                              {result.group}
+                            </p>
                           )}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+                          <Link
+                            href={result.href}
+                            id={`${baseId}-option-${index}`}
+                            role="option"
+                            aria-selected={active}
+                            onClick={() => goToResult(result)}
+                            onMouseEnter={() => setPicked(index)}
+                            className={`flex min-h-10 items-center justify-between gap-3 rounded-[8px] px-2.5 py-1.5 text-sm transition-colors ${
+                              active
+                                ? "bg-primary/12 text-foreground"
+                                : "text-default-700 hover:bg-default-100/60"
+                            }`}
+                          >
+                            <span className="flex min-w-0 items-center gap-2.5">
+                              {result.avatar !== undefined ? (
+                                <UserAvatar
+                                  src={result.avatar || undefined}
+                                  size="sm"
+                                  className="size-6 shrink-0"
+                                />
+                              ) : result.icon ? (
+                                <span
+                                  aria-hidden
+                                  className={`shrink-0 ${
+                                    active
+                                      ? "text-primary-accessible"
+                                      : "text-default-500"
+                                  }`}
+                                >
+                                  {result.icon}
+                                </span>
+                              ) : (
+                                <span
+                                  aria-hidden
+                                  className={`h-3.5 w-0.5 shrink-0 rounded-full ${
+                                    active ? "bg-primary" : "bg-default-300"
+                                  }`}
+                                />
+                              )}
+                              <span className="truncate font-medium">
+                                {result.title}
+                              </span>
+                            </span>
+
+                            <span className="flex shrink-0 items-center gap-2 text-xs text-default-500">
+                              {result.detail && (
+                                <span className="max-w-[12rem] truncate">
+                                  {result.detail}
+                                </span>
+                              )}
+                              {active && (
+                                <span
+                                  aria-hidden
+                                  className="text-xs font-medium text-primary-accessible"
+                                >
+                                  ↵
+                                </span>
+                              )}
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between border-t border-default/60 bg-default-50/50 px-3.5 py-2 text-[0.6875rem] text-default-600">
+                <div className="flex items-center gap-3">
+                  <span>↑↓ move</span>
+                  <span>↵ open</span>
+                </div>
+                <span>Ctrl K anywhere</span>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }
 
@@ -379,39 +426,39 @@ export default function AdminTopbar() {
     .toUpperCase();
 
   return (
-    <header className="relative z-30 sticky top-0 border-b border-default/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-      <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-5 lg:px-6">
+    <header className="sticky top-0 z-30 border-b border-default/60 bg-background lg:rounded-t-2xl">
+      <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-6 lg:px-7">
         <button
           type="button"
           onClick={openNav}
           aria-expanded={isNavOpen}
           aria-controls="admin-nav-panel"
-          className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md px-2 text-sm font-medium text-default-700 transition-colors hover:bg-default-100 hover:text-foreground lg:hidden ${focusRing}`}
+          className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[6px] px-2 text-sm font-medium text-default-700 transition-colors hover:bg-default-100 hover:text-foreground lg:hidden ${focusRing}`}
         >
           <MdMenu aria-hidden className="size-5" />
           Menu
         </button>
 
-        <nav aria-label="Breadcrumb" className="hidden min-w-0 lg:block">
-          <ol className="flex min-w-0 items-center gap-1.5 text-[0.8125rem]">
-            <li className="shrink-0 text-default-600">{group}</li>
-            <li aria-hidden className="shrink-0 text-default-300">
-              /
-            </li>
-            <li
-              aria-current="page"
-              className="truncate font-medium text-foreground"
-            >
-              {label}
-            </li>
-          </ol>
-        </nav>
-
-        <div className="flex min-w-0 flex-1 justify-end sm:justify-center lg:justify-end">
-          <AdminSearch key={pathname} />
+        <div className="hidden min-w-0 items-center gap-2.5 lg:flex">
+          <span className="truncate text-[0.9375rem] font-semibold tracking-[-0.01em] text-foreground">
+            {label}
+          </span>
+          {group !== "Overview" && (
+            <span className="rounded-md border border-default/60 bg-content-1 px-2 py-0.5 text-xs font-medium text-default-600">
+              {group}
+            </span>
+          )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex min-w-0 flex-1 items-center justify-end gap-2">
+          <AdminSearch key={pathname} />
+          <Link
+            href="/admin/manage-blogs/new"
+            className={`hidden h-8 items-center gap-1.5 rounded-[7px] bg-primary px-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary-500 sm:inline-flex ${focusRing}`}
+          >
+            <FiPlus aria-hidden className="size-3.5" />
+            New article
+          </Link>
           <span
             aria-hidden
             className="mx-0.5 hidden h-5 w-px bg-default/60 sm:block"
@@ -444,6 +491,7 @@ export default function AdminTopbar() {
               <DropdownItem
                 key="who"
                 isReadOnly
+                textValue={user?.name || user?.username || "Signed in"}
                 className="opacity-100 data-[hover=true]:bg-transparent"
               >
                 <p className="text-sm font-medium text-foreground">
@@ -457,7 +505,7 @@ export default function AdminTopbar() {
               <DropdownItem
                 key="profile"
                 as={Link}
-                href={ownProfilePath}
+                href="/admin/profile"
                 startContent={
                   <HiOutlineUserCircle aria-hidden className="size-4" />
                 }

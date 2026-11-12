@@ -24,7 +24,13 @@ import type {
 import { Skeleton } from "@heroui/react";
 import Link from "next/link";
 import { useMemo, useState, type ReactNode } from "react";
-import { FiChevronRight } from "react-icons/fi";
+import {
+  FiChevronRight,
+  FiEye,
+  FiMessageSquare,
+  FiThumbsUp,
+  FiUsers,
+} from "react-icons/fi";
 import {
   RiArrowRightLine,
   RiExternalLinkLine,
@@ -260,12 +266,14 @@ const DashboardSkeleton = () => (
 const ActivityBlock = ({
   points,
   days,
+  onDaysChange,
   loading,
   failed,
   onRetry,
 }: {
   points: IAdminActivityPoint[];
   days: RangeDays;
+  onDaysChange: (days: RangeDays) => void;
   loading: boolean;
   failed: boolean;
   onRetry: () => void;
@@ -297,22 +305,49 @@ const ActivityBlock = ({
         title="Reading and discussion, by day"
         description={`Views and comments recorded in the last ${days} days, day by day.`}
         aside={
-          !failed && !loading && points.length > 0 ? (
-            <dl className="flex items-center gap-4 text-xs">
-              <div className="text-right">
-                <dt className="text-default-600">Views</dt>
-                <dd className="font-medium tabular-nums">
-                  {totals.views.toLocaleString("en-GB")}
-                </dd>
-              </div>
-              <div className="text-right">
-                <dt className="text-default-600">Comments</dt>
-                <dd className="font-medium tabular-nums">
-                  {totals.comments.toLocaleString("en-GB")}
-                </dd>
-              </div>
-            </dl>
-          ) : null
+          <div className="flex flex-wrap items-center gap-3">
+            {!failed && !loading && points.length > 0 ? (
+              <dl className="flex items-center gap-4 text-xs">
+                <div className="text-right">
+                  <dt className="text-default-600">Views</dt>
+                  <dd className="font-medium tabular-nums">
+                    {totals.views.toLocaleString("en-GB")}
+                  </dd>
+                </div>
+                <div className="text-right">
+                  <dt className="text-default-600">Comments</dt>
+                  <dd className="font-medium tabular-nums">
+                    {totals.comments.toLocaleString("en-GB")}
+                  </dd>
+                </div>
+              </dl>
+            ) : null}
+
+            <div
+              role="group"
+              aria-label="Activity range"
+              className="inline-flex items-center gap-0.5 rounded-[8px] border border-default/70 bg-background p-0.5"
+            >
+              {RANGES.map((option) => {
+                const selected = option.days === days;
+                return (
+                  <button
+                    key={option.days}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => onDaysChange(option.days)}
+                    className={`inline-flex min-h-9 items-center rounded-[6px] px-2.5 text-xs font-medium transition-colors sm:min-h-7 ${focusRing} ${
+                      selected
+                        ? "bg-primary/12 text-primary-accessible"
+                        : "text-default-600 hover:bg-default-100 hover:text-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         }
       />
 
@@ -817,6 +852,8 @@ export default function AdminDashboard() {
       hint: weekHint(week?.views),
       delta: deltaOf(week?.views),
       href: "/admin/analytics",
+      icon: <FiEye className="size-4" />,
+      accent: true,
     },
     {
       key: "comments",
@@ -825,6 +862,7 @@ export default function AdminDashboard() {
       hint: weekHint(week?.comments),
       delta: deltaOf(week?.comments),
       href: "/admin/manage-comments",
+      icon: <FiMessageSquare className="size-4" />,
     },
     {
       key: "members",
@@ -833,6 +871,7 @@ export default function AdminDashboard() {
       hint: weekHint(week?.newMembers),
       delta: deltaOf(week?.newMembers),
       href: "/admin/manage-users",
+      icon: <FiUsers className="size-4" />,
     },
     {
       key: "upvotes",
@@ -842,33 +881,21 @@ export default function AdminDashboard() {
         ? `${format(today?.views)} views today`
         : "views today not reported",
       href: "/admin/analytics",
+      icon: <FiThumbsUp className="size-4" />,
     },
   ];
 
   const points = activity ?? [];
 
   return (
-    <div className="space-y-8">
-      <section aria-labelledby="week-heading">
-        <div className="mb-3">
-          <h2
-            id="week-heading"
-            className="font-[family-name:var(--type-editorial)] text-[1.0625rem] font-semibold tracking-[-0.01em]"
-          >
-            This week
-          </h2>
-          <p className="mt-0.5 text-xs text-default-600">
-            {todayLabel()}. Each figure compares the seven days to Monday with
-            the week before.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 divide-x divide-y divide-default/70 overflow-hidden rounded-[10px] border border-default/70 sm:grid-cols-4 sm:divide-y-0">
+    <div className="space-y-5">
+      <section aria-label="This week">
+        <div className="grid grid-cols-2 divide-x divide-y divide-default/60 overflow-hidden rounded-xl border border-default/60 bg-content-1 sm:grid-cols-4 sm:divide-y-0">
           {headline.map((metric, index) => (
             <div
               key={metric.key}
               className={`min-w-0 ${
-                index >= 2 ? "border-t border-default/70 sm:border-t-0" : ""
+                index >= 2 ? "border-t border-default/60 sm:border-t-0" : ""
               }`}
             >
               <StatTile
@@ -877,84 +904,47 @@ export default function AdminDashboard() {
                 hint={metric.hint}
                 delta={metric.delta}
                 href={metric.href}
+                icon={metric.icon}
+                accent={metric.accent}
               />
             </div>
           ))}
         </div>
-
-        <p className="mt-2 text-xs text-default-600">{SOURCE_NOTE}</p>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-6">
-          <div className="min-w-0">
-            <div
-              role="group"
-              aria-label="Activity range"
-              className="mb-3 inline-flex items-center gap-0.5 rounded-md border border-default/70 p-0.5"
-            >
-              {RANGES.map((option) => {
-                const selected = option.days === days;
-                return (
-                  <button
-                    key={option.days}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setDays(option.days)}
-                    className={`inline-flex min-h-11 items-center rounded-[5px] px-2.5 text-xs font-medium transition-colors sm:min-h-7 ${focusRing} ${
-                      selected
-                        ? "bg-primary/10 text-primary-accessible"
-                        : "text-default-600 hover:bg-default-100 hover:text-foreground"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <ActivityBlock
-              points={points}
-              days={days}
-              loading={activityQuery.isLoading}
-              failed={activityQuery.isError}
-              onRetry={() => void activityQuery.refetch()}
-            />
-          </div>
-
-          <RecentBlock
-            items={Array.isArray(overview.recent) ? overview.recent : []}
-            loading={false}
-            failed={false}
-            onRetry={() => void overviewQuery.refetch()}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <ActivityBlock
+            points={points}
+            days={days}
+            onDaysChange={setDays}
+            loading={activityQuery.isLoading}
+            failed={activityQuery.isError}
+            onRetry={() => void activityQuery.refetch()}
           />
         </div>
 
-        <aside
-          className="min-w-0 space-y-6"
-          aria-label="Articles, members and things worth a look"
-        >
-          <TopArticlesList articles={overview.topArticles} loading={false} />
+        <div className="min-w-0">
           <ContributorsList
             contributors={overview.topContributors}
             loading={false}
           />
-          <HealthBlock
-            pending={overview.pending}
-            health={overview.health}
-            loading={false}
-          />
+        </div>
+      </div>
 
-          <p>
-            <Link
-              href="/admin/activity-log"
-              className={`inline-flex min-h-11 items-center gap-1.5 rounded-md text-xs font-medium text-default-700 hover:text-primary-accessible sm:min-h-8 ${focusRing}`}
-            >
-              Open the activity log
-              <RiExternalLinkLine aria-hidden className="size-3.5" />
-            </Link>
-          </p>
-        </aside>
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <TopArticlesList articles={overview.topArticles} loading={false} />
+        <RecentBlock
+          items={Array.isArray(overview.recent) ? overview.recent : []}
+          loading={false}
+          failed={false}
+          onRetry={() => void overviewQuery.refetch()}
+        />
+        <HealthBlock
+          pending={overview.pending}
+          health={overview.health}
+          loading={false}
+        />
       </div>
     </div>
   );

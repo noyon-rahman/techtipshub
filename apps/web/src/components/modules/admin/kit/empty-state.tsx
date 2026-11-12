@@ -29,7 +29,7 @@ const EmptyState = ({
     icon ? (
       <span
         aria-hidden
-        className={`${size} flex items-center justify-center rounded-[10px] border border-default/60 bg-default-50 text-default-600`}
+        className={`${size} flex items-center justify-center rounded-full border border-default/60 bg-default-100/80 text-default-500`}
       >
         {icon}
       </span>

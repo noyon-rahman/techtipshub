@@ -16,7 +16,7 @@ export function AdminRailFrame({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-rail-collapsed={isRailCollapsed ? "true" : undefined}
-      className="min-h-dvh [--admin-rail-width:auto] transition-[padding] duration-200 lg:pl-[var(--admin-rail-width)] lg:[--admin-rail-width:15rem] data-[rail-collapsed=true]:[--admin-rail-width:4.25rem]"
+      className="min-h-dvh bg-default-100/60 [--admin-rail-width:auto] transition-[padding] duration-200 dark:bg-[#0D0C0E] lg:pl-[var(--admin-rail-width)] lg:[--admin-rail-width:15rem] data-[rail-collapsed=true]:[--admin-rail-width:4rem]"
     >
       {children}
     </div>

@@ -103,8 +103,8 @@ const displayName = (blog: IBlog) =>
   blog.author?.fullName?.trim() || blog.author?.username || "";
 
 const COLUMNS: DataTableColumn[] = [
-  { key: "article", header: "Article", className: "min-w-[18rem]" },
-  { key: "author", header: "Author", className: "min-w-[10rem]" },
+  { key: "article", header: "Article", className: "min-w-[15rem]" },
+  { key: "author", header: "Author", className: "min-w-[9rem]" },
   { key: "category", header: "Category", className: "whitespace-nowrap" },
   {
     key: "views",
@@ -451,7 +451,7 @@ const BlogsTable = () => {
         rowLabel={(blog) => `Select ${displayName(blog)}`}
         skeletonRows={Math.min(limit, 10)}
         emptyState={emptyState}
-        minWidth="64rem"
+        minWidth="52rem"
         renderCell={(blog, key) => {
           switch (key) {
             case "article":
