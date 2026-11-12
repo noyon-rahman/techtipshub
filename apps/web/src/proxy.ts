@@ -3,23 +3,14 @@ import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
 } from "@/lib/fetch-with-auth";
-import { requiresSession } from "@/lib/blog-routes";
-import { personalFeedPath } from "@/lib/feed-routes";
+import { publicProfilePath, requiresSession } from "@/lib/blog-routes";
+import { categoryPath, personalFeedPath, searchPath } from "@/lib/feed-routes";
+import { normaliseRouteUsername } from "@/utils/username";
 import { NextRequest, NextResponse } from "next/server";
 
-/**
- * User agents that never run the browser (see `ArticleAccess`).
- *
- * They are sent to the article's preview variant, which is the server-rendered
- * copy with real article text and the canonical URL. Handing them the plain
- * address would show a page whose body waits on a reader check they cannot
- * run.
- */
 const ARTICLE_PATH = /^\/blogs\/[^/]+$/;
 const PREVIEW_PARAM = "view";
 const PREVIEW_VALUE = "preview";
-const CRAWLER_PATTERN =
-  /bot\b|bot\/|crawl|spider|slurp|\bba[iy]du\b|yandex|duckduck|facebookexternalhit|facebot|twitterbot|linkedinbot|embedly|pinterest|telegrambot|applebot|ia_archiver|google-?other|chrome-lighthouse|headlesschrome|phantomjs/i;
 
 /**
  * The admin shell is only rendered for a session the API says holds the Admin
@@ -193,23 +184,59 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 1c. An article, to a crawler or link unfurl: point it at the preview
-  // variant, which carries the article text server-side and is the canonical
-  // address in the page metadata. Action requests are left alone: they are not
-  // page reads, and rewriting them would put the preview variant in the answer.
-  const isArticle = ARTICLE_PATH.test(pathname.replace(/\/$/, ""));
-  const userAgent = request.headers.get("user-agent") ?? "";
+  // 1c. Legacy query-filtered home URLs (`/?category=...`, `/?search=...`)
+  // moved to `/categories/<slug>` and `/search?q=...`. Redirect them
+  // permanently so crawlers and old links land on the canonical route.
+  if (pathname === "/") {
+    const category = request.nextUrl.searchParams.get("category");
+    if (category !== null) {
+      const target = new URL(categoryPath(category), request.url);
+      return NextResponse.redirect(target, 308);
+    }
+
+    const search = request.nextUrl.searchParams.get("search");
+    if (search !== null) {
+      const target = new URL(searchPath(search), request.url);
+      return NextResponse.redirect(target, 308);
+    }
+  }
+
+  // 1d. Public profiles are canonical at `/users/<handle>` without `@`.
+  // Redirect `/users/@<handle>` (or `%40<handle>`) permanently to the
+  // canonical path so crawlers do not treat it as a duplicate page.
+  if (bare.startsWith("/users/")) {
+    const rawSegment = bare.slice("/users/".length);
+    if (!rawSegment.includes("/")) {
+      let decoded = rawSegment;
+      try {
+        decoded = decodeURIComponent(rawSegment);
+      } catch {
+        // Keep raw segment if percent-encoding is malformed.
+      }
+      if (decoded.startsWith("@")) {
+        const handle = normaliseRouteUsername(decoded);
+        if (handle) {
+          const url = request.nextUrl.clone();
+          url.pathname = publicProfilePath(handle);
+          return NextResponse.redirect(url, 308);
+        }
+      }
+    }
+  }
+
+  // 1e. Legacy `?view=preview` article URLs redirect permanently to the plain
+  // canonical article address, which already renders the preview server-side.
+  const isArticle = ARTICLE_PATH.test(bare);
   const isAction = request.headers.has("next-action");
   if (
     isArticle &&
     !isAction &&
     request.method === "GET" &&
-    CRAWLER_PATTERN.test(userAgent) &&
-    request.nextUrl.searchParams.get(PREVIEW_PARAM) !== PREVIEW_VALUE
+    request.nextUrl.searchParams.get(PREVIEW_PARAM) === PREVIEW_VALUE
   ) {
     const url = request.nextUrl.clone();
-    url.searchParams.set(PREVIEW_PARAM, PREVIEW_VALUE);
-    return NextResponse.rewrite(url);
+    url.searchParams.delete(PREVIEW_PARAM);
+    return NextResponse.redirect(url, 308);
   }
 
   // 2. Pages open to everyone, and action requests, need no ruling: an action

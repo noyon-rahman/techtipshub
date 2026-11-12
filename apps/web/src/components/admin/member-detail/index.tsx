@@ -5,6 +5,7 @@ import { formatCount, formatDate, initialsOf } from "@/components/admin/format";
 import EmptyState from "@/components/modules/admin/kit/empty-state";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import SectionCard from "@/components/modules/admin/section-card";
+import { publicProfilePath } from "@/lib/blog-routes";
 import {
   MEMBER_PEOPLE_LIMIT,
   memberProfileHref,
@@ -242,7 +243,7 @@ const PersonLink = ({ person }: { person: TPersonRow }) => {
 
   return person.username ? (
     <Link
-      href={`/users/@${person.username}`}
+      href={publicProfilePath(person.username)}
       className={`flex min-h-11 items-center gap-2.5 rounded py-1.5 ${focusRing}`}
     >
       {body}

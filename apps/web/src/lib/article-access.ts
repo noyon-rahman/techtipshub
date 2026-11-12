@@ -50,11 +50,11 @@ export const articleAccessOf = (article?: {
 }): TArticleAccess => (article?.access === "public" ? "public" : "members");
 
 /**
- * The address search engines and link unfurls should hold: the plain one for a
- * public article, the preview variant for a members-only one, whose body they
- * cannot read at the plain URL.
+ * The address search engines and link unfurls should hold: the plain article
+ * address for every article. Members-only articles already render their
+ * preview server-side at the plain URL (with the full body hidden until the
+ * browser's session check passes), so `?view=preview` is no longer needed as a
+ * separate canonical target.
  */
-export const articleIndexablePath = (slug: string, access?: TArticleAccess) =>
-  articleAccessOf({ access }) === "public"
-    ? articlePath(slug)
-    : articlePreviewPath(slug);
+export const articleIndexablePath = (slug: string, _access?: TArticleAccess) =>
+  articlePath(slug);

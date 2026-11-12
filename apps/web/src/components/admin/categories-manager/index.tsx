@@ -18,6 +18,7 @@ import ListFrame from "@/components/modules/admin/kit/list-frame";
 import SelectionBar from "@/components/modules/admin/kit/selection-bar";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import useRowSelection from "@/components/modules/admin/kit/use-row-selection";
+import { categoryPath } from "@/lib/feed-routes";
 import {
   useAdminCategories,
   useCreateCategory,
@@ -411,7 +412,7 @@ const CategoriesManager = ({
                 return (
                   <div className="max-w-[28rem]">
                     <Link
-                      href={`/?category=${encodeURIComponent(category.name)}`}
+                      href={categoryPath(category.name)}
                       className={linkClass}
                     >
                       {category.name}

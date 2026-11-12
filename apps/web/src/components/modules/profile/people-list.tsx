@@ -1,4 +1,5 @@
 import UserAvatar from "@/components/ui/user-avatar";
+import { publicProfilePath } from "@/lib/blog-routes";
 import Link from "next/link";
 
 export interface IPersonSummary {
@@ -103,7 +104,9 @@ const PeopleList = ({
           {people.map((person) => (
             <li key={person._id}>
               <Link
-                href={`/users/@${person.username}`}
+                href={
+                  person.username ? publicProfilePath(person.username) : "#"
+                }
                 className="flex items-start gap-3 px-1 py-3.5 transition-colors hover:bg-default-50"
               >
                 <UserAvatar

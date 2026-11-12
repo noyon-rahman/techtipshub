@@ -2,6 +2,7 @@ import { AdSlot } from "@/components/adsense";
 import PageHero from "@/components/editorial/page-hero";
 import ButtonLink from "@/components/ui/button-link";
 import Container from "@/components/ui/container";
+import { categoryPath } from "@/lib/feed-routes";
 import { getBlogs } from "@/services/blog";
 import { siteCategories } from "@/lib/site-settings";
 import { Metadata } from "next";
@@ -259,7 +260,7 @@ const CommunityPage = async () => {
               {categories.map((category) => (
                 <li key={category._id}>
                   <Link
-                    href={`/?category=${encodeURIComponent(category.name)}`}
+                    href={categoryPath(category.name)}
                     className="group flex min-h-11 items-center justify-between gap-3 rounded-[6px] border border-default/70 bg-content-1 px-4 py-3 text-sm font-medium transition-colors hover:border-primary/50 hover:bg-default-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <span className="truncate group-hover:text-primary-accessible">

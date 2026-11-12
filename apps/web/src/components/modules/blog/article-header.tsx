@@ -1,6 +1,8 @@
 import BlogViewCounter from "@/components/modules/blog/blog-view-counter";
 import FollowUnFollowButton from "@/components/ui/follow-unfollow-button";
 import UserAvatar from "@/components/ui/user-avatar";
+import { publicProfilePath } from "@/lib/blog-routes";
+import { categoryPath } from "@/lib/feed-routes";
 import type { ICategory } from "@/types/category.type";
 import type { IUser } from "@/types/user.type";
 import { formatBlogDate } from "@/utils";
@@ -37,7 +39,9 @@ const ArticleHeader = ({
   minutes,
   views,
 }: IProps) => {
-  const profileHref = author?.username ? `/users/@${author.username}` : null;
+  const profileHref = author?.username
+    ? publicProfilePath(author.username)
+    : null;
   const publishedOn = formatBlogDate(createdAt);
 
   return (
@@ -53,7 +57,7 @@ const ArticleHeader = ({
       {category?.name && (
         <p className="mt-5">
           <Link
-            href={`/?category=${encodeURIComponent(category.name)}`}
+            href={categoryPath(category.name)}
             className="tth-label text-primary-accessible underline-offset-4 transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             {category.name}

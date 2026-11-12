@@ -1,5 +1,6 @@
 import { IBlog } from "@/types";
 import UserAvatar from "@/components/ui/user-avatar";
+import { publicProfilePath } from "@/lib/blog-routes";
 import Link from "next/link";
 import { AiOutlineComment } from "react-icons/ai";
 import { BiDownvote, BiUpvote } from "react-icons/bi";
@@ -94,7 +95,9 @@ const BlogCard = ({
             showFallback
           />
           <Link
-            href={`/users/@${author?.username}`}
+            href={
+              author?.username ? publicProfilePath(author.username) : "#"
+            }
             className="truncate text-xs font-medium text-foreground hover:text-primary-accessible"
           >
             {author?.fullName}

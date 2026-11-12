@@ -16,6 +16,7 @@
  * useUpdateMemberProfile() saves the profile editor's multipart body and
  * refreshes the member row plus every list that shows it.
  */
+import { publicProfilePath } from "@/lib/blog-routes";
 import {
   getAdminMember,
   getAdminUsers,
@@ -169,7 +170,7 @@ export const useMemberFollowing = (
 
 /** Where a member's public profile lives, once they have a username. */
 export const memberProfileHref = (username?: string) =>
-  username ? `/users/@${username}` : undefined;
+  username ? publicProfilePath(username) : undefined;
 
 /**
  * Saves a member profile from the admin screen.

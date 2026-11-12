@@ -18,6 +18,7 @@ import ListFrame from "@/components/modules/admin/kit/list-frame";
 import SelectionBar from "@/components/modules/admin/kit/selection-bar";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import useRowSelection from "@/components/modules/admin/kit/use-row-selection";
+import { publicProfilePath } from "@/lib/blog-routes";
 import StatusPill from "@/components/ui/status-pill";
 import { useAdminMembers } from "@/hooks/admin-members";
 import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
@@ -436,7 +437,10 @@ const UsersTable = () => {
                     Open member
                   </MenuItemLink>
                   {user.username && (
-                    <MenuItemLink href={`/users/@${user.username}`} external>
+                    <MenuItemLink
+                      href={publicProfilePath(user.username)}
+                      external
+                    >
                       <FiExternalLink aria-hidden className="size-4" />
                       Public profile
                     </MenuItemLink>
