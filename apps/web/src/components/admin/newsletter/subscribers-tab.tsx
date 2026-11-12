@@ -9,6 +9,7 @@ import ConfirmDialog from "@/components/modules/admin/kit/confirm-dialog";
 import AdminPagination from "@/components/modules/admin/kit/pagination";
 import { focusRing } from "@/components/modules/admin/kit/tau";
 import {
+  useDeleteSubscriberPermanently,
   useExportSubscribers,
   useNewsletterSubscribers,
   useRemoveSubscriber,
@@ -53,7 +54,9 @@ const SubscribersTab = () => {
   const [query, setQuery] = useState(filters.values.searchTerm);
   const [addOpen, setAddOpen] = useState(false);
   const [removing, setRemoving] = useState<INewsletterSubscriber | null>(null);
+  const [deleting, setDeleting] = useState<INewsletterSubscriber | null>(null);
   const confirm = useDisclosure();
+  const confirmDelete = useDisclosure();
 
   // Settling a search reads the latest setter without restarting the timer.
   const setFiltersRef = useRef(filters.set);
@@ -75,6 +78,7 @@ const SubscribersTab = () => {
     searchTerm: filters.values.searchTerm,
   });
   const remove = useRemoveSubscriber();
+  const deletePermanent = useDeleteSubscriberPermanently();
   const exportList = useExportSubscribers();
 
   const meta = listQuery.meta;
@@ -90,6 +94,17 @@ const SubscribersTab = () => {
     if (remove.isPending) return;
     confirm.onClose();
     setRemoving(null);
+  };
+
+  const askDeletePermanent = (subscriber: INewsletterSubscriber) => {
+    setDeleting(subscriber);
+    confirmDelete.onOpen();
+  };
+
+  const closeConfirmDelete = () => {
+    if (deletePermanent.isPending) return;
+    confirmDelete.onClose();
+    setDeleting(null);
   };
 
   return (
@@ -174,7 +189,11 @@ const SubscribersTab = () => {
           searchTerm={filters.values.searchTerm}
           onClearSearch={() => setQuery("")}
           removingEmail={remove.isPending ? remove.variables : undefined}
+          deletingId={
+            deletePermanent.isPending ? deletePermanent.variables : undefined
+          }
           onRemove={askRemove}
+          onDeletePermanent={askDeletePermanent}
         />
 
         {!listQuery.isLoading &&
@@ -204,9 +223,13 @@ const SubscribersTab = () => {
         onOpenChange={(open) => {
           if (!open) closeConfirm();
         }}
-        title={removing ? `Remove ${removing.email}?` : "Remove this address?"}
-        description="They stop getting the monthly roundup, and the next issue will not reach them. This is the same as them pressing unsubscribe."
-        confirmLabel="Remove from the list"
+        title={
+          removing
+            ? `Unsubscribe ${removing.email}?`
+            : "Unsubscribe this address?"
+        }
+        description="They stop getting campaigns, and the next send will not reach them. This is the same as them pressing unsubscribe."
+        confirmLabel="Unsubscribe"
         tone="danger"
         isPending={remove.isPending}
         onConfirm={() => {
@@ -215,6 +238,31 @@ const SubscribersTab = () => {
             onSuccess: () => {
               confirm.onClose();
               setRemoving(null);
+            },
+          });
+        }}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDelete.isOpen}
+        onOpenChange={(open) => {
+          if (!open) closeConfirmDelete();
+        }}
+        title={
+          deleting
+            ? `Delete ${deleting.email} permanently?`
+            : "Delete this subscriber permanently?"
+        }
+        description="This permanently erases the subscriber record from the database and cannot be undone."
+        confirmLabel="Delete permanently"
+        tone="danger"
+        isPending={deletePermanent.isPending}
+        onConfirm={() => {
+          if (!deleting) return;
+          deletePermanent.mutate(deleting._id, {
+            onSuccess: () => {
+              confirmDelete.onClose();
+              setDeleting(null);
             },
           });
         }}

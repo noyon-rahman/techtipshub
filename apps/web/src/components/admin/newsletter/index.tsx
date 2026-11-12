@@ -8,14 +8,14 @@ import CampaignsTab from "./campaigns-tab";
 import SubscribersTab from "./subscribers-tab";
 
 const TABS = [
-  { id: "issues", label: "Issues" },
+  { id: "campaigns", label: "Campaigns" },
   { id: "subscribers", label: "Subscribers" },
 ] as const;
 
 const NEWSLETTER_TAB = {
   tab: listParam({
-    values: ["issues", "subscribers"] as const,
-    default: "issues",
+    values: ["campaigns", "subscribers"] as const,
+    default: "campaigns",
   }),
 } as const;
 
@@ -91,7 +91,7 @@ const NewsletterManager = () => {
         id={`newsletter-panel-${tab}`}
         aria-labelledby={`newsletter-tab-${tab}`}
       >
-        {tab === "issues" ? <CampaignsTab /> : <SubscribersTab />}
+        {tab === "campaigns" ? <CampaignsTab /> : <SubscribersTab />}
       </div>
     </div>
   );

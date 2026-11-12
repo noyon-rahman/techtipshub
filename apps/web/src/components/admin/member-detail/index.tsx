@@ -19,6 +19,7 @@ import {
   useBlockUser,
   useDeleteUserAccount,
   useMakeAdmin,
+  useResendVerificationEmail,
   useUnblockUser,
 } from "@/hooks/user.hook";
 import { ADMIN_BLOGS_KEY } from "@/hooks/admin-blogs";
@@ -281,6 +282,8 @@ const MemberDetail = ({ memberId }: { memberId: string }) => {
   const { mutate: makeAdmin, isPending: isPromotePending } = useMakeAdmin();
   const { mutate: deleteAccount, isPending: isDeletePending } =
     useDeleteUserAccount();
+  const { mutate: resendVerification, isPending: isResendVerificationPending } =
+    useResendVerificationEmail();
   const queryClient = useQueryClient();
 
   // Every account action changes the lists this member appears in, so the
@@ -422,8 +425,10 @@ const MemberDetail = ({ memberId }: { memberId: string }) => {
                 >
                   {member.status}
                 </StatusPill>
-                {member.isVerified && (
+                {member.isVerified ? (
                   <StatusPill tone="neutral">Verified</StatusPill>
+                ) : (
+                  <StatusPill tone="warning">Unverified</StatusPill>
                 )}
               </div>
             </div>
@@ -431,6 +436,35 @@ const MemberDetail = ({ memberId }: { memberId: string }) => {
 
           <div className="flex flex-wrap items-center gap-2">
             <EditMemberProfile member={member} onSaved={refreshMember} />
+
+            {!member.isVerified && (
+              <ConfirmDialog
+                trigger={
+                  <button
+                    type="button"
+                    className={quietButton}
+                    disabled={isBlocked}
+                    title={
+                      isBlocked
+                        ? "Unblock them before sending verification"
+                        : undefined
+                    }
+                  >
+                    <RiMailLine aria-hidden className="size-4" />
+                    Resend verification
+                  </button>
+                }
+                title={`Resend verification email to ${memberName}?`}
+                description={
+                  member.email
+                    ? `Sends a fresh verification link to ${member.email}.`
+                    : "Sends a fresh verification link to this member's email address."
+                }
+                confirmLabel="Send verification"
+                isPending={isResendVerificationPending}
+                onConfirm={() => resendVerification(member._id)}
+              />
+            )}
 
             {publicProfile && (
               <Link href={publicProfile} className={quietButton}>

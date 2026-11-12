@@ -129,6 +129,19 @@ export const removeSubscriber = async (email: string) => {
   }
 };
 
+/** DELETE /admin/newsletter/subscribers/:id */
+export const deleteSubscriberPermanently = async (id: string) => {
+  try {
+    const res = await axiosInstance.delete(
+      `/admin/newsletter/subscribers/${id}`,
+    );
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The subscriber could not be deleted.");
+  }
+};
+
 /**
  * The CSV, fetched as a blob so the browser saves a file rather than rendering
  * a wall of text. The API puts the date in the filename header.
@@ -340,10 +353,12 @@ export const testCampaign = async (id: string) => {
 };
 
 /** POST /admin/newsletter/campaigns/:id/start */
-export const startCampaign = async (id: string) => {
+export const startCampaign = async (id: string, subscriberIds?: string[]) => {
   try {
+    const body = subscriberIds?.length ? { subscriberIds } : undefined;
     const res = await axiosInstance.post(
       `/admin/newsletter/campaigns/${id}/start`,
+      body,
     );
 
     return res.data;

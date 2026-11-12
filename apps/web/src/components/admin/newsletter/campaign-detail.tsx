@@ -19,15 +19,20 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 
 import CampaignEditor from "./campaign-editor";
 import { dangerButton, primaryButton, quietButton } from "./buttons";
 import { CAMPAIGN_LABEL } from "./labels";
+import RecipientPicker, { type RecipientMode } from "./recipient-picker";
 
 interface IProps {
   id: string;
   onBack: () => void;
+  autoOpenSend?: boolean;
+  initialRecipientMode?: RecipientMode;
+  initialSelectedIds?: string[];
 }
 
 /** A filled bar, with the counter beside it as the source of truth. */
@@ -79,13 +84,31 @@ const Progress = ({
  * that sends each further batch. A sent issue is a record: what went out,
  * when, and to how many.
  */
-const CampaignDetail = ({ id, onBack }: IProps) => {
+const CampaignDetail = ({
+  id,
+  onBack,
+  autoOpenSend = false,
+  initialRecipientMode = "all",
+  initialSelectedIds = [],
+}: IProps) => {
   const query = useCampaign(id);
   const progress = useCampaignProgress(id);
   const start = useStartCampaign();
   const drain = useContinueCampaign();
   const remove = useDeleteCampaign();
   const confirm = useDisclosure();
+  const [recipientMode, setRecipientMode] =
+    useState<RecipientMode>(initialRecipientMode);
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialSelectedIds);
+  const openedOnce = useRef(false);
+
+  useEffect(() => {
+    if (!autoOpenSend || openedOnce.current) return;
+    if (query.data?.campaign?.status === "draft") {
+      openedOnce.current = true;
+      confirm.onOpen();
+    }
+  }, [autoOpenSend, query.data?.campaign?.status, confirm]);
 
   if (query.isLoading) {
     return (
@@ -102,7 +125,9 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
   if (query.isError || !campaign) {
     return (
       <div className="rounded-[10px] border border-default/60 px-4 py-8 text-center">
-        <p className="text-sm font-semibold">This issue could not be opened</p>
+        <p className="text-sm font-semibold">
+          This campaign could not be opened
+        </p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-default-600">
           {query.error?.message || "It may have been deleted."}
         </p>
@@ -133,7 +158,7 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
             className={`mb-2 inline-flex min-h-9 items-center gap-1.5 rounded-[6px] px-1 text-xs font-medium text-default-600 hover:text-foreground ${focusRing}`}
           >
             <FiArrowLeft aria-hidden className="size-3.5" />
-            All issues
+            All campaigns
           </button>
           <h2 className="truncate font-[family-name:var(--type-editorial)] text-lg font-semibold tracking-[-0.015em]">
             {campaign.subject}
@@ -163,6 +188,10 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
             draft={campaign}
             onSaved={() => query.refetch()}
             onRequestSend={confirm.onOpen}
+            recipientMode={recipientMode}
+            onRecipientModeChange={setRecipientMode}
+            selectedSubscriberIds={selectedIds}
+            onSelectedSubscriberIdsChange={setSelectedIds}
           />
 
           <div className="flex flex-wrap items-center gap-2 border-t border-default/60 pt-4">
@@ -190,7 +219,7 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
             The rest goes out ten at a time, one press per batch.{" "}
             {remaining > 0
               ? `${remaining.toLocaleString()} ${remaining === 1 ? "address" : "addresses"} still to go.`
-              : "This batch was the last one, so the issue is done."}{" "}
+              : "This batch was the last one, so the campaign is done."}{" "}
             The counters update here after each batch.
           </p>
           <button
@@ -226,7 +255,7 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
                   .{" "}
                 </>
               )}
-              A sent issue is a record: its copy and article list are exactly
+              A sent campaign is a record: its copy and article list are exactly
               what went out.
             </p>
           </div>
@@ -259,10 +288,12 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
       <Modal
         isOpen={confirm.isOpen}
         onOpenChange={(open) => {
-          if (!open) confirm.onClose();
+          if (!open) {
+            confirm.onClose();
+          }
         }}
         radius="lg"
-        size="sm"
+        size={recipientMode === "selected" ? "lg" : "sm"}
         isDismissable={!start.isPending}
         hideCloseButton={start.isPending}
       >
@@ -275,18 +306,27 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
               Send “{campaign.subject}”?
             </span>
           </ModalHeader>
-          <ModalBody>
-            <p className="text-sm leading-relaxed text-default-600">
-              Everyone on the active list gets it: the people signed up right
-              now, frozen at this moment. A signup after this press waits for
-              the next issue, and an unsubscribe already on the list is not
-              mailed.
-            </p>
-            <p className="text-sm leading-relaxed text-default-600">
+          <ModalBody className="space-y-4">
+            <RecipientPicker
+              mode={recipientMode}
+              onModeChange={setRecipientMode}
+              selectedIds={selectedIds}
+              onSelectedIdsChange={setSelectedIds}
+              enabled={confirm.isOpen}
+            />
+
+            {recipientMode === "all" && (
+              <p className="text-sm leading-relaxed text-default-600">
+                Everyone on the active list gets it: the people signed up right
+                now, frozen at this moment. A signup after this press waits for
+                the next campaign, and an unsubscribe already on the list is not
+                mailed.
+              </p>
+            )}
+
+            <p className="text-xs leading-relaxed text-default-600">
               The first batch goes out right away and cannot be undone. The rest
-              waits for you: press Continue once per batch of ten until the
-              counters reach everyone. Send yourself a test copy first if you
-              have not.
+              waits for you in batches of ten.
             </p>
           </ModalBody>
           <ModalFooter className="gap-2">
@@ -301,19 +341,31 @@ const CampaignDetail = ({ id, onBack }: IProps) => {
             <button
               type="button"
               onClick={() =>
-                start.mutate(campaign._id, {
-                  onSuccess: () => {
-                    confirm.onClose();
-                    query.refetch();
-                    progress.refetch();
+                start.mutate(
+                  recipientMode === "selected"
+                    ? { id: campaign._id, subscriberIds: selectedIds }
+                    : { id: campaign._id },
+                  {
+                    onSuccess: () => {
+                      confirm.onClose();
+                      query.refetch();
+                      progress.refetch();
+                    },
                   },
-                })
+                )
               }
-              disabled={start.isPending}
+              disabled={
+                start.isPending ||
+                (recipientMode === "selected" && selectedIds.length === 0)
+              }
               aria-busy={start.isPending}
               className={dangerButton}
             >
-              {start.isPending ? "Starting…" : "Send to everyone"}
+              {start.isPending
+                ? "Starting…"
+                : recipientMode === "selected"
+                  ? `Send to ${selectedIds.length} selected`
+                  : "Send to everyone"}
             </button>
           </ModalFooter>
         </ModalContent>

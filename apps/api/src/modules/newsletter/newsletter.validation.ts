@@ -82,6 +82,16 @@ const createCampaign = z.object(campaignContent).strict();
 
 const updateCampaign = z.object(campaignContent).strict();
 
+const startCampaign = z
+  .object({
+    subscriberIds: z
+      .array(z.string().trim().min(1))
+      .min(1, "Pick at least one subscriber")
+      .max(500, "Select at most 500 subscribers at a time")
+      .optional(),
+  })
+  .strict();
+
 /**
  * What Resend posts to the webhook, reduced to the parts we act on. The
  * signature is checked against the raw body before this ever runs; here the
@@ -108,5 +118,6 @@ export const newsletterValidationSchema = {
   createSubscriber,
   createCampaign,
   updateCampaign,
+  startCampaign,
   resendEvent,
 };

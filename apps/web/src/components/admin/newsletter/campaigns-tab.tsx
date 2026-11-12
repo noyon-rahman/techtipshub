@@ -7,8 +7,18 @@ import CampaignDetail from "./campaign-detail";
 import CampaignEditor from "./campaign-editor";
 import CampaignList from "./campaign-list";
 import { primaryButton } from "./buttons";
+import type { RecipientMode } from "./recipient-picker";
 
-type View = { mode: "list" } | { mode: "new" } | { mode: "issue"; id: string };
+type View =
+  | { mode: "list" }
+  | { mode: "new" }
+  | {
+      mode: "campaign";
+      id: string;
+      autoOpenSend?: boolean;
+      initialRecipientMode?: RecipientMode;
+      initialSelectedIds?: string[];
+    };
 
 /**
  * Issues, and the three screens they need: the list, the builder, and one
@@ -28,18 +38,32 @@ const CampaignsTab = () => {
     return (
       <div className="rounded-[10px] border border-default/60 bg-content-1 p-4 sm:p-5">
         <CampaignEditor
-          onSaved={() => toList()}
+          onSaved={(id) => setView({ mode: "campaign", id })}
           onCancel={toList}
-          onRequestSend={toList}
+          onRequestSend={(id, selection) =>
+            setView({
+              mode: "campaign",
+              id,
+              autoOpenSend: true,
+              initialRecipientMode: selection?.mode,
+              initialSelectedIds: selection?.selectedIds,
+            })
+          }
         />
       </div>
     );
   }
 
-  if (view.mode === "issue") {
+  if (view.mode === "campaign") {
     return (
       <div className="rounded-[10px] border border-default/60 bg-content-1 p-4 sm:p-5">
-        <CampaignDetail id={view.id} onBack={toList} />
+        <CampaignDetail
+          id={view.id}
+          onBack={toList}
+          autoOpenSend={view.autoOpenSend}
+          initialRecipientMode={view.initialRecipientMode}
+          initialSelectedIds={view.initialSelectedIds}
+        />
       </div>
     );
   }
@@ -48,8 +72,8 @@ const CampaignsTab = () => {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-[60ch] text-sm leading-relaxed text-default-600">
-          One issue a month, built from articles the site already has. Copy the
-          previous subject to keep a rhythm, or write a new one.
+          Create a campaign with a custom message, curated articles, or both,
+          and send it to all or selected subscribers.
         </p>
         <button
           type="button"
@@ -57,7 +81,7 @@ const CampaignsTab = () => {
           className={primaryButton}
         >
           <FiPlus aria-hidden className="size-4" />
-          New issue
+          New campaign
         </button>
       </div>
 
@@ -66,7 +90,7 @@ const CampaignsTab = () => {
           page={page}
           onPageChange={setPage}
           onCreate={() => setView({ mode: "new" })}
-          onOpen={(id) => setView({ mode: "issue", id })}
+          onOpen={(id) => setView({ mode: "campaign", id })}
         />
       </div>
 

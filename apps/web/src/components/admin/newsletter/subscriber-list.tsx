@@ -11,7 +11,7 @@ import type {
 } from "@/services/admin/newsletter";
 import { Skeleton } from "@heroui/skeleton";
 import { useId, useRef, type KeyboardEvent } from "react";
-import { FiMail } from "react-icons/fi";
+import { FiMail, FiTrash2 } from "react-icons/fi";
 
 import {
   SOURCE_LABEL,
@@ -36,7 +36,9 @@ interface IListProps {
   onClearSearch: () => void;
   /** Removing takes a round trip, so the row it belongs to says so. */
   removingEmail?: string;
+  deletingId?: string;
   onRemove: (subscriber: INewsletterSubscriber) => void;
+  onDeletePermanent: (subscriber: INewsletterSubscriber) => void;
 }
 
 const statusTone: Record<TSubscriberStatus, string> = {
@@ -76,7 +78,9 @@ const SubscriberList = ({
   searchTerm,
   onClearSearch,
   removingEmail,
+  deletingId,
   onRemove,
+  onDeletePermanent,
 }: IListProps) => {
   const listRef = useRef<HTMLUListElement>(null);
   const headerId = useId();
@@ -213,7 +217,7 @@ const SubscriberList = ({
       {/* Column headings, wide screens only. Phones read the labels inline. */}
       <div
         aria-hidden
-        className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_7rem_minmax(0,1fr)_5.5rem] gap-3 border-b border-default/60 bg-default-50/60 px-3.5 py-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-default-600 lg:grid"
+        className="hidden grid-cols-[minmax(0,2fr)_minmax(0,1fr)_7rem_minmax(0,1fr)_9rem] gap-3 border-b border-default/60 bg-default-50/60 px-3.5 py-2 text-[0.6875rem] font-semibold uppercase tracking-wide text-default-600 lg:grid"
       >
         <span>Name and address</span>
         <span>Joined from</span>
@@ -234,6 +238,7 @@ const SubscriberList = ({
         </p>
         {rows.map((subscriber) => {
           const busy = removingEmail === subscriber.email;
+          const deleting = deletingId === subscriber._id;
           const reason =
             subscriber.status === "bounced" ||
             subscriber.status === "complained"
@@ -244,7 +249,7 @@ const SubscriberList = ({
             <li
               key={subscriber._id}
               data-subscriber-row="true"
-              className="grid grid-cols-1 gap-x-3 gap-y-1.5 px-3.5 py-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_7rem_minmax(0,1fr)_5.5rem] lg:items-center"
+              className="grid grid-cols-1 gap-x-3 gap-y-1.5 px-3.5 py-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_7rem_minmax(0,1fr)_9rem] lg:items-center"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-foreground">
@@ -285,23 +290,28 @@ const SubscriberList = ({
                 </time>
               </p>
 
-              <div className="flex justify-end">
-                {canRemove(subscriber.status) ? (
+              <div className="flex items-center justify-end gap-1">
+                {canRemove(subscriber.status) && (
                   <button
                     type="button"
                     onClick={() => onRemove(subscriber)}
-                    disabled={busy}
-                    aria-label={`Remove ${subscriber.email} from the newsletter`}
+                    disabled={busy || deleting}
+                    aria-label={`Unsubscribe ${subscriber.email} from the newsletter`}
                     className={`inline-flex min-h-11 items-center justify-center rounded-[6px] px-2.5 text-xs font-medium text-default-700 transition-colors hover:bg-default-100 hover:text-foreground disabled:opacity-60 lg:min-h-8 ${focusRing}`}
                   >
-                    {busy ? "Removing…" : "Remove"}
+                    {busy ? "Removing…" : "Unsubscribe"}
                   </button>
-                ) : (
-                  <span className="px-2.5 text-xs text-default-600">
-                    <span aria-hidden>·</span>
-                    <span className="sr-only">No action</span>
-                  </span>
                 )}
+                <button
+                  type="button"
+                  onClick={() => onDeletePermanent(subscriber)}
+                  disabled={busy || deleting}
+                  aria-label={`Delete ${subscriber.email} permanently`}
+                  title="Delete permanently"
+                  className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-[6px] text-default-500 transition-colors hover:bg-danger/10 hover:text-danger disabled:opacity-60 lg:min-h-8 lg:min-w-8 ${focusRing}`}
+                >
+                  <FiTrash2 aria-hidden className="size-4" />
+                </button>
               </div>
             </li>
           );
