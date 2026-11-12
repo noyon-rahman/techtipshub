@@ -15,10 +15,14 @@ import EmptyState from "@/components/modules/admin/kit/empty-state";
 import FormDialog from "@/components/modules/admin/kit/form-dialog";
 import ListFooter from "@/components/modules/admin/kit/list-footer";
 import ListFrame from "@/components/modules/admin/kit/list-frame";
+import SelectionBar from "@/components/modules/admin/kit/selection-bar";
 import { focusRing } from "@/components/modules/admin/kit/tau";
+import useRowSelection from "@/components/modules/admin/kit/use-row-selection";
+import { categoryPath } from "@/lib/feed-routes";
 import {
   useAdminCategories,
   useCreateCategory,
+  useDeleteCategoriesInBulk,
   useDeleteCategory,
   useUpdateCategory,
 } from "@/hooks/admin-categories";
@@ -148,6 +152,8 @@ const CategoriesManager = ({
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
   const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategory();
   const { mutate: deleteCategory, isPending: isDeleting } = useDeleteCategory();
+  const { mutate: deleteCategoriesInBulk, isPending: isDeletingInBulk } =
+    useDeleteCategoriesInBulk();
 
   const {
     register,
@@ -181,6 +187,18 @@ const CategoriesManager = ({
     Math.max(visible.length - 1, 0),
   );
   const pageRows = visible.slice(pageStart, pageStart + limit);
+
+  // A category in use cannot be deleted, so it cannot be picked either: "select
+  // all" means all the ones the action can actually move to the trash.
+  const selection = useRowSelection({
+    rows: pageRows,
+    getKey: (category) => category._id,
+    selectable: (category) => countOf(category) === 0,
+    // A different tab or search finds different rows; the old ids no longer
+    // describe what the admin was looking at.
+    resetWith: `${tab}:${searchTerm}`,
+    selectAllLabel: "Select every unused category on this page",
+  });
 
   const changeTab = (next: Tab) => filters.set({ tab: next });
 
@@ -339,15 +357,53 @@ const CategoriesManager = ({
           }
         />
 
+        <SelectionBar
+          count={selection.count}
+          noun="category"
+          pluralNoun="categories"
+          onClear={selection.clear}
+        >
+          <ConfirmDialog
+            trigger={
+              <button
+                type="button"
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-[6px] border border-danger/40 px-2.5 text-sm font-medium text-danger transition-colors hover:bg-danger/10 sm:min-h-9 ${focusRing}`}
+              >
+                <FiTrash2 aria-hidden className="size-4" />
+                Move to Trash
+              </button>
+            }
+            title={`Move ${selection.count} ${
+              selection.count === 1 ? "category" : "categories"
+            } to the trash?`}
+            description="They leave the feed filter and the category picker, and wait in Trash where you can restore them. Nothing is erased yet."
+            confirmLabel="Move to Trash"
+            isPending={isDeletingInBulk}
+            onConfirm={() =>
+              deleteCategoriesInBulk(selection.keys, {
+                onSuccess: () => {
+                  const leaving = selection.count;
+                  selection.clear();
+                  if (page > 1 && pageRows.length <= leaving) {
+                    filters.set({ page: page - 1 });
+                  }
+                },
+              })
+            }
+          />
+        </SelectionBar>
+
         <DataTable
           columns={COLUMNS}
           rows={pageRows}
           getRowKey={(row) => row._id}
           isLoading={isLoading}
           skeletonRows={Math.min(limit, 10)}
-          minWidth="40rem"
+          minWidth="44rem"
           caption="Categories, how many published articles use each, and when each was added"
           emptyState={emptyState}
+          selection={selection}
+          rowLabel={(category) => `Select ${category.name}`}
           renderCell={(category, columnKey) => {
             const used = countOf(category);
 
@@ -356,7 +412,7 @@ const CategoriesManager = ({
                 return (
                   <div className="max-w-[28rem]">
                     <Link
-                      href={`/?category=${encodeURIComponent(category.name)}`}
+                      href={categoryPath(category.name)}
                       className={linkClass}
                     >
                       {category.name}
@@ -420,8 +476,8 @@ const CategoriesManager = ({
                             <FiTrash2 aria-hidden className="size-4" />
                           </button>
                         }
-                        title={`Delete ${category.name}?`}
-                        description="It stops appearing in the feed filter and in the category picker. No articles use it, so nothing is left without a category."
+                        title={`Move ${category.name} to the trash?`}
+                        description="It stops appearing in the feed filter and in the category picker. No published articles use it, and Trash keeps it restorable."
                         confirmLabel="Delete category"
                         tone="danger"
                         isPending={isDeleting}

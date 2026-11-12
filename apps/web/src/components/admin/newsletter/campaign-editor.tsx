@@ -27,6 +27,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { FiCheck, FiMail, FiX } from "react-icons/fi";
 
 import { primaryButton, quietButton } from "./buttons";
+import RecipientPicker, { type RecipientMode } from "./recipient-picker";
 
 const MAX_ARTICLES = 40;
 const MAX_SUBJECT = 150;
@@ -39,8 +40,15 @@ interface IProps {
   draft?: ICampaign;
   onSaved: (id: string) => void;
   onCancel?: () => void;
-  /** Saves the copy, so a preview of a new issue has something to render. */
-  onRequestSend: () => void;
+  /** Saves the copy, so a preview of a new campaign has something to render. */
+  onRequestSend: (
+    id: string,
+    selection?: { mode: RecipientMode; selectedIds: string[] },
+  ) => void;
+  recipientMode?: RecipientMode;
+  onRecipientModeChange?: (mode: RecipientMode) => void;
+  selectedSubscriberIds?: string[];
+  onSelectedSubscriberIdsChange?: (ids: string[]) => void;
 }
 
 /**
@@ -60,6 +68,10 @@ const CampaignEditor = ({
   onSaved,
   onCancel,
   onRequestSend,
+  recipientMode: controlledMode,
+  onRecipientModeChange,
+  selectedSubscriberIds: controlledSelectedIds,
+  onSelectedSubscriberIdsChange,
 }: IProps) => {
   const isDraft = Boolean(draft);
 
@@ -70,8 +82,16 @@ const CampaignEditor = ({
   const [picked, setPicked] = useState<string[]>(
     draft?.articles.map((article) => article.blog) ?? [],
   );
+  const [localMode, setLocalMode] = useState<RecipientMode>("all");
+  const [localSelectedIds, setLocalSelectedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  const recipientMode = controlledMode ?? localMode;
+  const setRecipientMode = onRecipientModeChange ?? setLocalMode;
+  const selectedSubscriberIds = controlledSelectedIds ?? localSelectedIds;
+  const setSelectedSubscriberIds =
+    onSelectedSubscriberIdsChange ?? setLocalSelectedIds;
 
   // A draft's chosen articles are frozen copies; the suggestion only lists
   // published articles, so the two are merged for the picker to show.
@@ -154,12 +174,13 @@ const CampaignEditor = ({
       return "A subject is the one line readers see in their inbox.";
     if (subject.trim().length > MAX_SUBJECT) return "The subject is too long.";
     if (heading.trim().length < 3)
-      return "Give the issue a heading the email can open with.";
+      return "Give the campaign a heading the email can open with.";
     if (heading.trim().length > MAX_HEADING) return "The heading is too long.";
-    if (intro.trim().length > MAX_INTRO) return "The intro is too long.";
+    if (intro.trim().length > MAX_INTRO) return "The message is too long.";
     if (preview.trim().length > MAX_PREVIEW)
       return "The preview line is too long for an inbox.";
-    if (picked.length === 0) return "An issue needs at least one article.";
+    if (picked.length === 0 && intro.trim().length === 0)
+      return "Write a message or pick at least one article for this campaign.";
     return null;
   };
 
@@ -237,12 +258,12 @@ const CampaignEditor = ({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="font-[family-name:var(--type-editorial)] text-lg font-semibold tracking-[-0.015em]">
-            {isDraft ? "Edit the draft" : "New issue"}
+            {isDraft ? "Edit campaign draft" : "New campaign"}
           </h2>
           <p className="mt-1 max-w-[60ch] text-sm leading-relaxed text-default-600">
             {isDraft
               ? "Nothing has gone out yet, so every field can still change."
-              : "Pick the articles readers missed, then check a copy in your own inbox before anyone else gets one."}
+              : "Write a custom campaign message, optionally attach articles, and test a copy in your own inbox before sending."}
           </p>
         </div>
 
@@ -286,32 +307,43 @@ const CampaignEditor = ({
           isDisabled={isSaving}
         />
         <Textarea
-          label="Intro"
+          label="Message / Intro"
           labelPlacement="outside"
-          placeholder="A short note before the articles. Two sentences is plenty."
+          placeholder="Write your campaign message or a short intro before any articles."
           value={intro}
           onValueChange={setIntro}
           maxLength={MAX_INTRO}
-          minRows={2}
-          maxRows={6}
+          minRows={3}
+          maxRows={8}
           isDisabled={isSaving}
-          description="Shown under the heading, above the first article."
+          description="Main body copy of the email (optional if articles are attached)."
         />
       </div>
 
       <div className="rounded-[10px] border border-default/60">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-default/60 px-3.5 py-2.5">
-          <p className="text-sm font-medium">
-            Articles{" "}
-            <span className="tabular-nums text-default-600">
-              {picked.length}/{MAX_ARTICLES}
-            </span>
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm font-medium">
+              Articles (optional){" "}
+              <span className="tabular-nums text-default-600">
+                {picked.length}/{MAX_ARTICLES}
+              </span>
+            </p>
+            {picked.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setPicked([])}
+                className="text-xs font-medium text-default-600 hover:text-foreground"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
           {!isDraft && suggestion.data && (
             <p className="text-xs text-default-600">
               {suggestion.data.since
-                ? `Published since the last issue went out`
-                : "Every article, because this is the first issue"}
+                ? "Published since the last campaign went out"
+                : "Every published article"}
             </p>
           )}
         </div>
@@ -399,6 +431,21 @@ const CampaignEditor = ({
         )}
       </div>
 
+      <div className="rounded-[10px] border border-default/60 p-3.5 sm:p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium">Recipients</p>
+          <p className="text-xs text-default-600">
+            Send to everyone on the active list or pick specific subscribers
+          </p>
+        </div>
+        <RecipientPicker
+          mode={recipientMode}
+          onModeChange={setRecipientMode}
+          selectedIds={selectedSubscriberIds}
+          onSelectedIdsChange={setSelectedSubscriberIds}
+        />
+      </div>
+
       {error && (
         <p role="alert" className="text-sm text-danger">
           {error}
@@ -442,7 +489,15 @@ const CampaignEditor = ({
         </button>
         <button
           type="button"
-          onClick={() => save((id) => id && onRequestSend())}
+          onClick={() =>
+            save((id) => {
+              if (!id) return;
+              onRequestSend(id, {
+                mode: recipientMode,
+                selectedIds: selectedSubscriberIds,
+              });
+            })
+          }
           disabled={isSaving}
           className="ml-auto inline-flex min-h-11 items-center justify-center gap-1.5 rounded-[6px] bg-primary px-3.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-500 disabled:opacity-60 sm:min-h-9"
         >

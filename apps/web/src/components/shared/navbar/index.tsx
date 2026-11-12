@@ -8,7 +8,17 @@ import { usePathname } from "next/navigation";
 import { Button } from "@heroui/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { HiOutlinePencilSquare } from "react-icons/hi2";
-import { FiMenu, FiX } from "react-icons/fi";
+import {
+  FiBookOpen,
+  FiGrid,
+  FiHome,
+  FiInfo,
+  FiMail,
+  FiMenu,
+  FiSliders,
+  FiUsers,
+  FiX,
+} from "react-icons/fi";
 import { useUser } from "@/context/user.provider";
 import { siteConfig } from "@/config/site";
 import { Logo } from "@/components/shared/logo";
@@ -16,8 +26,18 @@ import LoginLogoutSwitch from "@/components/ui/login-logout-switch";
 import { ThemeSwitch } from "@/components/ui/theme-switch";
 import NavbarSearchInput from "./navbar-search-input";
 
-const isActivePath = (pathname: string | null, href: string) =>
-  href === "/" ? pathname === "/" : Boolean(pathname?.startsWith(href));
+const isActivePath = (pathname: string | null, href: string) => {
+  if (!pathname) return false;
+  if (href === "/") {
+    return (
+      pathname === "/" ||
+      pathname === "/personalized" ||
+      pathname === "/following" ||
+      pathname.startsWith("/categories")
+    );
+  }
+  return pathname.startsWith(href);
+};
 
 /**
  * The site header.
@@ -63,6 +83,9 @@ export const Navbar = () => {
   useEffect(() => {
     if (!menuOpen) return;
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setMenuOpen(false);
@@ -71,7 +94,10 @@ export const Navbar = () => {
     };
 
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [menuOpen]);
 
   const closeMenu = () => {
@@ -80,10 +106,10 @@ export const Navbar = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-default/60 bg-background/95 backdrop-blur print:hidden">
-      <div className="mx-auto flex h-16 w-full max-w-page items-stretch gap-1 px-4 sm:gap-3 sm:px-6 lg:px-8">
-        {/* Menu and brand. On phones the button leads; from `sm` the brand
-            does, and the button sits beside it as it was. */}
+    <>
+      <header className="sticky top-0 z-50 border-b border-default/50 bg-background/85 backdrop-blur-md print:hidden">
+      <div className="mx-auto flex h-16 w-full max-w-page items-center gap-4 px-4 sm:px-6 lg:px-8">
+        {/* Menu and brand */}
         <div className="flex shrink-0 items-center">
           <button
             type="button"
@@ -91,7 +117,7 @@ export const Navbar = () => {
             aria-controls="mobile-nav"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             onClick={toggleMenu}
-            className="-ml-2.5 flex size-11 items-center justify-center rounded-full text-default-600 transition-colors hover:bg-default-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70 sm:order-2 sm:ml-1 sm:size-10 lg:hidden"
+            className="-ml-2 flex size-11 items-center justify-center rounded-[6px] text-default-600 transition-colors hover:bg-default-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:order-2 sm:ml-1 sm:size-9 lg:hidden"
           >
             {menuOpen ? (
               <FiX className="size-5" aria-hidden />
@@ -103,35 +129,26 @@ export const Navbar = () => {
           <Link
             href="/"
             aria-label="TechTipsHub home"
-            className="flex items-center rounded-md transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70 sm:order-1"
+            className="flex items-center rounded-[6px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:order-1"
           >
-            {/*
-              One lockup, not two. Rendering a smaller copy alongside and
-              toggling them with `hidden`/`sm:inline-flex` only works while the
-              two stay in sync; mounting a single element and stepping the
-              wordmark's size at `sm` cannot drift apart, and it keeps the
-              link's accessible name to one "TechTipsHub".
-            */}
             <Logo size="md" wordClass="text-[0.9375rem] sm:text-base" />
           </Link>
         </div>
 
-        {/* Primary navigation. Each link spans the bar's full height so the
-            2px current-state rule lands on the header's own bottom border
-            instead of floating inside it. */}
-        <nav aria-label="Main" className="hidden lg:block">
-          <ul className="flex h-full items-stretch gap-1">
+        {/* Primary navigation */}
+        <nav aria-label="Main" className="ml-2 hidden lg:block">
+          <ul className="flex items-center gap-1">
             {siteConfig.navItems.map((item) => {
               const active = isActivePath(pathname, item.href);
               return (
-                <li key={item.href} className="flex">
+                <li key={item.href}>
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex items-center border-b-2 px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus/70 ${
+                    className={`inline-flex h-9 items-center rounded-[6px] px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       active
-                        ? "border-primary text-foreground"
-                        : "border-transparent text-default-600 hover:border-default-300 hover:text-foreground"
+                        ? "bg-primary/12 font-semibold text-primary-accessible"
+                        : "font-medium text-default-600 hover:bg-default-100/80 hover:text-foreground"
                     }`}
                   >
                     {item.label}
@@ -142,34 +159,26 @@ export const Navbar = () => {
           </ul>
         </nav>
 
-        {/* Search grows to fill the middle, up to 16rem: wide enough for the
-            placeholder and the ⌘K hint, narrow enough that it does not read as
-            the header's main control. The cap is an arbitrary value on purpose;
-            `max-w-2xs` is not in this Tailwind scale and silently resolves to
-            nothing. `w-0` gives the flex item a real starting basis, with
-            `min-w-0` to stop the row's gap from holding it open. */}
-        <div className="ml-auto hidden w-0 min-w-0 max-w-[16rem] flex-1 items-center lg:flex">
-          <NavbarSearchInput />
-        </div>
+        {/* Actions: consistent 36px (h-9) height on sm+, 44px tap targets on phones */}
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="hidden w-64 items-center lg:flex">
+            <NavbarSearchInput />
+          </div>
 
-        {/* Actions */}
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-2">
           <div className="flex items-center lg:hidden">
             <NavbarSearchInput compact />
           </div>
-
-          <ThemeSwitch />
 
           {user ? (
             <Button
               as={Link}
               href={writeBlogPath}
               size="sm"
-              radius="full"
+              radius="sm"
               color="primary"
               startContent={<HiOutlinePencilSquare className="text-base" />}
               aria-label="Write a blog"
-              className="hidden font-medium shadow-none active:scale-95 sm:inline-flex"
+              className="hidden h-9 rounded-[6px] px-3.5 text-sm font-semibold shadow-none transition-transform active:scale-95 sm:inline-flex"
             >
               Write
             </Button>
@@ -178,98 +187,205 @@ export const Navbar = () => {
           <LoginLogoutSwitch />
         </div>
       </div>
+    </header>
 
-      {/* Mobile navigation drawer. From `lg` the row carries the same links,
-          so the drawer only exists below that. */}
+      {/* Mobile slide-over drawer. Rendered as a sibling outside <header> so
+          header's backdrop-blur does not create a containing block for fixed positioning. */}
       <AnimatePresence>
         {menuOpen && (
-          <motion.div
-            id="mobile-nav"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
-            className="overflow-hidden border-t border-default/60 bg-background lg:hidden"
-          >
-            <div className="space-y-3 px-4 py-4 sm:px-6">
-              <div className="sm:hidden">
-                <NavbarSearchInput block />
+          <div className="fixed inset-0 z-50 lg:hidden">
+            <motion.div
+              aria-hidden
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={closeMenu}
+              className="fixed inset-0 bg-ink/50 backdrop-blur-xs"
+            />
+
+            <motion.aside
+              id="mobile-nav"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Site navigation"
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="fixed inset-y-0 left-0 flex h-dvh w-[min(20rem,86vw)] flex-col border-r border-default/60 bg-background shadow-2xl"
+            >
+              <div className="flex h-16 shrink-0 items-center justify-between border-b border-default/60 px-4">
+                <Link
+                  href="/"
+                  onClick={closeMenu}
+                  aria-label="TechTipsHub home"
+                  className="flex items-center rounded-[6px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <Logo size="md" wordClass="text-[0.9375rem]" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={closeMenu}
+                  aria-label="Close menu"
+                  className="-mr-2 flex size-11 items-center justify-center rounded-[6px] text-default-600 transition-colors hover:bg-default-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <FiX className="size-5" aria-hidden />
+                </button>
               </div>
 
-              <nav aria-label="Main (mobile)">
-                <ul>
-                  {siteConfig.navMenuItems.map((item) => {
-                    const active = isActivePath(pathname, item.href);
-                    return (
+              <div className="flex-1 space-y-6 overflow-y-auto px-4 py-5">
+                <NavbarSearchInput block />
+
+                <nav aria-label="Browse">
+                  <p className="mb-2 px-3 tth-label-sm">Browse</p>
+                  <ul className="space-y-1">
+                    {[
+                      {
+                        href: "/",
+                        label: "Feed",
+                        icon: <FiHome className="size-4" aria-hidden />,
+                        active: pathname === "/",
+                      },
+                      ...(user
+                        ? [
+                            {
+                              href: "/personalized",
+                              label: "Personalized",
+                              icon: (
+                                <FiSliders className="size-4" aria-hidden />
+                              ),
+                              active: pathname === "/personalized",
+                            },
+                            {
+                              href: "/following",
+                              label: "Following",
+                              icon: <FiUsers className="size-4" aria-hidden />,
+                              active: pathname === "/following",
+                            },
+                          ]
+                        : []),
+                      {
+                        href: "/categories",
+                        label: "Categories",
+                        icon: <FiGrid className="size-4" aria-hidden />,
+                        active: Boolean(pathname?.startsWith("/categories")),
+                      },
+                    ].map((item) => (
                       <li key={item.href}>
                         <Link
                           href={item.href}
                           onClick={closeMenu}
-                          aria-current={active ? "page" : undefined}
-                          className={`flex min-h-11 items-center justify-between rounded-lg px-3 text-[0.9375rem] font-medium transition-colors ${
-                            active
-                              ? "bg-primary/10 text-primary-accessible"
-                              : "text-default-700 hover:bg-default-100 hover:text-foreground"
+                          aria-current={item.active ? "page" : undefined}
+                          className={`flex min-h-11 items-center gap-3 rounded-[6px] px-3 text-[0.9375rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                            item.active
+                              ? "bg-primary/12 font-semibold text-primary-accessible"
+                              : "font-medium text-default-700 hover:bg-default-100 hover:text-foreground"
                           }`}
                         >
+                          {item.icon}
                           {item.label}
-                          {active && (
-                            <span
-                              aria-hidden
-                              className="size-1.5 rounded-full bg-primary-accessible"
-                            />
-                          )}
                         </Link>
                       </li>
-                    );
-                  })}
-                </ul>
-              </nav>
+                    ))}
+                  </ul>
+                </nav>
 
-              {user ? (
-                <Button
-                  as={Link}
-                  href={writeBlogPath}
-                  onPress={closeMenu}
-                  fullWidth
-                  radius="lg"
-                  color="primary"
-                  startContent={<HiOutlinePencilSquare className="text-base" />}
-                >
-                  Write a blog
-                </Button>
-              ) : (
-                // Below `sm` the top bar keeps only the theme switch, so the
-                // account actions live here where there is room to hit them.
-                <div className="flex flex-col gap-2 pt-1 sm:hidden">
-                  <Button
-                    as={Link}
-                    className="font-medium"
-                    href="/login"
-                    onPress={closeMenu}
-                    fullWidth
-                    radius="lg"
-                    variant="bordered"
-                  >
-                    Log in
-                  </Button>
-                  <Button
-                    as={Link}
-                    className="font-semibold"
-                    href="/signup"
-                    onPress={closeMenu}
-                    fullWidth
-                    radius="lg"
-                    color="primary"
-                  >
-                    Sign up
-                  </Button>
+                <nav aria-label="Publication">
+                  <p className="mb-2 px-3 tth-label-sm">Publication</p>
+                  <ul className="space-y-1">
+                    {[
+                      {
+                        href: "/features",
+                        label: "Features",
+                        icon: <FiBookOpen className="size-4" aria-hidden />,
+                      },
+                      {
+                        href: "/about",
+                        label: "About",
+                        icon: <FiInfo className="size-4" aria-hidden />,
+                      },
+                      {
+                        href: "/contact",
+                        label: "Contact",
+                        icon: <FiMail className="size-4" aria-hidden />,
+                      },
+                    ].map((item) => {
+                      const active = Boolean(pathname?.startsWith(item.href));
+                      return (
+                        <li key={item.href}>
+                          <Link
+                            href={item.href}
+                            onClick={closeMenu}
+                            aria-current={active ? "page" : undefined}
+                            className={`flex min-h-11 items-center gap-3 rounded-[6px] px-3 text-[0.9375rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                              active
+                                ? "bg-primary/12 font-semibold text-primary-accessible"
+                                : "font-medium text-default-700 hover:bg-default-100 hover:text-foreground"
+                            }`}
+                          >
+                            {item.icon}
+                            {item.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </nav>
+
+                <div className="flex min-h-11 items-center justify-between rounded-[6px] border border-default/60 bg-content-1 px-3 py-2 text-sm font-medium text-default-700">
+                  <span>Appearance</span>
+                  <ThemeSwitch className="flex size-9 items-center justify-center rounded-[6px] hover:bg-default-100" />
                 </div>
-              )}
-            </div>
-          </motion.div>
+              </div>
+
+              <div className="shrink-0 border-t border-default/60 bg-content-1/60 p-4">
+                {user ? (
+                  <Button
+                    as={Link}
+                    href={writeBlogPath}
+                    onPress={closeMenu}
+                    fullWidth
+                    radius="sm"
+                    color="primary"
+                    className="min-h-11 rounded-[6px] font-semibold"
+                    startContent={
+                      <HiOutlinePencilSquare className="text-base" />
+                    }
+                  >
+                    Write a blog
+                  </Button>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <Button
+                      as={Link}
+                      className="min-h-11 rounded-[6px] font-medium"
+                      href="/login"
+                      onPress={closeMenu}
+                      fullWidth
+                      radius="sm"
+                      variant="bordered"
+                    >
+                      Log in
+                    </Button>
+                    <Button
+                      as={Link}
+                      className="min-h-11 rounded-[6px] font-semibold"
+                      href="/signup"
+                      onPress={closeMenu}
+                      fullWidth
+                      radius="sm"
+                      color="primary"
+                    >
+                      Sign up
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.aside>
+          </div>
         )}
       </AnimatePresence>
-    </header>
+    </>
   );
 };

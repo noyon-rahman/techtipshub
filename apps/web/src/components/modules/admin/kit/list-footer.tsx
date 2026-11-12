@@ -10,6 +10,8 @@ interface IProps {
   shown: number;
   /** What one row is called, e.g. "article". */
   noun: string;
+  /** Only for nouns that do not just take an "s", e.g. "categories". */
+  pluralNoun?: string;
   page: number;
   totalPages: number;
   pageSize: number;
@@ -41,6 +43,7 @@ export default function ListFooter({
   total,
   shown,
   noun,
+  pluralNoun = `${noun}s`,
   page,
   totalPages,
   pageSize,
@@ -54,7 +57,7 @@ export default function ListFooter({
   if (isLoading && total === undefined) {
     return (
       <div className={`${strip} text-xs text-default-600`}>
-        <span role="status">Counting {noun}s</span>
+        <span role="status">Counting {pluralNoun}</span>
       </div>
     );
   }
@@ -69,7 +72,7 @@ export default function ListFooter({
     >
       <p className="min-w-0 text-xs tabular-nums text-default-600">
         <span className="font-medium text-foreground">
-          {num(count)} {count === 1 ? noun : `${noun}s`}
+          {num(count)} {count === 1 ? noun : pluralNoun}
         </span>
         {shown > 0 ? (
           <>

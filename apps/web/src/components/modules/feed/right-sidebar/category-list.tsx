@@ -21,7 +21,6 @@ export const topCategories = (
   limit = FEED_CATEGORY_LIMIT,
 ) =>
   [...categories]
-    .filter((category) => !category.isDeleted)
     .sort(
       (a, b) =>
         (b.blogCount ?? 0) - (a.blogCount ?? 0) || a.name.localeCompare(b.name),

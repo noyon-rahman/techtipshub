@@ -1,6 +1,5 @@
 "use client";
 
-import { Kbd } from "@heroui/react";
 import { useCallback, useState } from "react";
 import { SearchIcon } from "@/components/icons";
 import CommandPalette from "./command-palette";
@@ -40,9 +39,9 @@ const NavbarSearchInput = ({ block = false, compact = false }: IProps) => {
           aria-expanded={open}
           aria-label="Search articles and pages"
           onClick={openPalette}
-          className="group flex size-10 items-center justify-center rounded-full text-default-600 transition-colors hover:bg-default-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70"
+          className="group flex size-11 items-center justify-center rounded-[6px] text-default-600 transition-colors hover:bg-default-100/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:size-9"
         >
-          <SearchIcon className="size-5" />
+          <SearchIcon className="size-4.5" />
         </button>
       ) : (
         <button
@@ -50,19 +49,21 @@ const NavbarSearchInput = ({ block = false, compact = false }: IProps) => {
           aria-haspopup="dialog"
           aria-expanded={open}
           onClick={openPalette}
-          className="group flex w-full items-center gap-2.5 rounded-full border border-default-200 bg-default-50/70 py-2 pl-3.5 pr-2 text-left text-sm text-default-600 transition-colors hover:border-default-300 hover:bg-default-100/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus/70 dark:bg-default-100/10 dark:hover:bg-default-100/20"
+          className={`group flex w-full items-center gap-2.5 rounded-[6px] border border-default/60 bg-content-1/90 px-3 text-left text-sm text-default-600 transition-colors hover:border-default-300 hover:bg-content-1 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            block ? "h-10" : "h-9"
+          }`}
         >
-          <SearchIcon className="size-4 shrink-0 text-default-500 transition-colors group-hover:text-default-600" />
+          <SearchIcon className="size-4 shrink-0 text-default-500 transition-colors group-hover:text-primary-accessible" />
           <span className="min-w-0 flex-1 truncate">
-            Search articles, pages…
+            Search articles, topics…
           </span>
           {!block && (
-            <span
-              className="hidden shrink-0 items-center gap-1 pr-0.5 lg:flex"
+            <kbd
+              className="hidden shrink-0 rounded-[4px] border border-default/60 bg-default-100/70 px-1.5 py-0.5 font-sans text-[11px] font-medium leading-none text-default-500 lg:inline"
               aria-hidden
             >
-              <Kbd keys={["command"]}>K</Kbd>
-            </span>
+              ⌘K
+            </kbd>
           )}
         </button>
       )}

@@ -92,3 +92,76 @@ export const deleteCategory = async (id: string) => {
     ).body;
   }
 };
+
+/**
+ * `POST /admin/categories/bulk-delete` (Admin). All or nothing: a category
+ * still holding a published article refuses the whole selection.
+ */
+export const deleteCategoriesInBulk = async (ids: string[]) => {
+  try {
+    const res = await axiosInstance.post("/admin/categories/bulk-delete", {
+      ids,
+    });
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The categories could not be deleted.");
+  }
+};
+
+/** `GET /admin/categories/trash` (Admin). Every trashed category, newest first. */
+export const getTrashedCategories = async () => {
+  try {
+    const res = await axiosInstance.get("/admin/categories/trash");
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "Deleted categories did not load.");
+  }
+};
+
+// PATCH /admin/categories/:id/restore (Admin)
+export const restoreCategory = async (id: string) => {
+  try {
+    const res = await axiosInstance.patch(`/admin/categories/${id}/restore`);
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The category could not be restored.");
+  }
+};
+
+/** `DELETE /admin/categories/:id/permanent` (Admin). Only a trashed category. */
+export const deleteCategoryPermanently = async (id: string) => {
+  try {
+    const res = await axiosInstance.delete(`/admin/categories/${id}/permanent`);
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The category could not be deleted.");
+  }
+};
+
+/**
+ * Erases trashed categories for good.
+ *
+ * The API has no bulk route for categories, so this asks once per id. A
+ * failure stops the run and says how many went, instead of reporting the whole
+ * selection as done.
+ */
+export const deleteCategoriesPermanentlyInBulk = async (ids: string[]) => {
+  let deleted = 0;
+
+  for (const id of ids) {
+    try {
+      await deleteCategoryPermanently(id);
+      deleted += 1;
+    } catch {
+      throw new Error(
+        `${deleted} ${deleted === 1 ? "category" : "categories"} deleted for good, then the next one failed. Reload to see what is left.`,
+      );
+    }
+  }
+
+  return { data: { deleted } };
+};

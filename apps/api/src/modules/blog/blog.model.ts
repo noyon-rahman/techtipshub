@@ -103,10 +103,17 @@ const blogSchema = new Schema<IBlog>(
     isDeleted: {
       type: Boolean,
       default: false,
+      select: false,
     },
   },
   {
     timestamps: true,
+    toJSON: {
+      transform(_doc, ret: Record<string, unknown>) {
+        delete ret.isDeleted;
+        return ret;
+      },
+    },
   },
 );
 

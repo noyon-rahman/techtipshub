@@ -1,5 +1,6 @@
 import { IBlog } from "@/types";
 import UserAvatar from "@/components/ui/user-avatar";
+import { publicProfilePath } from "@/lib/blog-routes";
 import Link from "next/link";
 import { AiOutlineComment } from "react-icons/ai";
 import { BiDownvote, BiUpvote } from "react-icons/bi";
@@ -61,14 +62,22 @@ const BlogCard = ({
           </div>
 
           {coverImage && (
-            <div className="shrink-0 overflow-hidden rounded-lg bg-default-100 sm:w-40 lg:w-44">
-              <div className="relative aspect-[16/10]">
+            <div className="w-full shrink-0 overflow-hidden rounded-[10px] bg-default-100 sm:w-40 sm:rounded-lg lg:w-44">
+              <div className="sm:relative sm:aspect-[16/10]">
                 <Image
-                  className="object-cover"
+                  className="h-auto w-full object-contain sm:hidden"
+                  src={coverImage}
+                  alt=""
+                  width={1200}
+                  height={675}
+                  sizes="100vw"
+                />
+                <Image
+                  className="hidden object-cover sm:block"
                   src={coverImage}
                   alt=""
                   fill
-                  sizes="(min-width: 1024px) 176px, (min-width: 640px) 160px, 100vw"
+                  sizes="(min-width: 1024px) 176px, 160px"
                 />
               </div>
             </div>
@@ -86,7 +95,9 @@ const BlogCard = ({
             showFallback
           />
           <Link
-            href={`/users/@${author?.username}`}
+            href={
+              author?.username ? publicProfilePath(author.username) : "#"
+            }
             className="truncate text-xs font-medium text-foreground hover:text-primary-accessible"
           >
             {author?.fullName}

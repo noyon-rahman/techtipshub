@@ -21,4 +21,24 @@ const deleteComment = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
-export const adminCommentController = { deleteComment };
+const getDeletedComments = async (c: Context<TAppBindings>) => {
+  const { result } = await commentService.getDeletedComments(c.req.query());
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const deleteCommentsPermanently = async (c: Context<TAppBindings>) => {
+  const { ids } = c.get("validatedBody") as { ids: string[] };
+  const result = await commentService.deleteCommentsPermanently(
+    ids,
+    c.get("user")?.email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+export const adminCommentController = {
+  deleteComment,
+  getDeletedComments,
+  deleteCommentsPermanently,
+};

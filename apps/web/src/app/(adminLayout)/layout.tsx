@@ -57,32 +57,34 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
 
         <AdminSidebar />
 
-        <div className="flex min-h-dvh min-w-0 flex-col">
-          <AdminTopbar />
+        <div className="flex min-h-dvh min-w-0 flex-col lg:p-2 lg:pl-0">
+          <div className="flex min-h-dvh min-w-0 flex-1 flex-col overflow-x-clip bg-background lg:min-h-[calc(100dvh-1rem)] lg:rounded-2xl lg:border lg:border-default/60 lg:shadow-[0_1px_3px_rgba(20,19,21,0.05)] dark:lg:shadow-none">
+            <AdminTopbar />
 
-          <main
-            id="admin-content"
-            tabIndex={-1}
-            className="w-full flex-1 px-4 pb-16 pt-6 focus:outline-none sm:px-5 lg:px-6 lg:pt-8"
-          >
-            <div className="mx-auto w-full max-w-page">{children}</div>
-          </main>
+            <main
+              id="admin-content"
+              tabIndex={-1}
+              className="w-full min-w-0 flex-1 px-4 pb-14 pt-5 focus:outline-none sm:px-6 lg:px-7 lg:pt-6"
+            >
+              <div className="w-full min-w-0">{children}</div>
+            </main>
 
-          <footer className="border-t border-default/60 px-4 py-4 sm:px-5 lg:px-6">
-            <div className="mx-auto flex max-w-page flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-default-600">
-              <span>TechTipsHub admin</span>
-              <span>
-                Every change is recorded in the{" "}
-                <Link
-                  href="/admin/activity-log"
-                  className="rounded-sm underline decoration-default-300 underline-offset-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
-                  activity log
-                </Link>
-                .
-              </span>
-            </div>
-          </footer>
+            <footer className="border-t border-default/60 px-4 py-3.5 sm:px-6 lg:px-7">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-xs text-default-600">
+                <span>TechTipsHub admin</span>
+                <span>
+                  Every change is recorded in the{" "}
+                  <Link
+                    href="/admin/activity-log"
+                    className="rounded-sm underline decoration-default-300 underline-offset-2 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    activity log
+                  </Link>
+                  .
+                </span>
+              </div>
+            </footer>
+          </div>
         </div>
       </AdminRailFrame>
     </AdminShellProvider>

@@ -13,7 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { publicProfilePath, writeBlogPath } from "@/lib/blog-routes";
-import { searchPath, categoriesPath } from "@/lib/feed-routes";
+import { categoriesPath, categoryPath, searchPath } from "@/lib/feed-routes";
 import { useUser } from "@/context/user.provider";
 import { SearchIcon } from "@/components/icons";
 import {
@@ -303,7 +303,7 @@ const CommandPalette = ({ open, onClose }: IProps) => {
             kind: "category",
             label: category.name,
             detail: `${category.blogCount} ${category.blogCount === 1 ? "article" : "articles"}`,
-            href: `/?category=${encodeURIComponent(category.name)}`,
+            href: categoryPath(category.name),
           })),
         },
         { id: "actions", label: "Actions", items: actions },
@@ -373,7 +373,7 @@ const CommandPalette = ({ open, onClose }: IProps) => {
           kind: "category",
           label: category.name,
           detail: `${category.blogCount} ${category.blogCount === 1 ? "article" : "articles"}`,
-          href: `/?category=${encodeURIComponent(category.name)}`,
+          href: categoryPath(category.name),
         })),
     });
 

@@ -1,6 +1,7 @@
 import Container from "@/components/ui/container";
 import FollowUnFollowButton from "@/components/ui/follow-unfollow-button";
 import UserAvatar from "@/components/ui/user-avatar";
+import { publicProfilePath } from "@/lib/blog-routes";
 import { getUserByUsername } from "@/services/user";
 import { IUser } from "@/types";
 import { normaliseRouteUsername } from "@/utils/username";
@@ -42,7 +43,7 @@ const FollowersFollowingLayout = async ({ params, children }: IProps) => {
                 </h1>
                 {username && (
                   <Link
-                    href={`/users/@${username}`}
+                    href={publicProfilePath(username)}
                     className="inline-block text-sm text-default-600 transition-colors hover:text-primary-accessible"
                   >
                     @{username}
@@ -72,7 +73,7 @@ const FollowersFollowingLayout = async ({ params, children }: IProps) => {
 
               {username && (
                 <Link
-                  href={`/users/@${username}`}
+                  href={publicProfilePath(username)}
                   className="text-sm font-medium text-primary-accessible underline-offset-4 hover:underline"
                 >
                   View full profile

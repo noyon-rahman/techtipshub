@@ -24,23 +24,23 @@ const LoginLogoutSwitch = () => {
       <NextLink
         aria-label="Sign in"
         className={`${buttonStyles({
-          radius: "full",
+          radius: "sm",
           variant: "bordered",
           size: "sm",
-        })} font-medium duration-200 active:scale-95 sm:hidden`}
+        })} h-9 rounded-[6px] font-medium duration-200 active:scale-95 sm:hidden`}
         href="/login"
       >
         <FiLogIn aria-hidden className="size-4" />
         <span className="ml-1.5">Sign in</span>
       </NextLink>
 
-      <div className="hidden items-center gap-1 sm:flex">
+      <div className="hidden items-center gap-1.5 sm:flex">
         <NextLink
           className={`${buttonStyles({
-            radius: "full",
+            radius: "sm",
             variant: "light",
             size: "sm",
-          })} font-medium duration-200 hover:bg-default-100 active:scale-95`}
+          })} h-9 rounded-[6px] font-medium duration-200 hover:bg-default-100 active:scale-95`}
           href="/login"
         >
           Log in
@@ -48,10 +48,10 @@ const LoginLogoutSwitch = () => {
         <NextLink
           className={`${buttonStyles({
             color: "primary",
-            radius: "full",
+            radius: "sm",
             variant: "solid",
             size: "sm",
-          })} font-medium duration-200 active:scale-95`}
+          })} h-9 rounded-[6px] font-semibold duration-200 active:scale-95`}
           href="/signup"
         >
           Sign up

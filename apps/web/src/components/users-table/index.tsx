@@ -15,14 +15,19 @@ import DataToolbar from "@/components/modules/admin/kit/data-toolbar";
 import EmptyState from "@/components/modules/admin/kit/empty-state";
 import ListFooter from "@/components/modules/admin/kit/list-footer";
 import ListFrame from "@/components/modules/admin/kit/list-frame";
+import SelectionBar from "@/components/modules/admin/kit/selection-bar";
 import { focusRing } from "@/components/modules/admin/kit/tau";
+import useRowSelection from "@/components/modules/admin/kit/use-row-selection";
+import { publicProfilePath } from "@/lib/blog-routes";
 import StatusPill from "@/components/ui/status-pill";
 import { useAdminMembers } from "@/hooks/admin-members";
 import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
 import {
   useBlockUser,
   useDeleteUserAccount,
+  useDeleteUsersInBulk,
   useMakeAdmin,
+  useResendVerificationEmail,
   useUnblockUser,
 } from "@/hooks/user.hook";
 import type { IUser } from "@/types";
@@ -31,6 +36,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiExternalLink,
+  FiMail,
   FiSearch,
   FiSlash,
   FiTrash2,
@@ -167,10 +173,24 @@ const UsersTable = () => {
   const { mutate: blockUser, isPending: isBlocking } = useBlockUser();
   const { mutate: unblockUser, isPending: isUnblocking } = useUnblockUser();
   const { mutate: makeAdmin, isPending: isPromoting } = useMakeAdmin();
+  const { mutate: resendVerification, isPending: isResendingVerification } =
+    useResendVerificationEmail();
   const { mutate: deleteAccount, isPending: isDeleting } =
     useDeleteUserAccount();
+  const { mutate: deleteUsersInBulk, isPending: isDeletingInBulk } =
+    useDeleteUsersInBulk();
 
   const { rows, meta, isLoading, isError, error, refetch } = list;
+
+  // An admin account cannot be deleted, so it cannot be picked: "select all"
+  // means every member on the page who can go to the trash.
+  const selection = useRowSelection({
+    rows,
+    getKey: (user) => user._id,
+    selectable: (user) => user.role !== "Admin",
+    resetWith: `${status}:${role}:${searchTerm}:${page}`,
+    selectAllLabel: "Select every member on this page",
+  });
 
   const totalPages = Math.max(meta?.totalPages ?? 1, 1);
   const pageSize = meta?.limit ?? limit;
@@ -291,12 +311,49 @@ const UsersTable = () => {
         }
       />
 
+      <SelectionBar
+        count={selection.count}
+        noun="member"
+        onClear={selection.clear}
+      >
+        <ConfirmDialog
+          trigger={
+            <button
+              type="button"
+              className={`inline-flex min-h-11 items-center gap-1.5 rounded-[6px] border border-danger/40 px-2.5 text-sm font-medium text-danger transition-colors hover:bg-danger/10 sm:min-h-9 ${focusRing}`}
+            >
+              <FiTrash2 aria-hidden className="size-4" />
+              Move to Trash
+            </button>
+          }
+          title={`Move ${selection.count} ${
+            selection.count === 1 ? "member" : "members"
+          } to the trash?`}
+          description="Their articles, comments, views and votes are removed with them, as they are for a single delete. Trash restores the login and profile, not that history."
+          confirmLabel="Move to Trash"
+          isPending={isDeletingInBulk}
+          onConfirm={() =>
+            deleteUsersInBulk(selection.keys, {
+              onSuccess: () => {
+                const leaving = selection.count;
+                selection.clear();
+                if (page > 1 && rows.length <= leaving) {
+                  filters.set({ page: page - 1 });
+                }
+              },
+            })
+          }
+        />
+      </SelectionBar>
+
       <DataTable
         caption="Member accounts, newest first"
         columns={COLUMNS}
         rows={rows}
         getRowKey={(user) => user._id}
         isLoading={isLoading}
+        selection={selection}
+        rowLabel={(user) => `Select ${displayName(user)}`}
         skeletonRows={Math.min(limit, 10)}
         emptyState={emptyState}
         minWidth="54rem"
@@ -380,13 +437,46 @@ const UsersTable = () => {
                     Open member
                   </MenuItemLink>
                   {user.username && (
-                    <MenuItemLink href={`/users/@${user.username}`} external>
+                    <MenuItemLink
+                      href={publicProfilePath(user.username)}
+                      external
+                    >
                       <FiExternalLink aria-hidden className="size-4" />
                       Public profile
                     </MenuItemLink>
                   )}
 
                   <MenuSeparator />
+
+                  {!user.isVerified && (
+                    <ConfirmDialog
+                      trigger={
+                        <button
+                          type="button"
+                          role="menuitem"
+                          disabled={blocked}
+                          className={menuItem}
+                          title={
+                            blocked
+                              ? "Unblock them before sending verification"
+                              : undefined
+                          }
+                        >
+                          <FiMail aria-hidden className="size-4" />
+                          Resend verification
+                        </button>
+                      }
+                      title={`Resend verification email to ${name}?`}
+                      description={
+                        user.email
+                          ? `Sends a fresh verification link to ${user.email}.`
+                          : "Sends a fresh verification link to this member's email address."
+                      }
+                      confirmLabel="Send verification"
+                      isPending={isResendingVerification}
+                      onConfirm={() => resendVerification(user._id)}
+                    />
+                  )}
 
                   {blocked ? (
                     <ConfirmDialog
@@ -494,7 +584,7 @@ const UsersTable = () => {
                       </button>
                     }
                     title={`Delete ${name}'s account?`}
-                    description="Their articles, comments, views and votes go with the account and do not come back. The login can be restored from Trash."
+                    description="Their articles, comments, views and votes go with the account. The login moves to Trash, where it can be restored or deleted for good."
                     confirmLabel="Delete account"
                     tone="danger"
                     isPending={isDeleting}

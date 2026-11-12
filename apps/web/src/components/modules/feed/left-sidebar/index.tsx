@@ -9,6 +9,7 @@ import { FiBookOpen, FiInfo, FiMail } from "react-icons/fi";
 import { HiOutlinePencilSquare } from "react-icons/hi2";
 import { AdSlot } from "@/components/adsense";
 import { FeedButtonsForSideBar } from "@/components/modules/feed/feed-buttons";
+import { ThemeSwitch } from "@/components/ui/theme-switch";
 
 interface NavItem {
   href: string;
@@ -68,7 +69,7 @@ const LeftSideBar = () => {
     href === "/" ? pathname === "/" : pathname?.startsWith(href);
 
   return (
-    <aside className="tth-rail hidden w-56 shrink-0 border-r border-default/60 lg:block">
+    <aside className="tth-rail hidden w-56 shrink-0 lg:block">
       <div className="tth-rail-inner flex flex-col px-3 py-5">
         <nav aria-label="Feed navigation" className="space-y-6">
           {user && (
@@ -94,6 +95,13 @@ const LeftSideBar = () => {
               />
             ))}
           </NavSection>
+
+          <div className="border-t border-default/60 pt-4">
+            <div className="flex items-center justify-between rounded-lg px-3 py-1.5 text-sm font-medium text-default-700">
+              <span>Appearance</span>
+              <ThemeSwitch className="flex size-8 items-center justify-center rounded-[6px] hover:bg-default-100" />
+            </div>
+          </div>
         </nav>
 
         {/* Keeps the sidebar ad inside the sticky column, where it has always

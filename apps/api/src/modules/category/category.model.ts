@@ -22,13 +22,20 @@ const categorySchema = new Schema<ICategory>(
     isDeleted: {
       type: Boolean,
       default: false,
+      select: false,
     },
   },
   {
     timestamps: true,
     // Without this the virtual below never reaches the JSON, and every caller
     // that reads `blogCount` sees `undefined` from a category that has articles.
-    toJSON: { virtuals: true },
+    toJSON: {
+      virtuals: true,
+      transform(_doc, ret: Record<string, unknown>) {
+        delete ret.isDeleted;
+        return ret;
+      },
+    },
     toObject: { virtuals: true },
   },
 );
@@ -40,12 +47,17 @@ categorySchema.virtual("blogCount").get(function () {
 });
 
 categorySchema.pre("find", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  // The trash list is the one caller that has to see removed rows.
+  if (!this.getOptions()?.bypassMiddleware) {
+    this.find({ isDeleted: { $ne: true } });
+  }
   next();
 });
 
 categorySchema.pre("findOne", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  if (!this.getOptions()?.bypassMiddleware) {
+    this.find({ isDeleted: { $ne: true } });
+  }
   next();
 });
 

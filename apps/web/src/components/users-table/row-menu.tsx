@@ -13,6 +13,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { FiChevronDown } from "react-icons/fi";
+import { MenuDialogOpenProvider } from "@/components/modules/admin/kit/menu-dialog-open";
 
 const MENU_WIDTH = 208;
 const GAP = 4;
@@ -49,6 +50,12 @@ export default function RowMenu({ label, children }: IProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
+  // Read by the document listeners, which are attached once per open and must
+  // see a dialog opening later without re-attaching.
+  const dialogOpenRef = useRef(false);
+  const reportDialogOpen = useCallback((open: boolean) => {
+    dialogOpenRef.current = open;
+  }, []);
 
   const measure = useCallback(() => {
     const button = buttonRef.current;
@@ -88,7 +95,12 @@ export default function RowMenu({ label, children }: IProps) {
   useEffect(() => {
     if (!open) return;
 
+    // While a dialog opened from one of these items is up, this menu closes
+    // itself for nothing: Escape belongs to the dialog, the backdrop answers
+    // the presses, and a scroll is the dialog bringing itself into view.
+    // Closing here would unmount the item, the dialog and its answer with it.
     const onPointerDown = (event: PointerEvent) => {
+      if (dialogOpenRef.current) return;
       const target = event.target as Node;
       if (
         !panelRef.current?.contains(target) &&
@@ -99,17 +111,17 @@ export default function RowMenu({ label, children }: IProps) {
     };
 
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        setOpen(false);
-        buttonRef.current?.focus({ preventScroll: true });
-      }
+      if (event.key !== "Escape" || dialogOpenRef.current) return;
+      event.preventDefault();
+      setOpen(false);
+      buttonRef.current?.focus({ preventScroll: true });
     };
 
     // The trigger moves with the page and with the table's own scroll, so the
     // fixed panel would be stranded. Closing is honest: reopening measures
     // again from wherever the trigger now sits.
     const onScroll = (event: Event) => {
+      if (dialogOpenRef.current) return;
       if (
         event.target instanceof Node &&
         panelRef.current?.contains(event.target)
@@ -118,7 +130,9 @@ export default function RowMenu({ label, children }: IProps) {
       }
       setOpen(false);
     };
-    const onResize = () => setOpen(false);
+    const onResize = () => {
+      if (!dialogOpenRef.current) setOpen(false);
+    };
 
     document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
@@ -161,43 +175,52 @@ export default function RowMenu({ label, children }: IProps) {
   };
 
   return (
-    <div className="relative inline-flex justify-end">
-      <button
-        ref={buttonRef}
-        type="button"
-        aria-label={label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((current) => !current)}
-        className={`inline-flex size-11 items-center justify-center rounded-[6px] text-default-600 transition-colors hover:bg-default-100 hover:text-foreground aria-expanded:bg-default-100 aria-expanded:text-foreground sm:size-9 ${focusRing}`}
-      >
-        <FiChevronDown aria-hidden className="size-4" />
-      </button>
+    <MenuDialogOpenProvider value={reportDialogOpen}>
+      <div className="relative inline-flex justify-end">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label={label}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={open ? menuId : undefined}
+          onClick={() => setOpen((current) => !current)}
+          className={`inline-flex size-11 items-center justify-center rounded-[6px] text-default-600 transition-colors hover:bg-default-100 hover:text-foreground aria-expanded:bg-default-100 aria-expanded:text-foreground sm:size-9 ${focusRing}`}
+        >
+          <FiChevronDown aria-hidden className="size-4" />
+        </button>
 
-      {open &&
-        createPortal(
-          <div
-            ref={panelRef}
-            id={menuId}
-            role="menu"
-            aria-label={label}
-            onKeyDown={onPanelKeyDown}
-            onClick={() => setOpen(false)}
-            onContextMenu={(event) => event.preventDefault()}
-            style={{
-              width: MENU_WIDTH,
-              left: position?.left ?? 0,
-              top: position?.top ?? 0,
-              maxHeight: position?.maxHeight,
-              visibility: position ? "visible" : "hidden",
-            }}
-            className="fixed z-50 overflow-y-auto rounded-md border border-default/70 bg-content-1 py-1 shadow-[0_6px_20px_rgba(20,19,21,0.12)] dark:shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
-          >
-            {children}
-          </div>,
-          document.body,
-        )}
-    </div>
+        {open &&
+          createPortal(
+            <div
+              ref={panelRef}
+              id={menuId}
+              role="menu"
+              aria-label={label}
+              onKeyDown={onPanelKeyDown}
+              // A menuitem closes by its own click. A press anywhere else is
+              // the document listener's job, which stands down while a dialog
+              // from this menu is open.
+              onClick={(event) => {
+                if ((event.target as Element).closest('[role="menuitem"]')) {
+                  setOpen(false);
+                }
+              }}
+              onContextMenu={(event) => event.preventDefault()}
+              style={{
+                width: MENU_WIDTH,
+                left: position?.left ?? 0,
+                top: position?.top ?? 0,
+                maxHeight: position?.maxHeight,
+                visibility: position ? "visible" : "hidden",
+              }}
+              className="fixed z-50 overflow-y-auto rounded-md border border-default/70 bg-content-1 py-1 shadow-[0_6px_20px_rgba(20,19,21,0.12)] dark:shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
+            >
+              {children}
+            </div>,
+            document.body,
+          )}
+      </div>
+    </MenuDialogOpenProvider>
   );
 }

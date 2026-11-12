@@ -17,6 +17,7 @@ import {
   continueCampaign,
   createCampaign,
   deleteCampaign,
+  deleteSubscriberPermanently,
   downloadSubscribersCsv,
   getCampaign,
   getCampaignProgress,
@@ -71,7 +72,10 @@ export type TSubscriberList = IAdminList<
 
 export type TSubscriberParams = INewsletterSubscribersParams;
 
-export const useNewsletterSubscribers = (params: TSubscriberParams = {}) => {
+export const useNewsletterSubscribers = (
+  params: TSubscriberParams = {},
+  enabled = true,
+) => {
   const page = params.page ?? 1;
   const limit = params.limit ?? ADMIN_NEWSLETTER_PAGE_SIZE;
   const status = params.status ?? "all";
@@ -105,6 +109,7 @@ export const useNewsletterSubscribers = (params: TSubscriberParams = {}) => {
 
       return { rows, meta, counts: { ...counts }, raw: payload };
     },
+    enabled,
     placeholderData: keepPreviousData,
   });
 
@@ -156,7 +161,7 @@ export const useRemoveSubscriber = () => {
     mutationKey: ["ADMIN_NEWSLETTER_REMOVE"],
     mutationFn: removeSubscriber,
     onSuccess: () => {
-      toast.success("Removed. They won't get another issue.", {
+      toast.success("Removed. They won't get another campaign.", {
         id: "admin-newsletter-remove",
       });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.subscribers });
@@ -164,6 +169,26 @@ export const useRemoveSubscriber = () => {
     onError: (error: Error) => {
       toast.error(error?.message || "The subscriber was not removed.", {
         id: "admin-newsletter-remove",
+      });
+    },
+  });
+};
+
+export const useDeleteSubscriberPermanently = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ["ADMIN_NEWSLETTER_DELETE_PERMANENT"],
+    mutationFn: deleteSubscriberPermanently,
+    onSuccess: () => {
+      toast.success("Subscriber permanently deleted.", {
+        id: "admin-newsletter-delete-permanent",
+      });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.subscribers });
+    },
+    onError: (error: Error) => {
+      toast.error(error?.message || "The subscriber could not be deleted.", {
+        id: "admin-newsletter-delete-permanent",
       });
     },
   });
@@ -367,13 +392,24 @@ export const useTestCampaign = () => {
   });
 };
 
+export type StartCampaignInput =
+  | string
+  | {
+      id: string;
+      subscriberIds?: string[];
+    };
+
 export const useStartCampaign = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationKey: ["ADMIN_NEWSLETTER_CAMPAIGN_START"],
-    mutationFn: startCampaign,
-    onSuccess: (_data, id) => {
+    mutationFn: (input: StartCampaignInput) => {
+      if (typeof input === "string") return startCampaign(input);
+      return startCampaign(input.id, input.subscriberIds);
+    },
+    onSuccess: (_data, input) => {
+      const id = typeof input === "string" ? input : input.id;
       invalidateCampaign(queryClient, id);
       toast.success(
         "The first batch is out. Press Continue for each further batch.",

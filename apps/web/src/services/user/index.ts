@@ -7,6 +7,7 @@ import { publicProfilePath } from "@/lib/blog-routes";
 import axiosInstance from "@/lib/AxiosInstance";
 import { readReaderSession } from "@/lib/reader-session";
 import { getBlogs } from "@/services/blog";
+import { toServiceError } from "@/services/admin/shared";
 import { readReaderUsername } from "@/services/reader/interests";
 import { readUsernameState as readUsernameChangeState } from "@/services/reader/username";
 import type { IFollowResult, IUsernameChangeState } from "@techtipshub/shared";
@@ -255,6 +256,18 @@ export const makeAdmin = async (id: string) => {
   }
 };
 
+export const resendVerificationEmail = async (id: string) => {
+  try {
+    const res = await axiosInstance.post(
+      `/admin/users/${id}/resend-verification`,
+    );
+
+    return res?.data;
+  } catch (err: any) {
+    return err?.response?.data ?? { success: false, message: err?.message };
+  }
+};
+
 // delete an user account (admin only)
 export const deleteUserAccount = async (id: string) => {
   try {
@@ -263,5 +276,35 @@ export const deleteUserAccount = async (id: string) => {
     return res?.data;
   } catch (err: any) {
     return err?.response?.data;
+  }
+};
+
+/**
+ * `POST /admin/users/bulk-delete` (Admin). Moves the picked members to the
+ * trash; one admin account refuses the whole selection.
+ */
+export const deleteUsersInBulk = async (ids: string[]) => {
+  try {
+    const res = await axiosInstance.post("/admin/users/bulk-delete", { ids });
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The members could not be deleted.");
+  }
+};
+
+/**
+ * `POST /admin/users/trash/permanent` (Admin). Erases trashed members for
+ * good; one account that is not in the trash refuses the whole selection.
+ */
+export const deleteUsersPermanentlyInBulk = async (ids: string[]) => {
+  try {
+    const res = await axiosInstance.post("/admin/users/trash/permanent", {
+      ids,
+    });
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The members could not be deleted for good.");
   }
 };

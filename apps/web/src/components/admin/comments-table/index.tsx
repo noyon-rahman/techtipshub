@@ -18,11 +18,14 @@ import DataTable, {
 } from "@/components/modules/admin/kit/data-table";
 import DataToolbar from "@/components/modules/admin/kit/data-toolbar";
 import EmptyState from "@/components/modules/admin/kit/empty-state";
+import SelectionBar from "@/components/modules/admin/kit/selection-bar";
 import { focusRing } from "@/components/modules/admin/kit/tau";
+import useRowSelection from "@/components/modules/admin/kit/use-row-selection";
 import {
   useAdminComments,
   useCommentCounts,
   useDeleteAdminComment,
+  useDeleteAdminCommentsInBulk,
 } from "@/hooks/admin-comments";
 import { listParam, useAdminListParams } from "@/hooks/use-admin-list-params";
 import type { TAdminComment, TAdminCommentWindow } from "@/types/admin.type";
@@ -125,9 +128,9 @@ const DeleteComment = ({
   return (
     <ConfirmDialog
       tone="danger"
-      title="Delete this comment?"
-      description={`The comment by ${name} is soft deleted, the comment count on ${comment.post?.title || "its article"} is corrected, and the action is recorded in the activity log.`}
-      confirmLabel="Delete comment"
+      title="Move this comment to the trash?"
+      description={`The comment by ${name} leaves the queue, the comment count on ${comment.post?.title || "its article"} is corrected, and the action is recorded in the activity log. Trash keeps it restorable.`}
+      confirmLabel="Move to Trash"
       isPending={isPending}
       onConfirm={() => deleteComment({ commentId: comment._id, onDeleted })}
       trigger={
@@ -175,9 +178,18 @@ const CommentsTable = () => {
   });
   const countsQuery = useCommentCounts();
   const { isPending: isDeleting } = useDeleteAdminComment();
+  const { mutate: deleteCommentsInBulk, isPending: isDeletingInBulk } =
+    useDeleteAdminCommentsInBulk();
 
   const { rows, meta, isError, error } = list;
   const counts = countsQuery.data;
+
+  const selection = useRowSelection({
+    rows,
+    getKey: (comment) => comment._id,
+    resetWith: `${within}:${searchTerm}:${sort}:${page}`,
+    selectAllLabel: "Select every comment on this page",
+  });
 
   const totalPages = Math.max(meta?.totalPages ?? 1, 1);
 
@@ -264,6 +276,41 @@ const CommentsTable = () => {
       />
 
       <div className="hidden sm:block">
+        <SelectionBar
+          count={selection.count}
+          noun="comment"
+          onClear={selection.clear}
+        >
+          <ConfirmDialog
+            trigger={
+              <button
+                type="button"
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-[6px] border border-danger/40 px-2.5 text-sm font-medium text-danger transition-colors hover:bg-danger/10 sm:min-h-9 ${focusRing}`}
+              >
+                <FiTrash2 aria-hidden className="size-4" />
+                Move to Trash
+              </button>
+            }
+            title={`Move ${selection.count} ${
+              selection.count === 1 ? "comment" : "comments"
+            } to the trash?`}
+            description="They leave the moderation queue and each article's comment count is corrected. Trash keeps them restorable, and the action is recorded in the activity log."
+            confirmLabel="Move to Trash"
+            isPending={isDeletingInBulk}
+            onConfirm={() =>
+              deleteCommentsInBulk(selection.keys, {
+                onSuccess: () => {
+                  const leaving = selection.count;
+                  selection.clear();
+                  if (page > 1 && rows.length <= leaving) {
+                    filters.set({ page: page - 1 });
+                  }
+                },
+              })
+            }
+          />
+        </SelectionBar>
+
         <DataTable
           columns={columns}
           rows={rows}
@@ -272,6 +319,8 @@ const CommentsTable = () => {
           skeletonRows={8}
           minWidth={880}
           caption={`Comments${windowLabel ? ` from ${windowLabel}` : ""}, ${sort === "-createdAt" ? "newest" : "oldest"} first`}
+          selection={selection}
+          rowLabel={(comment) => `Select the comment by ${nameOf(comment)}`}
           footer={
             <ListFooter
               total={meta?.total}

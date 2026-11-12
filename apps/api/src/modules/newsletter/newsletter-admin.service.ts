@@ -258,10 +258,32 @@ const getSingle = async (id: string) => {
   return subscriber;
 };
 
+const deletePermanent = async (id: string, adminEmail?: string) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid subscriber id");
+  }
+
+  const deleted = await NewsletterSubscriber.findByIdAndDelete(id);
+  if (!deleted) {
+    throw new AppError(httpStatus.NOT_FOUND, "Subscriber not found");
+  }
+
+  await adminLogService.record({
+    adminEmail,
+    action: "newsletter.subscriber.delete_permanent",
+    targetType: "newsletter",
+    targetId: id,
+    summary: `Permanently deleted subscriber ${deleted.email}`,
+  });
+
+  return { deleted: true, email: deleted.email };
+};
+
 export const subscriberAdminService = {
   getAll,
   getCounts,
   create,
   toCsv,
   getSingle,
+  deletePermanent,
 };

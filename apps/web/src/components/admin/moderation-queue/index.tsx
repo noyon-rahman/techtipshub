@@ -576,6 +576,7 @@ const ModerationQueue = () => {
                         </Link>
                         <AdminDeleteBlogModal
                           id={blog._id}
+                          title={blog.title}
                           refetchBlogs={() => {
                             blogsQuery.refetch();
                           }}

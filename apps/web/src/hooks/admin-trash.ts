@@ -16,11 +16,15 @@
  * useTrashedUserCount() -> data: number | undefined   (member tab badge)
  * useTrashCounts()      -> data: { blogs?, users? }   (both tab badges)
  *
- * Mutations: useRestoreUser(), useRestoreBlog(), useDeleteAdminBlog() (from
- * `admin-blogs.ts`). Each invalidates the list, the counts and the
- * public/admin article and member lists.
+ * Mutations: useRestoreUser(), useRestoreBlog(), useDeleteUserPermanently(),
+ * useDeleteUsersInBulk(), useDeleteUsersPermanentlyInBulk(),
+ * useDeleteAdminBlog() (from `admin-blogs.ts`). Each invalidates the list, the
+ * counts and the public/admin article and member lists.
  */
 import {
+  deleteUserPermanently,
+  deleteUsersInBulk,
+  deleteUsersPermanentlyInBulk,
   getTrashedUserCount,
   getTrashedUsers,
   readTrashedUserPage,
@@ -100,7 +104,7 @@ export const useRestoreUser = () => {
     mutationFn: async (id) => await restoreUser(id),
     onSuccess: (data) => {
       if (data?.success) {
-        toast.success(data?.message || "Member restored", {
+        toast.success("Member restored.", {
           id: "restore-user",
         });
       } else if (data?.message) {
@@ -122,6 +126,105 @@ export const useRestoreUser = () => {
   });
 };
 
+/** Erases a trashed member for good; refreshes the trash and both badges. */
+export const useDeleteUserPermanently = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string>({
+    mutationKey: ["DELETE_USER_PERMANENT"],
+    mutationFn: async (id) => await deleteUserPermanently(id),
+    onSuccess: (data) => {
+      if (data?.success === false) {
+        toast.error(data?.message || "The member could not be deleted.", {
+          id: "delete-user-permanent",
+        });
+        return;
+      }
+
+      toast.success("Member deleted for good.", {
+        id: "delete-user-permanent",
+      });
+
+      queryClient.invalidateQueries({ queryKey: TRASHED_USERS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASH_COUNTS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_USER_COUNT_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_MEMBERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_USERS_TRASH"] });
+    },
+    onError: (error) => {
+      toast.error(error?.message || "The member could not be deleted.", {
+        id: "delete-user-permanent",
+      });
+    },
+  });
+};
+
+/**
+ * Moves picked members to the trash in one press. One admin account in the
+ * selection refuses the whole thing, the same rule the single delete keeps.
+ */
+export const useDeleteUsersInBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string[]>({
+    mutationKey: ["DELETE_USERS_BULK"],
+    mutationFn: async (ids) => await deleteUsersInBulk(ids),
+    onSuccess: (data) => {
+      const deleted = Number(data?.data?.deleted ?? 0);
+      const skipped = Number(data?.data?.skipped ?? 0);
+
+      toast.success(
+        `${deleted} ${deleted === 1 ? "member" : "members"} moved to Trash${
+          skipped > 0 ? `. ${skipped} were already there.` : "."
+        }`,
+        { id: "delete-users-bulk" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: TRASHED_USERS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASH_COUNTS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_USER_COUNT_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_MEMBERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_BLOGS"] });
+    },
+    onError: (error) => {
+      toast.error(error?.message || "The members could not be deleted.", {
+        id: "delete-users-bulk",
+      });
+    },
+  });
+};
+
+/** Erases picked trashed members for good. */
+export const useDeleteUsersPermanentlyInBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string[]>({
+    mutationKey: ["DELETE_USERS_PERMANENT_BULK"],
+    mutationFn: async (ids) => await deleteUsersPermanentlyInBulk(ids),
+    onSuccess: (data) => {
+      const deleted = Number(data?.data?.deleted ?? 0);
+
+      toast.success(
+        `${deleted} ${deleted === 1 ? "member" : "members"} deleted for good.`,
+        { id: "delete-users-permanent-bulk" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: TRASHED_USERS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASH_COUNTS_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_USER_COUNT_KEY });
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_MEMBERS"] });
+    },
+    onError: (error) => {
+      toast.error(error?.message || "The members could not be deleted.", {
+        id: "delete-users-permanent-bulk",
+      });
+    },
+  });
+};
+
 export const useRestoreBlog = () => {
   const queryClient = useQueryClient();
 
@@ -130,7 +233,7 @@ export const useRestoreBlog = () => {
     mutationFn: async (id) => await restoreBlog(id),
     onSuccess: (data) => {
       if (data?.success) {
-        toast.success(data?.message || "Article restored", {
+        toast.success("Article restored.", {
           id: "restore-blog",
         });
       } else if (data?.message) {
@@ -138,6 +241,8 @@ export const useRestoreBlog = () => {
       }
       // The row leaves the trash list either way, so refetch in both cases.
       queryClient.invalidateQueries({ queryKey: TRASHED_BLOGS_KEY });
+      // The key is owned by `admin-blogs.ts`; importing it here would make the
+      // two hook files import each other.
       queryClient.invalidateQueries({ queryKey: ["ADMIN_BLOGS"] });
       queryClient.invalidateQueries({ queryKey: TRASH_COUNTS_KEY });
       queryClient.invalidateQueries({ queryKey: ["GET_ALL_BLOGS"] });

@@ -45,6 +45,42 @@ const deleteSingleCategory = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+const deleteCategoriesInBulk = async (c: Context<TAppBindings>) => {
+  const { ids } = c.get("validatedBody") as { ids: string[] };
+  const result = await categoryService.deleteCategoriesInBulk(
+    ids,
+    c.get("user")?.email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const getDeletedCategories = async (c: Context<TAppBindings>) => {
+  const { result } = await categoryService.getDeletedCategories(c.req.query());
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const restoreCategory = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const result = await categoryService.restoreCategory(
+    id,
+    c.get("user")?.email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
+const deleteCategoryPermanently = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+  const result = await categoryService.deleteCategoryPermanently(
+    id,
+    c.get("user")?.email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const update = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
   const result = await categoryService.update(
@@ -73,6 +109,10 @@ export const categoryController = {
   getAll,
   getSingleCategory,
   deleteSingleCategory,
+  deleteCategoriesInBulk,
+  getDeletedCategories,
+  restoreCategory,
+  deleteCategoryPermanently,
   update,
   getAdminList,
 };

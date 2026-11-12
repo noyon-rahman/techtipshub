@@ -102,6 +102,36 @@ export const deleteAdminBlogPermanently = async (id: string) => {
   }
 };
 
+/**
+ * `POST /admin/blogs/bulk-delete` (Admin). Moves the picked articles to the
+ * trash with no author email; the activity log still names every title.
+ */
+export const deleteAdminBlogsInBulk = async (ids: string[]) => {
+  try {
+    const res = await axiosInstance.post("/admin/blogs/bulk-delete", { ids });
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The articles could not be deleted.");
+  }
+};
+
+/**
+ * `POST /admin/blogs/trash/permanent` (Admin). Erases trashed articles; one
+ * article that is not in the trash refuses the whole selection.
+ */
+export const deleteAdminBlogsPermanentlyInBulk = async (ids: string[]) => {
+  try {
+    const res = await axiosInstance.post("/admin/blogs/trash/permanent", {
+      ids,
+    });
+
+    return res.data;
+  } catch (error) {
+    throw toServiceError(error, "The articles could not be deleted for good.");
+  }
+};
+
 // DELETE /admin/blogs/:id (Admin), with a reason the API records in the log
 export const deleteAdminBlog = async (id: string, reason?: string) => {
   try {

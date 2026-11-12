@@ -16,11 +16,14 @@
  * list, both count queries and the latest strip.
  */
 import {
+  deleteCommentsPermanently,
   getAdminComments,
   getCommentCounts,
   getLatestComments,
+  getTrashedComments,
   readCommentPage,
 } from "@/services/admin/comments";
+import { readRows } from "@/services/admin/shared";
 import { deleteCommentAsAdmin } from "@/services/blog";
 import type { IAdminCommentsParams, TAdminComment } from "@/types/admin.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -107,7 +110,7 @@ export const useDeleteAdminComment = () => {
           return;
         }
 
-        toast.success(data?.message || "Comment deleted", {
+        toast.success(data?.message || "Comment moved to Trash", {
           id: "admin-delete-comment",
         });
 
@@ -123,4 +126,100 @@ export const useDeleteAdminComment = () => {
       },
     },
   );
+};
+
+/** Reads the trash's comment tab. */
+export const TRASHED_COMMENTS_KEY = ["TRASHED_COMMENTS"] as const;
+/**
+ * Moves picked comments to the trash in one press.
+ *
+ * One request per comment, because the API has no bulk endpoint for the way
+ * in: the single admin delete already runs its own transaction and adjusts the
+ * article's comment count. A failure stops the run and says how many moved, so
+ * the list is never described as emptier than it is.
+ */
+export const useDeleteAdminCommentsInBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string[]>({
+    mutationKey: ["ADMIN_DELETE_COMMENTS_BULK"],
+    mutationFn: async (ids) => {
+      let moved = 0;
+
+      for (const id of ids) {
+        try {
+          await deleteCommentAsAdmin(id);
+          moved += 1;
+        } catch {
+          throw new Error(
+            `${moved} ${moved === 1 ? "comment" : "comments"} moved to Trash, then the next one failed. Reload to see what is left.`,
+          );
+        }
+      }
+
+      return moved;
+    },
+    onSuccess: (moved) => {
+      toast.success(
+        `${moved} ${moved === 1 ? "comment" : "comments"} moved to Trash.`,
+        { id: "admin-delete-comments-bulk" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.list });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.counts });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.latest });
+      queryClient.invalidateQueries({ queryKey: TRASHED_COMMENTS_KEY });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_TRASH_COUNTS"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "admin-delete-comments-bulk" });
+
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.list });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.counts });
+      queryClient.invalidateQueries({ queryKey: TRASHED_COMMENTS_KEY });
+    },
+  });
+};
+
+export const useTrashedComments = () => {
+  const query = useQuery({
+    queryKey: TRASHED_COMMENTS_KEY,
+    queryFn: async () => await getTrashedComments(),
+  });
+
+  return {
+    rows: readRows<TAdminComment>(query.data),
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+/** Erases removed comments for good, one id or a picked selection. */
+export const useDeleteCommentsPermanently = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string | string[]>({
+    mutationKey: ["ADMIN_DELETE_COMMENTS_PERMANENT"],
+    mutationFn: async (ids) =>
+      await deleteCommentsPermanently(Array.isArray(ids) ? ids : [ids]),
+    onSuccess: (data) => {
+      const deleted = Number(data?.data?.deleted ?? 0);
+
+      toast.success(
+        `${deleted} ${deleted === 1 ? "comment" : "comments"} deleted for good.`,
+        { id: "admin-delete-comments-permanent" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: TRASHED_COMMENTS_KEY });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.list });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.counts });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.latest });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_TRASH_COUNTS"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "admin-delete-comments-permanent" });
+    },
+  });
 };

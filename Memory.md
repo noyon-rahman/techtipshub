@@ -42,7 +42,8 @@ Conventions: [`Rules.md`](./Rules.md).
   only") shown in both composer rails, both editors, the member article list,
   the admin table and the moderation queue. Member list at `/profile/blogs`,
   admin list, admin composer writing on a member's behalf, permanent delete and
-  restore.
+  restore. Members follow the same two steps: delete moves the login to Trash,
+  "Delete permanently" in Trash erases it.
 - Categories: searchable picker in every composer, showing each category with
   its published article count. A signed-in member who needs one the list does
   not have types the name and picks the `Create <name>` row, which posts
@@ -87,6 +88,9 @@ Conventions: [`Rules.md`](./Rules.md).
 - Profile: public view and edit in one page at `/profile`, social
   links, photo, followers and following lists.
 - Admin: all thirteen screens in `docs/admin-panel.md`, shared kit, activity log.
+  Bulk delete on all four lists that own removable rows (articles, members,
+  categories, comments) and on all four Trash tabs. Every bulk move is
+  reversible; only Trash erases for good.
 - Newsletter: signup blocks, the on/off switch on the profile page itself (no
   editor needed), issue builder, preview, test send,
   batched sending with per-recipient claims, unsubscribe links, Resend webhook
@@ -136,6 +140,35 @@ Things known to be wrong or unfinished, in the order they matter.
 
 ## Traps and hard-won notes
 
+- **HeroUI's `Modal` is dismissable unless told otherwise.** `isDismissable`
+  defaults to `true`, so a press anywhere outside the panel closes it. For a
+  confirm or a dialog with typed input that reads as the dialog "auto-closing"
+  on a stray click; pass `isDismissable={false}` and leave Escape and Cancel as
+  the close paths.
+- **A React portal does not move a click out of the React tree.** HeroUI's
+  `Modal` renders through `createPortal` to `document.body`, but the portalled
+  content still bubbles to its React-tree ancestors. So a menu panel whose
+  `onClick` closes itself will unmount any dialog rendered inside it. Close on
+  the menu item, not on the panel.
+- **A menu must not close while a dialog opened from its items is open.** That
+  was the remaining half of the row-menu bug. `RowMenu` also closes on a
+  document `pointerdown` outside the panel, and the press on a dialog's own
+  button is outside it: the panel unmounted between `pointerdown` and `click`,
+  so the click never landed and Confirm did nothing. `ConfirmDialog` reports
+  its open state through `menu-dialog-open.tsx` (`useReportMenuDialog`, from
+  the provider each `RowMenu` mounts), and the panel's `pointerdown`, Escape,
+  `scroll` and `resize` closers stand down while it is set. Any new dialog
+  opened from a row-menu item should render a `ConfirmDialog` so it is covered,
+  or report through the same context.
+- **`useDisclosure().onOpenChange` takes no argument and toggles.**
+  `@heroui/use-disclosure` picks open or close from the `isOpen` it captured at
+  its last render, so it cannot carry a target state. Use `onOpen`/`onClose`
+  when a caller passes one.
+- **HeroUI's `Textarea` ignores an `onChange` prop.** React Aria's
+  `useTextField` owns the value, and `getInputProps` spreads the caller's props
+  through `filterDOMProps` with `omitEventNames` set to the Aria handlers, so a
+  raw `onChange` is dropped rather than chained. Write through `onValueChange`
+  and read through `value`; do not hand a `<textarea>` registration to it.
 - **The admin footer sits on the fold of a short page.** The admin column in
   `(adminLayout)/layout.tsx` is `min-h-dvh` with a `flex-col` `main` that
   grows, so the sign-off rule lands at the same height on every screen. Do not
@@ -221,6 +254,18 @@ Things known to be wrong or unfinished, in the order they matter.
 - **Mongo filters live in model middleware.** `find`/`findOne` hide trashed rows
   and drafts unless the call passes `bypassMiddleware` / `includeDrafts`. A
   query that returns "nothing" is usually a missing option, not a missing row.
+  On `User` the deleted flag is `isDeleted`; the restore and permanent delete
+  services read it with `User.collection.findOne`, which no hook rewrites.
+- **A trash hook must check the option, not just merge a filter.** A `pre` hook
+  that always calls `this.find({ isDeleted: { $ne: true } })` turns the trash
+  list into a list of every live row, because `bypassMiddleware` only skips the
+  branch that checks it. Category and comment did this until the bulk delete
+  work; article and member always guarded the call. A new soft-deleted model
+  needs the same `if (!this.getOptions()?.bypassMiddleware)` branch.
+- **A success answer carries no message.** `sendResponse` sends `{ data, meta? }`
+  and `legacyBody` drops nothing but invents nothing either, so
+  `toast.success(data?.message)` shows an empty box. Word the success toast at the
+  hook, and give every error toast a fallback.
 - **The browser API proxy is an allowlist.** A route that works from the server
   component fails from the browser until it is added to
   `app/api/v1/[...path]/route.ts`. That is on purpose. `POST /uploads/cover` and
@@ -377,6 +422,85 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-11-12: The single-row delete and restore toasts on the articles list, and
+  the profile save toast, fell through to `data?.message`. A success body has no
+  message, so the profile one rendered empty. They now word themselves ("Article
+  moved to Trash.", "Article deleted for good.", "Member restored.", "Member
+  deleted for good.", "Article restored.", "Your profile was saved."). Checked on
+  `/admin/manage-blogs` with a seeded row: the toast reads and the row leaves.
+
+- 2026-11-12: Bulk delete, on all four lists that own removable rows and on all
+  four Trash tabs. Selection lives in the kit (`use-row-selection.ts`,
+  `row-checkbox.tsx`, `selection-bar.tsx`, `DataTable`'s `selection` prop); a
+  row the action would refuse cannot be ticked, so "select all" skips in-use
+  categories and admin accounts. Every bulk move is a trash move and sends no
+  author email; only Trash erases, through a bulk "Delete permanently". API
+  gained `POST /admin/{blogs,users,categories}/bulk-delete` (body `{ ids }`,
+  1-200), `POST /admin/{blogs,users,comments}/trash/permanent`,
+  `DELETE /admin/blogs|categories/:id/permanent`,
+  `GET /admin/categories|comments/trash` and `PATCH /admin/categories/:id/restore`.
+  Bulk is all-or-nothing; already-trashed ids are skipped and counted, and a
+  live id in a permanent bulk refuses the whole set. Members refuse the whole
+  selection if any admin account is in it. Categories and comments move one
+  request per id (their single path holds the transaction and the log line) and
+  the error says how many went before the failure. Trash now has four tabs.
+  Verified in the browser against seeded throwaway rows: articles, members,
+  categories and comments all moved, appeared under the right tab with the right
+  count, and were erased for good; the seeded rows and their activity lines were
+  removed afterwards. Two browser-found bugs fixed: "categorys" in the selection
+  bar, footer and bulk dialog (`SelectionBar`, `ListFooter` and the trash bulk
+  dialog take an optional `pluralNoun`), and `pre("find")` on Category ignoring
+  `bypassMiddleware`, which listed every live category under Trash.
+
+- 2026-11-12: The delete toast on Members showed an empty box. `sendResponse`
+  puts no `message` on a success body, and `legacyBody` keeps none on purpose, so
+  a hook that toasts `data?.message` after a success says nothing at all. Delete,
+  make admin and save social links now name the outcome ("Account moved to
+  Trash") and their failures have a fallback. Checked in the browser on
+  `/admin/manage-users`: the toast reads, the row leaves, the member is in Trash.
+- 2026-11-12: Deleting a member matches deleting an article: two steps. Delete
+  from Members or the member screen still moves the login to Trash (and purges
+  its articles, comments, views and votes, as before), and Trash > Members now
+  carries "Delete permanently" beside "Restore", as the articles tab always did.
+  `DELETE /admin/users/:id/permanent` erases the account, refuses anything not in
+  the trash ("Move the account to the trash before deleting it permanently"),
+  and clears its `username_history` rows so the handles are free again. Verified
+  on `/admin/trash?tab=members`: the row leaves, the badge counts down, the
+  "was deleted permanently" notice shows, the activity log records
+  `user.delete_permanent`, and the API answers 400 for a live account.
+- 2026-11-12: Row-menu confirm dialogs actually run their action now. The panel
+  was still closing on the document `pointerdown` that starts a press on the
+  dialog's own button, so the dialog unmounted before the `click` fired: the
+  button looked inert. `RowMenu` mounts a `MenuDialogOpenProvider`, the shared
+  `ConfirmDialog` reports its open state, and the panel leaves Escape, presses,
+  scrolls and resizes to the dialog while one is open. Verified on
+  `/admin/manage-users` (block, unblock, make admin, delete) and
+  `/admin/manage-blogs` (publish, trash): the action lands, the row and the
+  counters follow.
+- 2026-11-11: Admin delete dialogs closed on a press outside the panel. HeroUI's
+  `Modal` defaults `isDismissable` to `true`, so clicking the page behind the
+  dialog, which the user was aiming at, discarded the question and the typed
+  reason. `ConfirmDialog` and the article delete dialog now set
+  `isDismissable={false}`: the answer comes from the dialog, and Escape or
+  Cancel is the way out that does not answer.
+- 2026-11-11: Admin row-menu confirm dialogs were inert (#21's sibling). `RowMenu`
+  had `onClick={() => setOpen(false)}` on its portalled panel. HeroUI portals a
+  modal to `document.body`, but a React portal keeps the React-tree parent, so a
+  click on the dialog's confirm button still bubbled through that panel and
+  unmounted the `ConfirmDialog` and its pending mutation. That hit every confirm
+  action on `/admin/manage-users` (block, unblock, make admin, delete) and
+  `/admin/manage-blogs` (publish, trash), and only those two, since they are the
+  only screens whose confirm dialog lives inside a `RowMenu`. The panel now
+  closes only when the click lands on a `[role="menuitem"]`.
+- 2026-11-11: #21 fixed. The admin delete-article dialog's Confirm did nothing:
+  `THTextarea` spread `{...props}` over `{...register(name)}`, and HeroUI's
+  `Textarea` drops an `onChange` prop entirely (it chains only React Aria's), so
+  react-hook-form never saw a keystroke and `handleSubmit` failed silently. The
+  registration now goes last, as in `THInput`, which also repairs the contact
+  form, the comment forms and the profile bio. The dialog itself is now
+  controlled with no `THForm` (it mounted its own `useForm`, so its submit never
+  received the value anyway), requires a trimmed reason, stays open on
+  `success: false`, and names the article it deletes.
 - 2026-11-02: Every feed request is one page of 10, throughout. The landing
   page and `/personalized` used to render 5 and the list then asked for 5 again
   on its first action; a full page is now the signal that another page exists,

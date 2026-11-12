@@ -919,36 +919,20 @@ const deleteBlogByAdminUsingId = async (
   try {
     session.startTransaction();
 
+    // Reading the author before the move: the row helper only needs the id.
     const blog = await Blog.findById(id)
       .populate({ path: "author", select: "fullName email" })
       .session(session);
     if (!blog) {
       throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
     }
+    const author = blog.author as unknown as {
+      fullName: string;
+      email: string;
+    };
+    const title = blog.title;
 
-    const author = await User.findByIdAndUpdate(blog?.author._id, {
-      $inc: { totalPosts: -1 },
-    }).session(session);
-
-    if (!author) {
-      throw new AppError(httpStatus.NOT_FOUND, "Author not found");
-    }
-
-    blog.isDeleted = true;
-    await blog.save({ session });
-
-    // delete associated comments, views, and votes
-    // "post" is the stored DB field on these collections, not the concept name.
-    await Comment.deleteMany({ post: blog._id }, { session });
-    await View.deleteMany({ post: blog._id }, { session });
-    await Vote.deleteMany({ post: blog._id }, { session });
-    await Category.findByIdAndUpdate(
-      blog.category,
-      {
-        $inc: { postCount: -1 },
-      },
-      { session },
-    );
+    await trashBlogRow(id, session);
 
     await session.commitTransaction();
     await session.endSession();
@@ -958,13 +942,13 @@ const deleteBlogByAdminUsingId = async (
       action: "article.delete",
       targetType: "blog",
       targetId: String(blog._id),
-      summary: `Deleted article "${blog.title}"`,
+      summary: `Deleted article "${title}"`,
       meta: { reason: payload.reason },
     });
 
     const mail = await articleDeletedEmailMessage({
       fullName: author.fullName,
-      articleTitle: blog.title,
+      articleTitle: title,
       reason: payload.reason,
     });
 
@@ -1484,6 +1468,152 @@ const deleteBlogPermanently = async (blogId: string, adminEmail?: string) => {
   return { _id: String(raw._id), title: raw.title, slug: raw.slug };
 };
 
+/**
+ * Move one article to the trash inside a caller's transaction.
+ *
+ * This is the body of `deleteBlogByAdminUsingId` without the part that reaches
+ * outside the database: the author's email. A bulk delete uses it so a
+ * selection of twenty articles cannot become twenty inboxes, while the
+ * counters, the comments, the votes and the category total move exactly as
+ * they do for a single article.
+ */
+const trashBlogRow = async (id: string, session: mongoose.ClientSession) => {
+  // Read raw: the find hook hides trashed rows, and the caller needs to know
+  // whether this id is a missing article or one already in the trash.
+  const raw = await Blog.collection.findOne(
+    { _id: new mongoose.Types.ObjectId(id) },
+    { session },
+  );
+  if (!raw) {
+    throw new AppError(httpStatus.NOT_FOUND, "Blog not found");
+  }
+
+  // An article already in the trash was counted out on the way in. Counting it
+  // again would take one more post and one more category article from nobody.
+  if (raw.isDeleted === true) {
+    return { title: raw.title, trashed: false };
+  }
+
+  const author = await User.findByIdAndUpdate(
+    raw.author as mongoose.Types.ObjectId,
+    { $inc: { totalPosts: -1 } },
+  ).session(session);
+  if (!author) {
+    throw new AppError(httpStatus.NOT_FOUND, "Author not found");
+  }
+
+  await Blog.updateOne(
+    { _id: raw._id },
+    { isDeleted: true },
+    { session, runValidators: true },
+  );
+
+  // "post" is the stored DB field on these collections, not the concept name.
+  await Comment.deleteMany({ post: raw._id }, { session });
+  await View.deleteMany({ post: raw._id }, { session });
+  await Vote.deleteMany({ post: raw._id }, { session });
+  await Category.findByIdAndUpdate(
+    raw.category as mongoose.Types.ObjectId,
+    { $inc: { postCount: -1 } },
+    { session },
+  );
+
+  return { title: raw.title, trashed: true };
+};
+
+/**
+ * Move several articles to the trash in one step.
+ *
+ * All or nothing: one id that no longer exists refuses the whole selection
+ * rather than leaving the admin to work out which rows moved. Subscribers are
+ * not notified, which is the one way this differs from deleting one article
+ * from its row; the activity log still names every title.
+ */
+const deleteBlogsInBulk = async (ids: string[], adminEmail?: string) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const rows: { title: string; trashed: boolean }[] = [];
+    for (const id of ids) {
+      rows.push(await trashBlogRow(id, session));
+    }
+
+    await session.commitTransaction();
+    await session.endSession();
+
+    const trashed = rows.filter((row) => row.trashed);
+    if (trashed.length > 0) {
+      await adminLogService.record({
+        adminEmail,
+        action: "article.delete",
+        targetType: "blog",
+        targetId: ids[0],
+        summary:
+          trashed.length === 1
+            ? `Deleted article "${trashed[0].title}"`
+            : `Deleted ${trashed.length} articles`,
+        meta: {
+          count: trashed.length,
+          titles: trashed.map((row) => row.title),
+        },
+      });
+    }
+
+    return { deleted: trashed.length, skipped: rows.length - trashed.length };
+  } catch (error) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw error;
+  }
+};
+
+/**
+ * Erase several trashed articles for good.
+ *
+ * Every id must already be in the trash, the same rule the single endpoint
+ * keeps, and the whole selection is refused otherwise. Counters were taken
+ * care of on the way into the trash; the leftovers are cleared again so an
+ * older comment cannot outlive its article.
+ */
+const deleteBlogsPermanently = async (ids: string[], adminEmail?: string) => {
+  const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+  const raws = await Blog.collection
+    .find({ _id: { $in: objectIds } })
+    .toArray();
+
+  if (raws.length !== ids.length) {
+    throw new AppError(httpStatus.NOT_FOUND, "Some articles were not found");
+  }
+  if (raws.some((raw) => raw.isDeleted !== true)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Move the article to the trash before deleting it permanently",
+    );
+  }
+
+  await Promise.all([
+    Comment.deleteMany({ post: { $in: objectIds } }),
+    View.deleteMany({ post: { $in: objectIds } }),
+    Vote.deleteMany({ post: { $in: objectIds } }),
+  ]);
+  await Blog.deleteMany({ _id: { $in: objectIds } });
+
+  await adminLogService.record({
+    adminEmail,
+    action: "article.delete_permanent",
+    targetType: "blog",
+    targetId: ids[0],
+    summary:
+      raws.length === 1
+        ? `Permanently deleted article "${raws[0].title}"`
+        : `Permanently deleted ${raws.length} articles`,
+    meta: { count: raws.length, titles: raws.map((raw) => raw.title) },
+  });
+
+  return { deleted: raws.length };
+};
+
 export const blogService = {
   create,
   createByAdmin,
@@ -1500,6 +1630,8 @@ export const blogService = {
   getVoteStatus,
   getFollowingUsersBlogs,
   deleteBlogByAdminUsingId,
+  deleteBlogsInBulk,
+  deleteBlogsPermanently,
   deleteBlogByUserUsingId,
   updateBlogByUserUsingId,
   updateBlogByAdmin,

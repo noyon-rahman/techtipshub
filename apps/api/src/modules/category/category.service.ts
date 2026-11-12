@@ -125,17 +125,25 @@ const getSingleCategory = async (id: string) => {
   return category;
 };
 
+/**
+ * A category in use by a live article cannot leave the admin list: the
+ * article's own page and every composer would point at it. Drafts do not
+ * count, because they are not readable yet and can be re-filed.
+ */
+const publishedCount = (categoryId: string) =>
+  Blog.countDocuments({
+    category: categoryId,
+    isDeleted: { $ne: true },
+    status: { $ne: "draft" },
+  });
+
 const deleteSingleCategory = async (id: string, adminEmail?: string) => {
   const category = await Category.findById(id);
   if (!category) {
     throw new AppError(httpStatus.NOT_FOUND, "Category not found");
   }
 
-  const blogCount = await Blog.countDocuments({
-    category: category._id,
-    isDeleted: { $ne: true },
-    status: { $ne: "draft" },
-  });
+  const blogCount = await publishedCount(String(category._id));
   if (blogCount > 0) {
     throw new AppError(
       httpStatus.CONFLICT,
@@ -155,6 +163,189 @@ const deleteSingleCategory = async (id: string, adminEmail?: string) => {
   });
 
   return result;
+};
+
+/**
+ * Move several categories to the trash in one step.
+ *
+ * All or nothing on purpose: a half-applied selection would leave the admin
+ * guessing which rows were actually removed. A category still holding a
+ * published article refuses the whole selection and names it, so the admin can
+ * clear that row first.
+ */
+const deleteCategoriesInBulk = async (ids: string[], adminEmail?: string) => {
+  const objectIds = ids.map((id) => new mongoose.Types.ObjectId(id));
+  const categories = await Category.find({ _id: { $in: objectIds } }).select(
+    "name",
+  );
+
+  if (categories.length !== ids.length) {
+    throw new AppError(httpStatus.NOT_FOUND, "Some categories were not found");
+  }
+
+  const inUse = await Promise.all(
+    categories.map(async (category) => ({
+      name: category.name,
+      count: await publishedCount(String(category._id)),
+    })),
+  );
+  const blocked = inUse.filter((row) => row.count > 0);
+  if (blocked.length > 0) {
+    const names = blocked.map((row) => `"${row.name}"`).join(", ");
+    throw new AppError(
+      httpStatus.CONFLICT,
+      `${names} still has published blogs. Move or delete them first.`,
+    );
+  }
+
+  await Category.updateMany(
+    { _id: { $in: objectIds } },
+    { isDeleted: true },
+    { runValidators: true },
+  );
+
+  await adminLogService.record({
+    adminEmail,
+    action: "category.delete",
+    targetType: "category",
+    targetId: ids[0],
+    summary:
+      categories.length === 1
+        ? `Deleted category "${categories[0].name}"`
+        : `Deleted ${categories.length} categories`,
+    meta: {
+      count: categories.length,
+      names: categories.map((category) => category.name),
+    },
+  });
+
+  return { deleted: categories.length };
+};
+
+/**
+ * The trashed categories, for Trash.
+ *
+ * The find hook hides deleted rows, so this is the one place that asks for
+ * them by setting `bypassMiddleware`, the same way the article and member
+ * trash lists do.
+ */
+const getDeletedCategories = async (query: Record<string, unknown> = {}) => {
+  const terms = parseSearchTerms(query.searchTerm);
+  const search = terms.length
+    ? {
+        $and: terms.map((term) => {
+          const escaped = escapeRegex(term);
+          return {
+            name: {
+              $regex: escaped.length >= 3 ? `^${escaped}` : escaped,
+              $options: "i",
+            },
+          };
+        }),
+      }
+    : {};
+
+  const categories = await Category.find({ ...search, isDeleted: true })
+    .setOptions({ bypassMiddleware: true })
+    .sort({ updatedAt: -1, _id: -1 });
+
+  const countByCategory = await countBlogsByCategory();
+
+  return {
+    result: categories.map((category) => ({
+      _id: category._id,
+      name: category.name,
+      description: category.description ?? "",
+      blogCount: countByCategory.get(String(category._id)) ?? 0,
+      createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+    })),
+  };
+};
+
+const restoreCategory = async (id: string, adminEmail?: string) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid category Id");
+  }
+
+  const raw = await Category.collection.findOne({
+    _id: new mongoose.Types.ObjectId(id),
+  });
+  if (!raw) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+  }
+
+  // Another category may have taken the name while this one sat in the trash.
+  const taken = await findByName(raw.name, id);
+  if (taken) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      `Another category is already named "${raw.name}". Rename it first.`,
+    );
+  }
+
+  const result = await Category.findByIdAndUpdate(
+    id,
+    { isDeleted: false },
+    { new: true, runValidators: true },
+  );
+
+  await adminLogService.record({
+    adminEmail,
+    action: "category.restore",
+    targetType: "category",
+    targetId: id,
+    summary: `Restored category "${raw.name}"`,
+  });
+
+  return result;
+};
+
+/**
+ * Erase a trashed category for good.
+ *
+ * Only a trashed one can go, so the empty check already passed on the way in;
+ * it is asked again because an article could have been re-filed under it from
+ * the trash's own lists in the meantime.
+ */
+const deleteCategoryPermanently = async (id: string, adminEmail?: string) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid category Id");
+  }
+
+  const raw = await Category.collection.findOne({
+    _id: new mongoose.Types.ObjectId(id),
+  });
+  if (!raw) {
+    throw new AppError(httpStatus.NOT_FOUND, "Category not found");
+  }
+
+  if (raw.isDeleted !== true) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Move the category to the trash before deleting it permanently",
+    );
+  }
+
+  const blogCount = await Blog.countDocuments({ category: raw._id });
+  if (blogCount > 0) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      `Category still has ${blogCount} blogs, drafts included. Move them first.`,
+    );
+  }
+
+  await Category.deleteOne({ _id: raw._id });
+
+  await adminLogService.record({
+    adminEmail,
+    action: "category.delete_permanent",
+    targetType: "category",
+    targetId: id,
+    summary: `Permanently deleted category "${raw.name}"`,
+  });
+
+  return { _id: id, name: raw.name };
 };
 
 const update = async (
@@ -268,6 +459,10 @@ export const categoryService = {
   getAll,
   getSingleCategory,
   deleteSingleCategory,
+  deleteCategoriesInBulk,
+  getDeletedCategories,
+  restoreCategory,
+  deleteCategoryPermanently,
   update,
   getAdminList,
   findByName,

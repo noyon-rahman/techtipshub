@@ -33,6 +33,10 @@ adminNewsletterSubscriberRouter.get(
   "/:id",
   newsletterAdminController.getSubscriber,
 );
+adminNewsletterSubscriberRouter.delete(
+  "/:id",
+  newsletterAdminController.deleteSubscriberPermanently,
+);
 
 const adminNewsletterCampaignRouter = new Hono<TAppBindings>();
 

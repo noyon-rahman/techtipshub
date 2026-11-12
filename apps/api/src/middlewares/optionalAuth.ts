@@ -25,7 +25,9 @@ const optionalAuth: MiddlewareHandler<TAppBindings> = async (c, next) => {
       config.JWT_ACCESS_TOKEN_SECRET,
     ) as JwtPayload;
 
-    const user = await User.findOne({ email: decoded.email });
+    const user = await User.findOne({ email: decoded.email }).select(
+      "+isDeleted",
+    );
     if (!user || user.isDeleted || user.status === "Blocked") {
       return next();
     }

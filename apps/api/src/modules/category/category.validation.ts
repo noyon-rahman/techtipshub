@@ -51,9 +51,32 @@ const createByAuthor = z
   })
   .strict();
 
+/**
+ * A bulk delete, for every admin list.
+ *
+ * Ids are checked one by one because a malformed one would make the driver
+ * throw and answer 500 for what is really a bad request. The cap keeps a
+ * single press from turning into an unbounded write; the oldest admin list is
+ * 200 rows on one screen.
+ */
+export const bulkDelete = z
+  .object({
+    ids: z
+      .array(z.string().regex(/^[a-f0-9]{24}$/i, "Invalid id"), {
+        error: "ids must be a list of ids",
+      })
+      .min(1, "Pick at least one row")
+      .max(200, "Delete 200 rows at a time at most")
+      .refine((ids) => new Set(ids).size === ids.length, {
+        error: "The same row was picked twice",
+      }),
+  })
+  .strict();
+
 export const categoryValidationSchema = {
   create,
   createByAuthor,
   update,
   deleteCategory,
+  bulkDelete,
 };

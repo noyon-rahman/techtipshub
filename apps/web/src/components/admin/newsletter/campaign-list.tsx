@@ -75,7 +75,7 @@ const CampaignList = ({ page, onPageChange, onCreate, onOpen }: IProps) => {
       <EmptyState
         variant="inline"
         icon={<RiNewspaperLine className="size-5" />}
-        title="The issues could not be loaded"
+        title="The campaigns could not be loaded"
         description={
           query.error?.message ||
           "The request to the API failed. Try again, and if it keeps failing check that the API is reachable."
@@ -98,12 +98,12 @@ const CampaignList = ({ page, onPageChange, onCreate, onOpen }: IProps) => {
       <EmptyState
         variant="inline"
         icon={<RiNewspaperLine className="size-5" />}
-        title="No issue has gone out yet"
-        description="A new issue starts as a draft: pick the articles, write a subject and an intro, check a copy in your own inbox, then send it."
+        title="No campaign has gone out yet"
+        description="A new campaign starts as a draft: write your message or pick articles, check a copy in your own inbox, then send it."
         action={
           <button type="button" onClick={onCreate} className={quietButton}>
             <FiPlus aria-hidden className="size-4" />
-            Start the first issue
+            Start the first campaign
           </button>
         }
       />
@@ -113,7 +113,7 @@ const CampaignList = ({ page, onPageChange, onCreate, onOpen }: IProps) => {
   return (
     <>
       <ul
-        aria-label={`Issues${total ? `, ${total} in total` : ""}, newest first`}
+        aria-label={`Campaigns${total ? `, ${total} in total` : ""}, newest first`}
         aria-busy={query.isFetching || undefined}
         className="divide-y divide-default/60"
       >

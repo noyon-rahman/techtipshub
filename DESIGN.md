@@ -117,8 +117,9 @@ actions start on the same line. It is the motif that makes the composer and the
 editor recognisably the same tool, and it is what a reader of the published
 article sees too.
 
-**The logo:** an amber square with a T carved into it, square for a code block,
-letter for the name. It is the only place a solid amber fill appears at rest, so
+**The logo:** an amber square with a chisel-cut T and grounded cursor block
+carved into it, square for a code block, chisel-cut letter for editorial writing
+and tips, cursor for the hub. It is the only place a solid amber fill appears at rest, so
 the mark and the primary button speak the same language. Full assets and sizes:
 `apps/web/public/brand/README.md`.
 

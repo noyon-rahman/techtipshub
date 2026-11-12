@@ -10,6 +10,7 @@ import UpVoteButton from "@/components/ui/upvote-button";
 import UserAvatar from "@/components/ui/user-avatar";
 import { useUser } from "@/context/user.provider";
 import type { IVoteCounts } from "@/hooks/blog.hook";
+import { publicProfilePath } from "@/lib/blog-routes";
 import { searchPath } from "@/lib/feed-routes";
 import type { IBlog } from "@/types";
 import type { IUser } from "@/types/user.type";
@@ -177,7 +178,7 @@ export const ArticleAuthor = ({
 }) => {
   if (!author?.username) return null;
 
-  const profileHref = `/users/@${author.username}`;
+  const profileHref = publicProfilePath(author.username);
   const memberSince = formatBlogDate(author.createdAt);
   const followers = author.totalFollowers;
 

@@ -8,10 +8,17 @@ import {
   DropdownTrigger,
 } from "@heroui/react";
 import UserAvatar from "@/components/ui/user-avatar";
+import { LogoMark } from "@/components/shared/logo";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef } from "react";
-import { FiChevronDown, FiExternalLink, FiLogOut, FiX } from "react-icons/fi";
+import {
+  FiChevronDown,
+  FiExternalLink,
+  FiLogOut,
+  FiSearch,
+  FiX,
+} from "react-icons/fi";
 import { HiOutlinePencilSquare, HiOutlineUserCircle } from "react-icons/hi2";
 import {
   TbLayoutSidebarLeftCollapse,
@@ -19,7 +26,7 @@ import {
 } from "react-icons/tb";
 import { logOutUser } from "@/services/auth";
 import { useUser } from "@/context/user.provider";
-import { manageBlogsPath, ownProfilePath } from "@/lib/blog-routes";
+import { manageBlogsPath } from "@/lib/blog-routes";
 import {
   ADMIN_GROUPS,
   adminLinks,
@@ -43,7 +50,8 @@ const AdminSidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, setIsLoading: setUserLoading } = useUser();
-  const { isNavOpen, closeNav, isRailCollapsed, toggleRail } = useAdminShell();
+  const { isNavOpen, closeNav, isRailCollapsed, toggleRail, openSearch } =
+    useAdminShell();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerFocusRef = useRef<HTMLElement | null>(null);
@@ -127,15 +135,7 @@ const AdminSidebar = () => {
       {/* The mark is the one amber fill at rest, here paired with a small
           section switcher affordance so the rail reads as the panel's own
           header rather than more nav. */}
-      <span className="relative shrink-0">
-        <span className="flex size-7 items-center justify-center rounded-[6px] bg-primary text-sm font-bold text-primary-foreground">
-          T
-        </span>
-        <span
-          aria-hidden
-          className="absolute -bottom-px -right-px size-2.5 rounded-full border-2 border-background bg-default-400"
-        />
-      </span>
+      <LogoMark size="md" className="shrink-0 text-primary-400" />
       {!collapsed && (
         <span className="flex min-w-0 flex-col leading-none">
           <span className="truncate font-[family-name:var(--type-editorial)] text-[0.9375rem] font-semibold tracking-[-0.01em] text-foreground">
@@ -147,6 +147,41 @@ const AdminSidebar = () => {
         </span>
       )}
     </Link>
+  );
+
+  const searchTrigger = (collapsed: boolean, onBeforeOpen?: () => void) => (
+    <div className={collapsed ? "px-2 pb-1 pt-2" : "px-3 pb-1 pt-2"}>
+      <button
+        type="button"
+        onClick={() => {
+          onBeforeOpen?.();
+          openSearch();
+        }}
+        aria-label="Search or jump to"
+        title={collapsed ? "Search or jump (Ctrl K)" : undefined}
+        className={`flex w-full items-center rounded-[8px] border border-default/60 bg-content-1 text-[0.8125rem] text-default-600 transition-colors hover:border-default-300 hover:bg-default-100/60 hover:text-foreground ${focusRing} ${
+          collapsed
+            ? "h-10 justify-center px-0"
+            : "h-9 justify-between gap-2 px-2.5"
+        }`}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          <FiSearch
+            aria-hidden
+            className="size-3.5 shrink-0 text-default-500"
+          />
+          {!collapsed && <span className="truncate">Search or jump</span>}
+        </span>
+        {!collapsed && (
+          <kbd
+            aria-hidden
+            className="shrink-0 rounded border border-default/70 bg-default-50 px-1.5 py-0.5 font-sans text-[0.6875rem] font-medium text-default-600"
+          >
+            Ctrl K
+          </kbd>
+        )}
+      </button>
+    </div>
   );
 
   const navLink = (
@@ -165,22 +200,14 @@ const AdminSidebar = () => {
         onClick={onNavigate}
         className={`${rowBase} ${
           collapsed
-            ? "mx-2 min-h-11 justify-center lg:min-h-10"
-            : "min-h-11 gap-2.5 pl-3 pr-2.5"
+            ? "mx-1.5 min-h-11 justify-center rounded-[8px] lg:min-h-10"
+            : "min-h-11 gap-2.5 rounded-[8px] px-2.5 lg:min-h-9"
         } ${focusRing} ${
           active
-            ? "bg-default-100 font-medium text-foreground"
+            ? "bg-content-1 font-medium text-foreground shadow-[0_1px_2px_rgba(20,19,21,0.06)] dark:bg-default-100 dark:shadow-none"
             : "text-default-700 hover:bg-default-100/70 hover:text-foreground"
         }`}
       >
-        {!collapsed && (
-          <span
-            aria-hidden
-            className={`absolute inset-y-1.5 left-0 w-[3px] rounded-full transition-colors ${
-              active ? "bg-primary" : "bg-transparent"
-            }`}
-          />
-        )}
         <span
           aria-hidden
           className={`shrink-0 transition-colors ${
@@ -199,24 +226,27 @@ const AdminSidebar = () => {
   const nav = (collapsed: boolean, onNavigate?: () => void) => (
     <nav
       aria-label="Admin"
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 pb-3 pt-4"
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 pb-3 pt-2"
     >
       {ADMIN_GROUPS.map((groupName) => {
         const links = adminLinks.filter((link) => link.group === groupName);
         if (links.length === 0) return null;
+        const isPrimary = groupName === "Overview";
 
         return (
           <div key={groupName} className="pb-1 last:pb-0">
-            {collapsed ? (
-              <p
-                aria-hidden
-                className="mx-auto my-2 h-px w-6 rounded bg-default/60 first:mt-0"
-              />
-            ) : (
-              <p className="tth-label-sm px-3 pb-1.5 pt-4 first:pt-1">
-                {groupName}
-              </p>
-            )}
+            {collapsed
+              ? !isPrimary && (
+                  <p
+                    aria-hidden
+                    className="mx-auto my-2 h-px w-5 rounded bg-default/60"
+                  />
+                )
+              : !isPrimary && (
+                  <p className="tth-label-sm px-2.5 pb-1 pt-4 text-default-500">
+                    {groupName}
+                  </p>
+                )}
             <ul className="space-y-0.5">
               {links.map((link) => (
                 <li key={link.id}>{navLink(link, collapsed, onNavigate)}</li>
@@ -228,51 +258,49 @@ const AdminSidebar = () => {
     </nav>
   );
 
-  const accountTrigger = (collapsed: boolean) => (
-    <DropdownTrigger>
-      <Button
-        isIconOnly={collapsed}
-        variant="light"
-        aria-label="Account menu"
-        className={`flex h-auto w-full items-center gap-2.5 rounded-[6px] p-1.5 text-left data-[hover=true]:bg-default-100 ${focusRing} ${
-          collapsed ? "justify-center" : "justify-start"
-        }`}
-      >
-        <UserAvatar
-          src={user?.profilePicture}
-          size="sm"
-          className="size-8 shrink-0 object-cover"
-          name={(user?.name || user?.username || "?").charAt(0).toUpperCase()}
-        />
-        {!collapsed && (
-          <>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-medium text-foreground">
-                {user?.name || user?.username || "Signed in"}
-              </span>
-              <span className="block truncate text-xs text-default-600">
-                {user?.role ?? "Admin"}
-              </span>
-            </span>
-            <FiChevronDown
-              aria-hidden
-              className="size-4 shrink-0 text-default-500"
+  const accountSwitcher = (collapsed: boolean) => (
+    <div className={collapsed ? "px-2 pt-2" : "px-3 pt-2.5"}>
+      <Dropdown placement="right-start" shouldBlockScroll={false}>
+        <DropdownTrigger>
+          <Button
+            isIconOnly={collapsed}
+            variant="light"
+            aria-label="Account menu"
+            className={`flex h-auto w-full items-center gap-2.5 rounded-[8px] px-2 py-1.5 text-left data-[hover=true]:bg-default-100/80 ${focusRing} ${
+              collapsed ? "justify-center" : "justify-start"
+            }`}
+          >
+            <UserAvatar
+              src={user?.profilePicture}
+              size="sm"
+              className="size-8 shrink-0 object-cover"
+              name={(user?.name || user?.username || "?")
+                .charAt(0)
+                .toUpperCase()}
             />
-          </>
-        )}
-      </Button>
-    </DropdownTrigger>
-  );
-
-  const footer = (collapsed: boolean) => (
-    <div className="shrink-0 border-t border-default/60 px-3 py-2">
-      <Dropdown placement="right-end" shouldBlockScroll={false}>
-        {accountTrigger(collapsed)}
+            {!collapsed && (
+              <>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {user?.name || user?.username || "Signed in"}
+                  </span>
+                  <span className="block truncate text-[0.6875rem] text-default-600">
+                    {user?.role ?? "Admin"}
+                  </span>
+                </span>
+                <FiChevronDown
+                  aria-hidden
+                  className="size-4 shrink-0 text-default-500"
+                />
+              </>
+            )}
+          </Button>
+        </DropdownTrigger>
         <DropdownMenu aria-label="Account" classNames={{ base: "min-w-56" }}>
           <DropdownItem
             key="profile"
             as={Link}
-            href={ownProfilePath}
+            href="/admin/profile"
             textValue="Your profile"
             startContent={
               <HiOutlineUserCircle aria-hidden className="size-4" />
@@ -344,8 +372,9 @@ const AdminSidebar = () => {
                 <span className="sr-only">Close admin menu</span>
               </button>
             </div>
+            {accountSwitcher(false)}
+            {searchTrigger(false, closeNav)}
             {nav(false, closeNav)}
-            {footer(false)}
           </div>
         </div>
       )}
@@ -353,11 +382,11 @@ const AdminSidebar = () => {
       <aside
         id={groupId}
         data-collapsed={isRailCollapsed ? "true" : undefined}
-        className="hidden shrink-0 border-r border-default/60 bg-background/60 lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:h-dvh lg:flex-col lg:w-[var(--admin-rail-width)]"
+        className="hidden shrink-0 bg-transparent lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:h-dvh lg:w-[var(--admin-rail-width)] lg:flex-col"
       >
         <div
-          className={`flex h-14 shrink-0 items-center border-b border-default/60 ${
-            isRailCollapsed ? "justify-center px-2" : "justify-between px-3"
+          className={`flex h-14 shrink-0 items-center ${
+            isRailCollapsed ? "justify-center px-2" : "justify-between px-3.5"
           }`}
         >
           {brand(isRailCollapsed)}
@@ -366,7 +395,7 @@ const AdminSidebar = () => {
               type="button"
               onClick={toggleRail}
               aria-pressed={isRailCollapsed}
-              className={`inline-flex size-9 items-center justify-center rounded-[6px] text-default-500 transition-colors hover:bg-default-100 hover:text-foreground ${focusRing}`}
+              className={`inline-flex size-8 items-center justify-center rounded-[6px] text-default-500 transition-colors hover:bg-default-100 hover:text-foreground ${focusRing}`}
             >
               <TbLayoutSidebarLeftCollapse
                 aria-hidden
@@ -377,11 +406,12 @@ const AdminSidebar = () => {
           )}
         </div>
 
+        {accountSwitcher(isRailCollapsed)}
+        {searchTrigger(isRailCollapsed)}
         {nav(isRailCollapsed)}
-        {footer(isRailCollapsed)}
 
         {isRailCollapsed && (
-          <div className="flex shrink-0 justify-center border-t border-default/60 py-2">
+          <div className="flex shrink-0 justify-center py-2">
             <button
               type="button"
               onClick={toggleRail}

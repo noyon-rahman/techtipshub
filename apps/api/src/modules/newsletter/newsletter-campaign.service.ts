@@ -359,7 +359,11 @@ const recipientCountFor = async () => {
  * reaches. The first batch goes out on this request; the rest is drained by
  * the cron, or by "Continue" when the cron is not set up.
  */
-const start = async (id: string, adminEmail?: string) => {
+const start = async (
+  id: string,
+  adminEmail?: string,
+  subscriberIds?: string[],
+) => {
   if (!isEmailConfigured()) {
     throw new AppError(
       httpStatus.SERVICE_UNAVAILABLE,
@@ -375,12 +379,41 @@ const start = async (id: string, adminEmail?: string) => {
     );
   }
 
-  await recipientCountFor();
+  const uniqueIds = subscriberIds?.length
+    ? Array.from(new Set(subscriberIds))
+    : undefined;
 
-  const recipients = await NewsletterSubscriber.find({ status: "active" })
+  if (uniqueIds) {
+    const invalid = uniqueIds.find(
+      (subscriberId) => !mongoose.Types.ObjectId.isValid(subscriberId),
+    );
+    if (invalid) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "One of the selected subscribers has an invalid id.",
+      );
+    }
+  } else {
+    await recipientCountFor();
+  }
+
+  const recipientFilter = uniqueIds
+    ? { _id: { $in: uniqueIds }, status: "active" as const }
+    : { status: "active" as const };
+
+  const recipients = await NewsletterSubscriber.find(recipientFilter)
     .select("_id email name")
     .sort({ createdAt: 1 })
     .lean();
+
+  if (recipients.length === 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      uniqueIds
+        ? "None of the selected subscribers are active."
+        : "There is nobody active on the list yet.",
+    );
+  }
 
   campaign.recipients = recipients.map((subscriber) => ({
     subscriber: subscriber._id,
@@ -403,7 +436,9 @@ const start = async (id: string, adminEmail?: string) => {
     action: "newsletter.campaign.send",
     targetType: "newsletter",
     targetId: String(campaign._id),
-    summary: `Started issue "${campaign.subject}" to ${recipients.length} subscribers`,
+    summary: uniqueIds
+      ? `Started issue "${campaign.subject}" to ${recipients.length} selected ${recipients.length === 1 ? "subscriber" : "subscribers"}`
+      : `Started issue "${campaign.subject}" to ${recipients.length} subscribers`,
   });
 
   await processBatch(String(campaign._id));

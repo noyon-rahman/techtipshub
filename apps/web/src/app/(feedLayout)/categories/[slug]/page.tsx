@@ -4,7 +4,9 @@ import { categorySlug } from "@/lib/feed-routes";
 import { siteCategories } from "@/lib/site-settings";
 import { IBlog } from "@/types";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FiArrowLeft } from "react-icons/fi";
 
 /**
  * `/categories/<name>`: the feed filtered to one category.
@@ -26,15 +28,12 @@ const INITIAL_NUMBERS_OF_BLOGS = "10";
 /** The published category whose slug is `slug`, or undefined. */
 const findCategory = async (slug: string) => {
   const categories = await siteCategories();
-  return categories.find(
-    (category) => categorySlug(category.name) === slug && !category.isDeleted,
-  );
+  return categories.find((category) => categorySlug(category.name) === slug);
 };
 
 export async function generateStaticParams() {
   const categories = await siteCategories();
   return categories
-    .filter((category) => !category.isDeleted)
     .map((category) => ({ slug: categorySlug(category.name) }))
     .filter((entry) => entry.slug);
 }
@@ -82,18 +81,40 @@ export default async function CategoryFeed({ params }: Props) {
 
   if (blogs.length === 0) {
     return (
-      <div className="rounded-xl border border-default/60 px-6 py-16 text-center">
-        <h2 className="text-lg font-semibold">
-          Nothing in {category.name} yet
-        </h2>
-        <p className="mx-auto mt-2 max-w-sm text-sm text-default-600">
-          New articles will appear here as soon as they are published.
-        </p>
+      <div>
+        <div className="mb-4">
+          <Link
+            href="/categories"
+            className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-default-600 transition-colors hover:text-primary-accessible sm:min-h-0"
+          >
+            <FiArrowLeft aria-hidden className="size-3.5" />
+            All categories
+          </Link>
+        </div>
+        <div className="rounded-[10px] border border-default/60 bg-content-1 px-6 py-16 text-center">
+          <h1 className="font-[family-name:var(--type-editorial)] text-2xl font-semibold">
+            Nothing in {category.name} yet
+          </h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-default-600">
+            New articles will appear here as soon as they are published.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <FeedBlogs initialBlogs={blogs} category={category.name} sort="newest" />
+    <div>
+      <div className="mb-3">
+        <Link
+          href="/categories"
+          className="inline-flex min-h-11 items-center gap-1.5 text-xs font-medium text-default-600 transition-colors hover:text-primary-accessible sm:min-h-0"
+        >
+          <FiArrowLeft aria-hidden className="size-3.5" />
+          All categories
+        </Link>
+      </div>
+      <FeedBlogs initialBlogs={blogs} category={category.name} sort="newest" />
+    </div>
   );
 }

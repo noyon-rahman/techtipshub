@@ -2,10 +2,12 @@ import { readMemberPage } from "@/services/admin/members";
 import {
   blockUser,
   deleteUserAccount,
+  deleteUsersInBulk,
   followUser,
   getAllUsers,
   getUserFollowingStatus,
   makeAdmin,
+  resendVerificationEmail,
   unblockUser,
   unfollowUser,
   updateProfile,
@@ -16,7 +18,12 @@ import type { TLegacyBody } from "@/lib/api-contract";
 import { TSocialLink } from "@/types";
 import type { IAdminMembersParams } from "@/types/admin.type";
 import type { IFollowResult } from "@techtipshub/shared";
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { toast } from "sonner";
 
 /**
@@ -184,16 +191,46 @@ export const useMakeAdmin = () => {
     mutationFn: async (userId) => await makeAdmin(userId),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The member was not made an admin.", {
           id: "user-make-admin",
         });
       }
 
       if (data?.success) {
-        toast.success(data?.message, {
+        toast.success("Member is now an admin", {
           id: "user-make-admin",
         });
       }
+    },
+  });
+};
+
+export const useResendVerificationEmail = () => {
+  return useMutation<any, Error, string>({
+    mutationKey: ["USER_RESEND_VERIFICATION"],
+    mutationFn: async (userId) => await resendVerificationEmail(userId),
+    onSuccess: (data) => {
+      if (!data?.success) {
+        toast.error(data?.message || "Verification email could not be sent.", {
+          id: "user-resend-verification",
+        });
+        return;
+      }
+
+      const email = data?.data?.email;
+      toast.success(
+        email
+          ? `Verification email sent to ${email}`
+          : "Verification email sent",
+        {
+          id: "user-resend-verification",
+        },
+      );
+    },
+    onError: (error) => {
+      toast.error(error?.message || "Verification email could not be sent.", {
+        id: "user-resend-verification",
+      });
     },
   });
 };
@@ -206,16 +243,54 @@ export const useDeleteUserAccount = () => {
     mutationFn: async (userId) => await deleteUserAccount(userId),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The account was not deleted.", {
           id: "delete-user-account",
         });
       }
 
       if (data?.success) {
-        toast.success(data?.message, {
+        // The API sends no message on success, so saying nothing here would
+        // leave an empty toast.
+        toast.success("Account moved to Trash", {
           id: "delete-user-account",
         });
       }
+    },
+  });
+};
+
+/**
+ * Moves picked members to the trash in one press.
+ *
+ * Unlike the single delete, a failed request is an error rather than an
+ * answer: the selection is all or nothing, and the admin needs the API's
+ * reason (an admin account in the list) to see which row is in the way.
+ */
+export const useDeleteUsersInBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string[]>({
+    mutationKey: ["DELETE_USERS_BULK"],
+    mutationFn: async (ids) => await deleteUsersInBulk(ids),
+    onSuccess: (data) => {
+      const deleted = Number(data?.data?.deleted ?? 0);
+      const skipped = Number(data?.data?.skipped ?? 0);
+
+      toast.success(
+        `${deleted} ${deleted === 1 ? "member" : "members"} moved to Trash${
+          skipped > 0 ? `. ${skipped} were already there.` : "."
+        }`,
+        { id: "delete-users-bulk" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: ["GET_ALL_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_MEMBERS"] });
+      queryClient.invalidateQueries({ queryKey: ["TRASHED_USERS"] });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_TRASH_COUNTS"] });
+      queryClient.invalidateQueries({ queryKey: ["TRASHED_USER_COUNT"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "delete-users-bulk" });
     },
   });
 };
@@ -232,7 +307,7 @@ export const useUpdateProfile = () => {
         return;
       }
 
-      toast.success(data?.message, {
+      toast.success("Your profile was saved.", {
         id: "user-profile-updated",
       });
     },
@@ -245,13 +320,13 @@ export const useUpdateSocialLinks = () => {
     mutationFn: async (payload) => await updateSocialLinks(payload),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The links were not saved.", {
           id: "user-social-links-updated",
         });
       }
 
       if (data?.success) {
-        toast.success(data?.message, {
+        toast.success("Links saved", {
           id: "user-social-links-updated",
         });
       }

@@ -17,6 +17,7 @@ import {
   type ReactNode,
 } from "react";
 import { focusRing } from "./tau";
+import { useReportMenuDialog } from "./menu-dialog-open";
 
 interface ITriggerProps {
   onPress?: () => void;
@@ -46,6 +47,9 @@ interface IProps {
  * trigger; what this adds is the trigger wiring, the danger treatment and the
  * pending state.
  *
+ * Pressing the backdrop does not close it: the answer to "delete this?" has to
+ * come from the dialog. Escape and Cancel are the ways out that do not answer.
+ *
  * The confirm action keeps its button busy while `isPending` is true so a
  * double press cannot fire twice, and the dialog stays open until the caller
  * clears it, which means an error message is never lost behind a closed modal.
@@ -67,9 +71,18 @@ export default function ConfirmDialog({
   // Controlled when the caller passes `isOpen`; otherwise the trigger opens it.
   const controlled = typeof isOpen === "boolean";
   const open = controlled ? isOpen : own.isOpen;
-  const setOpen = controlled ? onOpenChange : own.onOpenChange;
+  // `useDisclosure`'s own `onOpenChange` takes no argument and toggles from the
+  // value it read at its last render, so passing a target state through it can
+  // close a dialog that asked to stay open. `onOpen`/`onClose` set the value.
+  const setOpen = controlled
+    ? onOpenChange
+    : (next: boolean) => (next ? own.onOpen() : own.onClose());
   const onClose = controlled ? () => setOpen?.(false) : own.onClose;
   const onOpen = controlled ? () => setOpen?.(true) : own.onOpen;
+
+  // A row menu stands down while this is open, so the press on the page behind
+  // it cannot close the menu and unmount the dialog with the answer inside.
+  useReportMenuDialog(open);
 
   const danger = tone === "danger";
 
@@ -109,7 +122,9 @@ export default function ConfirmDialog({
         radius="lg"
         size="sm"
         hideCloseButton={isPending}
-        isDismissable={!isPending}
+        // A stray press outside the panel must not answer a question about
+        // deleting something. Escape and Cancel still close it.
+        isDismissable={false}
       >
         <ModalContent>
           <ModalHeader className="flex flex-col gap-1 pb-1 pt-5">

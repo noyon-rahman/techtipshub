@@ -26,6 +26,19 @@ adminBlogRouter.post(
 
 adminBlogRouter.get("/trash", blogController.getDeletedBlogs);
 
+// Literal before "/:id", and parsed as JSON: a selection is a list, not a file.
+adminBlogRouter.post(
+  "/trash/permanent",
+  validate({ json: categoryValidationSchema.bulkDelete }),
+  blogController.deleteBlogsPermanently,
+);
+
+adminBlogRouter.post(
+  "/bulk-delete",
+  validate({ json: categoryValidationSchema.bulkDelete }),
+  blogController.deleteBlogsInBulk,
+);
+
 // Takes a draft live. The only status transition an article has.
 adminBlogRouter.patch("/:id/publish", blogController.publishBlog);
 
@@ -48,10 +61,26 @@ const adminCategoryRouter = new Hono<TAppBindings>();
 
 adminCategoryRouter.get("/", categoryController.getAdminList);
 
+// Literal paths before "/:id": the router matches in order.
+adminCategoryRouter.get("/trash", categoryController.getDeletedCategories);
+
+adminCategoryRouter.post(
+  "/bulk-delete",
+  validate({ json: categoryValidationSchema.bulkDelete }),
+  categoryController.deleteCategoriesInBulk,
+);
+
 adminCategoryRouter.post(
   "/",
   validate({ json: categoryValidationSchema.create }),
   categoryController.create,
+);
+
+adminCategoryRouter.patch("/:id/restore", categoryController.restoreCategory);
+
+adminCategoryRouter.delete(
+  "/:id/permanent",
+  categoryController.deleteCategoryPermanently,
 );
 
 adminCategoryRouter.patch(

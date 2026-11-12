@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import RowCheckbox from "./row-checkbox";
 import SkeletonRows from "./skeleton-rows";
 
 export interface DataTableColumn {
@@ -6,6 +7,19 @@ export interface DataTableColumn {
   header: string;
   className?: string;
   align?: "left" | "right";
+}
+
+/** What a table needs to show a tick on each selectable row. */
+export interface ITableSelection {
+  isSelected: (key: string) => boolean;
+  toggle: (key: string) => void;
+  allOnPage: boolean;
+  someOnPage: boolean;
+  toggleAllOnPage: () => void;
+  /** Left off on a row the bulk action cannot touch. */
+  isSelectable?: (row: unknown) => boolean;
+  /** Names the header tick, e.g. "Select every article on this page". */
+  selectAllLabel: string;
 }
 
 interface IProps<T> {
@@ -24,6 +38,10 @@ interface IProps<T> {
   minWidth?: string | number;
   /** Screen-reader caption naming the dataset. */
   caption?: string;
+  /** Shows a tick column in front of the first column when given. */
+  selection?: ITableSelection;
+  /** Names one row's tick, e.g. `Select "Learn React"`. */
+  rowLabel?: (row: T) => string;
 }
 
 /**
@@ -48,10 +66,14 @@ export default function DataTable<T>({
   footer,
   minWidth = "48rem",
   caption,
+  selection,
+  rowLabel,
 }: IProps<T>) {
+  const columnCount = columns.length + (selection ? 1 : 0);
+
   return (
     <div className="overflow-hidden bg-content-1">
-      <div className="max-h-[70vh] overflow-auto">
+      <div className="overflow-x-auto">
         <table
           className="w-full border-separate border-spacing-0 text-left text-sm"
           style={{ minWidth }}
@@ -59,6 +81,20 @@ export default function DataTable<T>({
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead>
             <tr>
+              {selection ? (
+                <th
+                  scope="col"
+                  className="sticky top-0 z-10 w-10 border-b border-default/60 bg-content-1 px-4 py-2.5"
+                >
+                  <RowCheckbox
+                    label={selection.selectAllLabel}
+                    checked={selection.allOnPage}
+                    indeterminate={selection.someOnPage}
+                    disabled={isLoading || rows.length === 0}
+                    onChange={selection.toggleAllOnPage}
+                  />
+                </th>
+              ) : null}
               {columns.map((column) => (
                 <th
                   key={column.key}
@@ -75,30 +111,48 @@ export default function DataTable<T>({
 
           <tbody>
             {isLoading ? (
-              <SkeletonRows rows={skeletonRows} columns={columns.length} />
+              <SkeletonRows rows={skeletonRows} columns={columnCount} />
             ) : rows.length > 0 ? (
-              rows.map((row) => (
-                <tr
-                  key={getRowKey(row)}
-                  className="group/row align-middle transition-colors hover:bg-default-50/70 focus-within:bg-default-50/70"
-                >
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className={`border-b border-default/50 px-4 py-3 transition-colors group-last/row:border-b-0 ${
-                        column.align === "right"
-                          ? "text-right tabular-nums"
-                          : ""
-                      } ${column.className ?? ""}`}
-                    >
-                      {renderCell(row, column.key)}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              rows.map((row) => {
+                const key = getRowKey(row);
+                const selectable =
+                  selection && selection.isSelectable?.(row) !== false;
+
+                return (
+                  <tr
+                    key={key}
+                    className={`group/row align-middle transition-colors hover:bg-default-50/70 focus-within:bg-default-50/70 ${
+                      selection?.isSelected(key) ? "bg-primary/5" : ""
+                    }`}
+                  >
+                    {selection ? (
+                      <td className="border-b border-default/50 px-4 py-3 transition-colors group-last/row:border-b-0">
+                        <RowCheckbox
+                          label={rowLabel?.(row) ?? `Select ${key}`}
+                          checked={selection.isSelected(key)}
+                          disabled={!selectable}
+                          onChange={() => selection.toggle(key)}
+                        />
+                      </td>
+                    ) : null}
+                    {columns.map((column) => (
+                      <td
+                        key={column.key}
+                        className={`border-b border-default/50 px-4 py-3 transition-colors group-last/row:border-b-0 ${
+                          column.align === "right"
+                            ? "text-right tabular-nums"
+                            : ""
+                        } ${column.className ?? ""}`}
+                      >
+                        {renderCell(row, column.key)}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan={columns.length} className="p-0">
+                <td colSpan={columnCount} className="p-0">
                   {emptyState}
                 </td>
               </tr>

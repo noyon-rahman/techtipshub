@@ -184,6 +184,19 @@ const getSubscriber = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+const deleteSubscriberPermanently = async (
+  c: Context<TAppBindings, string>,
+) => {
+  const { id } = c.req.param() as TRouteParams;
+
+  const result = await subscriberAdminService.deletePermanent(
+    id,
+    c.get("user").email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const createSubscriber = async (c: Context<TAppBindings>) => {
   const result = await subscriberAdminService.create(
     c.get("validatedBody"),
@@ -294,8 +307,14 @@ const testCampaign = async (c: Context<TAppBindings, string>) => {
 
 const startCampaign = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
+  const rawBody = await c.req.json().catch(() => ({}));
+  const parsed = newsletterValidationSchema.startCampaign.parse(rawBody ?? {});
 
-  const result = await campaignService.start(id, c.get("user").email);
+  const result = await campaignService.start(
+    id,
+    c.get("user").email,
+    parsed.subscriberIds,
+  );
 
   return sendResponse(c, httpStatus.OK, { data: result });
 };
@@ -335,6 +354,7 @@ export const newsletterController = {
 export const newsletterAdminController = {
   getAllSubscribers,
   getSubscriber,
+  deleteSubscriberPermanently,
   createSubscriber,
   unsubscribeSubscriber,
   exportSubscribers,

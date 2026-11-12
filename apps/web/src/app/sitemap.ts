@@ -35,7 +35,6 @@ const categoryEntries = async (): Promise<MetadataRoute.Sitemap> => {
   try {
     const categories = await siteCategories();
     return categories
-      .filter((category) => !category.isDeleted)
       .map((category) => ({ path: categorySlug(category.name) }))
       .filter((entry) => entry.path && entry.path !== "/")
       .map(({ path }) => ({

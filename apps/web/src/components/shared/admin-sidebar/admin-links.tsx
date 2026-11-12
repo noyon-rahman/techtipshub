@@ -1,5 +1,5 @@
 import { cloneElement, isValidElement, ReactNode } from "react";
-import { HiOutlineHome } from "react-icons/hi2";
+import { HiOutlineHome, HiOutlineUserCircle } from "react-icons/hi2";
 import {
   MdOutlineArticle,
   MdOutlineCategory,
@@ -131,6 +131,14 @@ export const adminLinks: ILink[] = [
     href: "/admin/activity-log",
     description: "Who changed what, and when",
     icon: <PiListMagnifyingGlass />,
+    group: "Configuration",
+  },
+  {
+    id: "profile",
+    label: "Profile",
+    href: "/admin/profile",
+    description: "Your admin profile and account settings",
+    icon: <HiOutlineUserCircle />,
     group: "Configuration",
   },
 ];

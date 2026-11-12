@@ -10,18 +10,25 @@
  *      `searchTerm` is sent to the API; when the API ignores it the screen can
  *      still filter `rows` on the client, which is what it did before.
  *
- * Mutations: useCreateCategory(), useUpdateCategory(), useDeleteCategory().
+ * Mutations: useCreateCategory(), useUpdateCategory(), useDeleteCategory(),
+ * useDeleteCategoriesInBulk(), useTrashedCategories(), useRestoreCategory(),
+ * useDeleteCategoryPermanently().
  * A duplicate name (409) resolves with the API body instead of throwing, so the
  * form can read `message`/`errorSources`; each one refreshes the list.
  */
 import {
   createCategory,
+  deleteCategoriesInBulk,
+  deleteCategoriesPermanentlyInBulk,
   deleteCategory,
   getAdminCategories,
+  getTrashedCategories,
   readCategoryList,
+  restoreCategory,
   updateCategory,
   type ICategoryPayload,
 } from "@/services/admin/categories";
+import { readRows } from "@/services/admin/shared";
 import type {
   IAdminCategoriesParams,
   IAdminCategory,
@@ -138,6 +145,92 @@ export const useDeleteCategory = () => {
       toast.error(error?.message || "The category could not be deleted", {
         id: "delete-category-error",
       });
+    },
+  });
+};
+
+/** Moves picked categories to the trash; one still in use refuses the set. */
+export const useDeleteCategoriesInBulk = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string[]>({
+    mutationKey: ["DELETE_CATEGORIES_BULK"],
+    mutationFn: async (ids) => await deleteCategoriesInBulk(ids),
+    onSuccess: (data) => {
+      const deleted = Number(data?.data?.deleted ?? 0);
+
+      toast.success(
+        `${deleted} ${deleted === 1 ? "category" : "categories"} moved to Trash.`,
+        { id: "delete-categories-bulk" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_CATEGORIES_KEY });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_TRASH_COUNTS"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "delete-categories-bulk" });
+    },
+  });
+};
+
+export const TRASHED_CATEGORIES_KEY = ["TRASHED_CATEGORIES"] as const;
+
+export const useTrashedCategories = () => {
+  const query = useQuery({
+    queryKey: TRASHED_CATEGORIES_KEY,
+    queryFn: async () => await getTrashedCategories(),
+  });
+
+  return {
+    rows: readRows<IAdminCategory>(query.data),
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+    refetch: query.refetch,
+  };
+};
+
+export const useRestoreCategory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string>({
+    mutationKey: ["RESTORE_CATEGORY"],
+    mutationFn: async (id) => await restoreCategory(id),
+    onSuccess: () => {
+      toast.success("Category restored.", { id: "restore-category" });
+
+      queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_CATEGORIES_KEY });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_TRASH_COUNTS"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "restore-category" });
+    },
+  });
+};
+
+export const useDeleteCategoryPermanently = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation<any, Error, string | string[]>({
+    mutationKey: ["DELETE_CATEGORY_PERMANENT"],
+    mutationFn: async (ids) =>
+      await deleteCategoriesPermanentlyInBulk(Array.isArray(ids) ? ids : [ids]),
+    onSuccess: (_data, ids) => {
+      const count = Array.isArray(ids) ? ids.length : 1;
+
+      toast.success(
+        `${count} ${count === 1 ? "category" : "categories"} deleted for good.`,
+        { id: "delete-category-permanent" },
+      );
+
+      queryClient.invalidateQueries({ queryKey: CATEGORIES_KEY });
+      queryClient.invalidateQueries({ queryKey: TRASHED_CATEGORIES_KEY });
+      queryClient.invalidateQueries({ queryKey: ["ADMIN_TRASH_COUNTS"] });
+    },
+    onError: (error) => {
+      toast.error(error.message, { id: "delete-category-permanent" });
     },
   });
 };
