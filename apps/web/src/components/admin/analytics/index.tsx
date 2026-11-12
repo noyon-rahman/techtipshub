@@ -24,7 +24,7 @@ import { Skeleton } from "@heroui/react";
 import UserAvatar from "@/components/ui/user-avatar";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { RiBarChartLine } from "react-icons/ri";
+import { RiArrowRightLine, RiBarChartLine } from "react-icons/ri";
 
 /**
  * `/admin/overview` answers `{ success, data: overview }` and `/admin/activity`
@@ -50,11 +50,60 @@ const RANGES = [
 ] as const;
 
 type Range = (typeof RANGES)[number]["days"];
+type MetricGroupKey = "reading" | "publishing" | "reactions";
+type ChartType = "line" | "bar";
 
-/** Views carry the accent; comments stay neutral, so the comparison reads second. */
-const SERIES: AdminChartSeries[] = [
-  { key: "views", label: "Views", color: adminChartColours.primary },
-  { key: "comments", label: "Comments", color: adminChartColours.foreground },
+const METRIC_GROUPS: {
+  key: MetricGroupKey;
+  label: string;
+  title: string;
+  description: string;
+  series: AdminChartSeries[];
+}[] = [
+  {
+    key: "reading",
+    label: "Reading",
+    title: "Views and comments per day",
+    description:
+      "How many times articles were read and how many comments readers left, one point per day.",
+    series: [
+      { key: "views", label: "Views", color: adminChartColours.primary },
+      {
+        key: "comments",
+        label: "Comments",
+        color: adminChartColours.foreground,
+      },
+    ],
+  },
+  {
+    key: "publishing",
+    label: "Publishing",
+    title: "Articles published and new members per day",
+    description:
+      "Daily publishing output alongside new member registrations.",
+    series: [
+      { key: "blogs", label: "Articles", color: adminChartColours.primary },
+      {
+        key: "members",
+        label: "New members",
+        color: adminChartColours.foreground,
+      },
+    ],
+  },
+  {
+    key: "reactions",
+    label: "Reactions",
+    title: "Upvotes and downvotes per day",
+    description: "Daily reader votes across published articles.",
+    series: [
+      { key: "upvotes", label: "Upvotes", color: adminChartColours.primary },
+      {
+        key: "downvotes",
+        label: "Downvotes",
+        color: adminChartColours.foreground,
+      },
+    ],
+  },
 ];
 
 /** `YYYY-MM-DD` from the API is a UTC day, so it is formatted in UTC. */
@@ -95,6 +144,11 @@ const shareOfVotes = (up?: number, down?: number) => {
 const HEALTH_LABELS: Record<string, string> = {
   emptyCategories: "Categories with no published articles",
   zeroViewArticles: "Published articles with no views yet",
+};
+
+const HEALTH_LINKS: Record<string, string> = {
+  emptyCategories: "/admin/categories",
+  zeroViewArticles: "/admin/manage-blogs",
 };
 
 const prettifyKey = (key: string) =>
@@ -294,7 +348,7 @@ const TopArticles = ({
                   <span className="truncate">
                     {article.author.username ? (
                       <Link
-                        href={`/users/@${article.author.username}`}
+                        href={`/users/${article.author.username}`}
                         className="underline-offset-4 hover:underline"
                       >
                         {article.author.fullName}
@@ -348,52 +402,81 @@ const TopContributors = ({
     );
   }
 
+  const topViews = Math.max(
+    ...contributors.map((person) => person.totalViews ?? 0),
+    1,
+  );
+
   return (
     <ol className="divide-y divide-default/60">
-      {contributors.map((person, index) => (
-        <li
-          key={person._id}
-          className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-        >
-          <span
-            aria-hidden
-            className="w-4 shrink-0 text-right text-xs font-semibold tabular-nums text-default-600"
+      {contributors.map((person, index) => {
+        const views = person.totalViews ?? 0;
+        const published = person.published ?? 0;
+        const avgViews =
+          published > 0 && typeof person.totalViews === "number"
+            ? Math.round(person.totalViews / published)
+            : undefined;
+
+        return (
+          <li
+            key={person._id}
+            className="flex items-start gap-3 py-3 first:pt-1 last:pb-1"
           >
-            {index + 1}
-          </span>
-          <UserAvatar
-            src={person.profilePicture || undefined}
-            name={initialsOf(person.fullName)}
-            className="size-8 shrink-0"
-            classNames={{ name: "text-xs" }}
-          />
-          <div className="min-w-0 flex-1">
-            <Link
-              href={`/admin/manage-users/${person._id}`}
-              className={`block truncate rounded text-sm font-medium underline-offset-4 hover:underline ${focusRing}`}
+            <span
+              aria-hidden
+              className="w-4 shrink-0 pt-1 text-right text-xs font-semibold tabular-nums text-default-600"
             >
-              {person.fullName || "Unnamed member"}
-            </Link>
-            <p className="truncate text-xs tabular-nums text-default-600">
-              {[
-                countLabel(person.published),
-                typeof person.totalViews === "number"
-                  ? `${formatCount(person.totalViews)} views`
-                  : undefined,
-              ]
-                .filter(Boolean)
-                .join(", ") || "Nothing recorded"}
-            </p>
-          </div>
-        </li>
-      ))}
+              {index + 1}
+            </span>
+            <UserAvatar
+              src={person.profilePicture || undefined}
+              name={initialsOf(person.fullName)}
+              className="mt-0.5 size-8 shrink-0"
+              classNames={{ name: "text-xs" }}
+            />
+            <div className="min-w-0 flex-1">
+              <Link
+                href={`/admin/manage-users/${person._id}`}
+                className={`block truncate rounded text-sm font-medium underline-offset-4 hover:underline ${focusRing}`}
+              >
+                {person.fullName || "Unnamed member"}
+              </Link>
+              <RankBar share={views / topViews} />
+              <p className="mt-1.5 flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5 text-xs tabular-nums text-default-600">
+                {countLabel(person.published) && (
+                  <span>
+                    <span className="font-semibold text-foreground">
+                      {formatCount(published)}
+                    </span>{" "}
+                    {published === 1 ? "article" : "articles"}
+                  </span>
+                )}
+                {typeof person.totalViews === "number" && (
+                  <span>
+                    <span className="font-semibold text-foreground">
+                      {formatCount(views)}
+                    </span>{" "}
+                    views
+                  </span>
+                )}
+                {typeof avgViews === "number" && (
+                  <span>{formatCount(avgViews)} avg/article</span>
+                )}
+              </p>
+            </div>
+          </li>
+        );
+      })}
     </ol>
   );
 };
 
 const Analytics = () => {
   const [range, setRange] = useState<Range>(30);
+  const [metricGroup, setMetricGroup] = useState<MetricGroupKey>("reading");
+  const [chartType, setChartType] = useState<ChartType>("line");
   const rangeRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const metricRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const overviewQuery = useAdminOverview();
   const activityQuery = useAdminActivity(range);
@@ -406,6 +489,13 @@ const Analytics = () => {
     return Array.isArray(list) ? list : [];
   }, [activityQuery.data]);
 
+  const activeGroup = useMemo(
+    () =>
+      METRIC_GROUPS.find((group) => group.key === metricGroup) ??
+      METRIC_GROUPS[0],
+    [metricGroup],
+  );
+
   const chartData = useMemo(
     () =>
       points.map((point) => ({
@@ -416,23 +506,46 @@ const Analytics = () => {
         title: longDate(point.date),
         views: Number(point.views) || 0,
         comments: Number(point.comments) || 0,
+        blogs: Number(point.blogs) || 0,
+        members: Number(point.members) || 0,
+        upvotes: Number(point.upvotes) || 0,
+        downvotes: Number(point.downvotes) || 0,
       })),
     [points],
   );
 
-  const totals = useMemo(
-    () =>
-      points.reduce(
-        (sum, point) => ({
-          views: sum.views + (Number(point.views) || 0),
-          comments: sum.comments + (Number(point.comments) || 0),
-        }),
-        { views: 0, comments: 0 },
-      ),
-    [points],
-  );
+  const seriesSummaries = useMemo(() => {
+    return activeGroup.series.map((item) => {
+      let total = 0;
+      let peakValue = 0;
+      let peakDate = "";
 
-  const hasActivity = totals.views > 0 || totals.comments > 0;
+      for (const point of points) {
+        const raw = Number(
+          point[item.key as keyof IAdminActivityPoint] ?? 0,
+        );
+        const value = Number.isFinite(raw) ? raw : 0;
+        total += value;
+        if (value > peakValue) {
+          peakValue = value;
+          peakDate = point.date;
+        }
+      }
+
+      const avg = points.length > 0 ? total / points.length : 0;
+
+      return {
+        key: item.key,
+        label: item.label,
+        total,
+        avg,
+        peakValue,
+        peakDate,
+      };
+    });
+  }, [activeGroup.series, points]);
+
+  const hasActivity = seriesSummaries.some((item) => item.total > 0);
 
   const topArticles = Array.isArray(overview?.topArticles)
     ? overview.topArticles
@@ -455,6 +568,18 @@ const Analytics = () => {
     const next = (current + step + RANGES.length) % RANGES.length;
     setRange(RANGES[next].days);
     rangeRefs.current[next]?.focus();
+  };
+
+  const onMetricKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    event.preventDefault();
+    const current = METRIC_GROUPS.findIndex(
+      (group) => group.key === metricGroup,
+    );
+    const step = event.key === "ArrowRight" ? 1 : -1;
+    const next = (current + step + METRIC_GROUPS.length) % METRIC_GROUPS.length;
+    setMetricGroup(METRIC_GROUPS[next].key);
+    metricRefs.current[next]?.focus();
   };
 
   const rangeLabel =
@@ -595,36 +720,92 @@ const Analytics = () => {
       </section>
 
       <SectionCard
-        title="Views and comments per day"
-        description="How many times articles were read and how many comments readers left, one point per day."
+        title={activeGroup.title}
+        description={activeGroup.description}
         action={
-          <div
-            role="group"
-            aria-label="Chart range"
-            onKeyDown={onRangeKeyDown}
-            className="flex items-center gap-1 rounded-md border border-default-200 p-0.5"
-          >
-            {RANGES.map((option, index) => {
-              const selected = option.days === range;
-              return (
-                <button
-                  key={option.days}
-                  ref={(node) => {
-                    rangeRefs.current[index] = node;
-                  }}
-                  type="button"
-                  aria-pressed={selected}
-                  onClick={() => setRange(option.days)}
-                  className={`inline-flex min-h-11 items-center rounded px-3 text-xs font-medium tabular-nums transition-colors sm:min-h-8 ${focusRing} ${
-                    selected
-                      ? "bg-primary text-primary-foreground"
-                      : "text-default-600 hover:bg-default-100 hover:text-foreground"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              role="group"
+              aria-label="Metric group"
+              onKeyDown={onMetricKeyDown}
+              className="flex items-center gap-0.5 rounded-md border border-default-200 p-0.5"
+            >
+              {METRIC_GROUPS.map((group, index) => {
+                const selected = group.key === metricGroup;
+                return (
+                  <button
+                    key={group.key}
+                    ref={(node) => {
+                      metricRefs.current[index] = node;
+                    }}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setMetricGroup(group.key)}
+                    className={`inline-flex min-h-11 items-center rounded px-2.5 text-xs font-medium transition-colors sm:min-h-8 ${focusRing} ${
+                      selected
+                        ? "bg-primary text-primary-foreground"
+                        : "text-default-600 hover:bg-default-100 hover:text-foreground"
+                    }`}
+                  >
+                    {group.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div
+              role="group"
+              aria-label="Chart style"
+              className="flex items-center gap-0.5 rounded-md border border-default-200 p-0.5"
+            >
+              {(["line", "bar"] as const).map((style) => {
+                const selected = chartType === style;
+                return (
+                  <button
+                    key={style}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setChartType(style)}
+                    className={`inline-flex min-h-11 items-center rounded px-2.5 text-xs font-medium capitalize transition-colors sm:min-h-8 ${focusRing} ${
+                      selected
+                        ? "bg-primary text-primary-foreground"
+                        : "text-default-600 hover:bg-default-100 hover:text-foreground"
+                    }`}
+                  >
+                    {style}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div
+              role="group"
+              aria-label="Chart range"
+              onKeyDown={onRangeKeyDown}
+              className="flex items-center gap-0.5 rounded-md border border-default-200 p-0.5"
+            >
+              {RANGES.map((option, index) => {
+                const selected = option.days === range;
+                return (
+                  <button
+                    key={option.days}
+                    ref={(node) => {
+                      rangeRefs.current[index] = node;
+                    }}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setRange(option.days)}
+                    className={`inline-flex min-h-11 items-center rounded px-2.5 text-xs font-medium tabular-nums transition-colors sm:min-h-8 ${focusRing} ${
+                      selected
+                        ? "bg-primary text-primary-foreground"
+                        : "text-default-600 hover:bg-default-100 hover:text-foreground"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         }
         footer={
@@ -663,40 +844,42 @@ const Analytics = () => {
                 <>
                   <AdminActivityChart
                     data={chartData}
-                    series={SERIES}
+                    series={activeGroup.series}
                     height={260}
-                    type="line"
+                    type={chartType}
                     showLegend
-                    summary="Views and comments per day"
+                    summary={activeGroup.title}
                   />
 
-                  <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-default/60 pt-4">
-                    <div>
-                      <dt className="tth-label-sm">Views in this range</dt>
-                      <dd className="mt-1 text-lg font-semibold tabular-nums">
-                        {formatCount(totals.views)}
-                      </dd>
-                      <p className="mt-0.5 text-xs text-default-600">
-                        Sum of {plural(points.length, "daily point")}
-                      </p>
-                    </div>
-                    <div>
-                      <dt className="tth-label-sm">Comments in this range</dt>
-                      <dd className="mt-1 text-lg font-semibold tabular-nums">
-                        {formatCount(totals.comments)}
-                      </dd>
-                      <p className="mt-0.5 text-xs text-default-600">
-                        Sum of {plural(points.length, "daily point")}
-                      </p>
-                    </div>
+                  <dl className="mt-4 grid grid-cols-1 gap-4 border-t border-default/60 pt-4 sm:grid-cols-2">
+                    {seriesSummaries.map((item) => (
+                      <div key={item.key}>
+                        <dt className="tth-label-sm">
+                          {item.label} in this range
+                        </dt>
+                        <dd className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                          <span className="text-lg font-semibold tabular-nums">
+                            {formatCount(item.total)}
+                          </span>
+                          <span className="text-xs tabular-nums text-default-600">
+                            {item.avg.toFixed(1)} / day avg
+                          </span>
+                        </dd>
+                        <p className="mt-0.5 text-xs tabular-nums text-default-600">
+                          {item.peakValue > 0 && item.peakDate
+                            ? `Peak: ${formatCount(item.peakValue)} on ${shortDate(item.peakDate)}`
+                            : `Sum of ${plural(points.length, "daily point")}`}
+                        </p>
+                      </div>
+                    ))}
                   </dl>
                 </>
               ) : (
                 <EmptyState
                   variant="inline"
                   icon={<RiBarChartLine className="size-5" />}
-                  title="No views or comments in this range"
-                  description={`Every day in these ${plural(points.length, "day")} has zero views and zero comments. A longer range may show earlier activity.`}
+                  title={`No ${activeGroup.label.toLowerCase()} activity in this range`}
+                  description={`Every day in these ${plural(points.length, "day")} is at zero for ${activeGroup.series.map((s) => s.label.toLowerCase()).join(" and ")}. A longer range may show earlier activity.`}
                   action={
                     range !== 90 ? (
                       <button
@@ -718,6 +901,14 @@ const Analytics = () => {
         <SectionCard
           title="Most read articles"
           description="The overview ranks published articles by all-time views and sends the top few."
+          footer={
+            <Link
+              href="/admin/manage-blogs"
+              className={`font-medium text-primary-accessible underline-offset-4 hover:underline ${focusRing}`}
+            >
+              Manage all articles
+            </Link>
+          }
         >
           <TopArticles
             articles={topArticles}
@@ -730,6 +921,14 @@ const Analytics = () => {
         <SectionCard
           title="Most active authors, last 30 days"
           description="Ranked by articles published in the last 30 days, then by the views those articles hold."
+          footer={
+            <Link
+              href="/admin/manage-users"
+              className={`font-medium text-primary-accessible underline-offset-4 hover:underline ${focusRing}`}
+            >
+              View all members
+            </Link>
+          }
         >
           <TopContributors
             contributors={topContributors}
@@ -821,47 +1020,57 @@ const Analytics = () => {
         )}
 
         {health.length > 0 && (
-          <>
-            <dl className="grid gap-2 sm:grid-cols-2">
-              {health.map(([key, raw]) => (
-                <div
-                  key={key}
-                  className="flex items-baseline justify-between gap-3 border-b border-default/60 pb-2 last:border-b-0"
-                >
-                  <dt
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {health.map(([key, raw]) => {
+              const label = HEALTH_LABELS[key] ?? prettifyKey(key);
+              const href = HEALTH_LINKS[key];
+              const displayValue =
+                typeof raw === "number" || typeof raw === "string"
+                  ? String(raw)
+                  : undefined;
+
+              const inner = (
+                <>
+                  <span
                     className="min-w-0 text-sm text-default-700"
                     title={HEALTH_LABELS[key] ? undefined : key}
                   >
-                    {HEALTH_LABELS[key] ?? prettifyKey(key)}
-                  </dt>
-                  <dd className="shrink-0 text-sm font-semibold tabular-nums">
-                    {typeof raw === "number" || typeof raw === "string" ? (
-                      String(raw)
-                    ) : (
+                    {label}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5 text-sm font-semibold tabular-nums">
+                    {displayValue ?? (
                       <span className="text-xs font-normal text-default-600">
                         Not reported
                       </span>
                     )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+                    {href && (
+                      <RiArrowRightLine
+                        aria-hidden
+                        className="size-3.5 text-default-500"
+                      />
+                    )}
+                  </span>
+                </>
+              );
 
-            <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-              <Link
-                href="/admin/categories"
-                className={`rounded text-primary-accessible underline-offset-4 hover:underline ${focusRing}`}
-              >
-                Review categories
-              </Link>
-              <Link
-                href="/admin/manage-blogs"
-                className={`rounded text-primary-accessible underline-offset-4 hover:underline ${focusRing}`}
-              >
-                Review articles
-              </Link>
-            </p>
-          </>
+              return (
+                <li key={key}>
+                  {href ? (
+                    <Link
+                      href={href}
+                      className={`flex min-h-11 items-center justify-between gap-3 rounded-md border border-default/60 px-3 py-2 transition-colors hover:bg-default-50 ${focusRing}`}
+                    >
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div className="flex min-h-11 items-center justify-between gap-3 rounded-md border border-default/60 px-3 py-2">
+                      {inner}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </SectionCard>
     </div>

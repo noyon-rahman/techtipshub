@@ -20,10 +20,10 @@ const AdminDashboard = () => {
     ? `${greetingForHour(new Date().getHours())}, ${firstName}`
     : "Dashboard";
 
-  const today = new Date().toLocaleDateString("en-US", {
+  const today = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
-    month: "long",
     day: "numeric",
+    month: "long",
   });
 
   return (
@@ -31,7 +31,7 @@ const AdminDashboard = () => {
       <AdminPageHeader
         showHeading
         title={title}
-        description={`${today} · TechTipsHub Admin · Overview of the last 7 days`}
+        description={`${today} · Site health, weekly activity, and items needing review.`}
       />
       <DashboardContent />
     </div>

@@ -13,6 +13,7 @@ import StatTile, {
   type StatDelta,
 } from "@/components/modules/admin/kit/stat-tile";
 import { focusRing } from "@/components/modules/admin/kit/tau";
+import SectionCard from "@/components/modules/admin/section-card";
 import UserAvatar from "@/components/ui/user-avatar";
 import { useAdminActivity, useAdminOverview } from "@/hooks/admin-overview";
 import type {
@@ -23,7 +24,7 @@ import type {
 } from "@/types";
 import { Skeleton } from "@heroui/react";
 import Link from "next/link";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import {
   FiChevronRight,
   FiEye,
@@ -33,8 +34,10 @@ import {
 } from "react-icons/fi";
 import {
   RiArrowRightLine,
-  RiExternalLinkLine,
+  RiArticleLine,
+  RiChat3Line,
   RiRefreshLine,
+  RiUserAddLine,
 } from "react-icons/ri";
 
 /**
@@ -52,8 +55,6 @@ const RANGES = [
 ] as const;
 
 type RangeDays = (typeof RANGES)[number]["days"];
-
-const SOURCE_NOTE = "From the admin overview, computed at request time (UTC).";
 
 const isNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
@@ -73,25 +74,6 @@ const formatExact = (value?: string) => {
     minute: "2-digit",
   });
 };
-
-/**
- * A panel on the admin page. `content1` is the theme's surface token: white in
- * the light theme, the raised charcoal step in the dark one. The page behind
- * it keeps the site's warm paper, so the panel reads as a sheet on it.
- */
-const Panel = ({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) => (
-  <section
-    className={`rounded-[10px] border border-default/70 bg-content-1 ${className}`}
-  >
-    {children}
-  </section>
-);
 
 const formatRelative = (value?: string) => {
   if (!value) return "";
@@ -117,12 +99,10 @@ const formatRelative = (value?: string) => {
   });
 };
 
-const todayLabel = () =>
-  new Date().toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
+const normalizeRecentHref = (href?: string) => {
+  if (!href) return undefined;
+  return href.startsWith("/users/@") ? href.replace("/users/@", "/users/") : href;
+};
 
 /**
  * The API's `weekStat` already decides the trend type, so the tile keeps its
@@ -158,30 +138,6 @@ const count = (value: unknown) => {
   const raw = typeof value === "number" ? value : Number(value);
   return Number.isFinite(raw) ? raw : undefined;
 };
-
-const SectionHeading = ({
-  title,
-  description,
-  aside,
-}: {
-  title: string;
-  description?: string;
-  aside?: ReactNode;
-}) => (
-  <div className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-    <div className="min-w-0">
-      <h2 className="font-[family-name:var(--type-editorial)] text-[1.0625rem] font-semibold tracking-[-0.01em]">
-        {title}
-      </h2>
-      {description && (
-        <p className="mt-0.5 max-w-prose text-xs leading-relaxed text-default-600">
-          {description}
-        </p>
-      )}
-    </div>
-    {aside && <div className="shrink-0">{aside}</div>}
-  </div>
-);
 
 const QuietLink = ({
   href,
@@ -231,13 +187,13 @@ const PanelSkeleton = ({ rows = 4 }: { rows?: number }) => (
 );
 
 const DashboardSkeleton = () => (
-  <div className="space-y-8" role="status">
+  <div className="space-y-5" role="status">
     <span className="sr-only">Loading the dashboard</span>
 
-    <div className="overflow-hidden rounded-[10px] border border-default/70">
-      <div className="grid grid-cols-2 divide-x divide-y divide-default/70 sm:grid-cols-4 sm:divide-y-0">
+    <div className="overflow-hidden rounded-xl border border-default/60 bg-content-1">
+      <div className="grid grid-cols-2 divide-x divide-y divide-default/60 sm:grid-cols-4 sm:divide-y-0">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="space-y-3 p-4">
+          <div key={index} className="space-y-3 p-4 sm:p-5">
             <Skeleton className="h-3 w-24 rounded" />
             <Skeleton className="h-7 w-16 rounded" />
             <Skeleton className="h-3 w-28 rounded" />
@@ -246,19 +202,27 @@ const DashboardSkeleton = () => (
       </div>
     </div>
 
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="space-y-6">
-        <div className="rounded-[10px] border border-default/70 p-4 sm:p-5">
-          <Skeleton className="h-4 w-48 rounded" />
-          <Skeleton className="mt-2 h-3 w-64 rounded" />
-          <Skeleton className="mt-5 h-60 w-full rounded-md" />
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+      <div className="rounded-xl border border-default/60 bg-content-1 p-4 sm:p-5">
+        <Skeleton className="h-4 w-48 rounded" />
+        <Skeleton className="mt-2 h-3 w-64 rounded" />
+        <Skeleton className="mt-5 h-64 w-full rounded-md" />
+      </div>
+      <div className="rounded-xl border border-default/60 bg-content-1 p-4 sm:p-5">
+        <Skeleton className="h-4 w-32 rounded" />
+        <Skeleton className="mt-2 h-3 w-52 rounded" />
+        <div className="mt-4 space-y-3">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-10 w-full rounded-md" />
+          ))}
         </div>
-        <PanelSkeleton rows={5} />
       </div>
-      <div className="space-y-6">
-        <PanelSkeleton />
-        <PanelSkeleton />
-      </div>
+    </div>
+
+    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <PanelSkeleton rows={4} />
+      <PanelSkeleton rows={4} />
+      <PanelSkeleton rows={4} />
     </div>
   </div>
 );
@@ -278,6 +242,18 @@ const ActivityBlock = ({
   failed: boolean;
   onRetry: () => void;
 }) => {
+  const rangeRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const onRangeKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+    event.preventDefault();
+    const current = RANGES.findIndex((option) => option.days === days);
+    const step = event.key === "ArrowRight" ? 1 : -1;
+    const next = (current + step + RANGES.length) % RANGES.length;
+    onDaysChange(RANGES[next].days);
+    rangeRefs.current[next]?.focus();
+  };
+
   // Every row the API sends becomes one point. Labels are human ("3 Oct"),
   // and the tooltip title is the full date.
   const chartData = points.map((point) => ({
@@ -300,57 +276,78 @@ const ActivityBlock = ({
   const rangeText = dayRange(points[0]?.date, points.at(-1)?.date);
 
   return (
-    <Panel className="min-w-0 p-4 sm:p-5">
-      <SectionHeading
-        title="Reading and discussion, by day"
-        description={`Views and comments recorded in the last ${days} days, day by day.`}
-        aside={
-          <div className="flex flex-wrap items-center gap-3">
-            {!failed && !loading && points.length > 0 ? (
-              <dl className="flex items-center gap-4 text-xs">
-                <div className="text-right">
-                  <dt className="text-default-600">Views</dt>
-                  <dd className="font-medium tabular-nums">
-                    {totals.views.toLocaleString("en-GB")}
-                  </dd>
-                </div>
-                <div className="text-right">
-                  <dt className="text-default-600">Comments</dt>
-                  <dd className="font-medium tabular-nums">
-                    {totals.comments.toLocaleString("en-GB")}
-                  </dd>
-                </div>
-              </dl>
-            ) : null}
+    <SectionCard
+      className="h-full min-w-0"
+      title="Reading and discussion, by day"
+      description={`Views and comments recorded in the last ${days} days, day by day.`}
+      action={
+        <div className="flex flex-wrap items-center gap-3">
+          {!failed && !loading && points.length > 0 ? (
+            <dl className="flex items-center gap-4 text-xs">
+              <div className="text-right">
+                <dt className="text-default-600">Views</dt>
+                <dd className="font-medium tabular-nums">
+                  {totals.views.toLocaleString("en-GB")}
+                </dd>
+              </div>
+              <div className="text-right">
+                <dt className="text-default-600">Comments</dt>
+                <dd className="font-medium tabular-nums">
+                  {totals.comments.toLocaleString("en-GB")}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
 
-            <div
-              role="group"
-              aria-label="Activity range"
-              className="inline-flex items-center gap-0.5 rounded-[8px] border border-default/70 bg-background p-0.5"
-            >
-              {RANGES.map((option) => {
-                const selected = option.days === days;
-                return (
-                  <button
-                    key={option.days}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => onDaysChange(option.days)}
-                    className={`inline-flex min-h-9 items-center rounded-[6px] px-2.5 text-xs font-medium transition-colors sm:min-h-7 ${focusRing} ${
-                      selected
-                        ? "bg-primary/12 text-primary-accessible"
-                        : "text-default-600 hover:bg-default-100 hover:text-foreground"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
+          <div
+            role="group"
+            aria-label="Activity range"
+            onKeyDown={onRangeKeyDown}
+            className="inline-flex items-center gap-0.5 rounded-md border border-default-200 bg-background p-0.5"
+          >
+            {RANGES.map((option, index) => {
+              const selected = option.days === days;
+              return (
+                <button
+                  key={option.days}
+                  ref={(node) => {
+                    rangeRefs.current[index] = node;
+                  }}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => onDaysChange(option.days)}
+                  className={`inline-flex min-h-11 items-center rounded px-2.5 text-xs font-medium tabular-nums transition-colors sm:min-h-7 ${focusRing} ${
+                    selected
+                      ? "bg-primary text-primary-foreground"
+                      : "text-default-600 hover:bg-default-100 hover:text-foreground"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
           </div>
-        }
-      />
-
+        </div>
+      }
+      footer={
+        !failed && !loading && points.length > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="tabular-nums">
+              {rangeText}
+              {hasSignal
+                ? ""
+                : ". No views or comments were recorded in this range."}
+            </span>
+            <Link
+              href="/admin/analytics"
+              className={`font-medium text-primary-accessible underline-offset-4 hover:underline ${focusRing}`}
+            >
+              Open full analytics
+            </Link>
+          </div>
+        ) : undefined
+      }
+    >
       {failed ? (
         <EmptyState
           variant="inline"
@@ -378,34 +375,26 @@ const ActivityBlock = ({
           }
         />
       ) : (
-        <>
-          <AdminActivityChart
-            data={chartData}
-            height={256}
-            summary="Views and comments per day"
-            showLegend
-            series={[
-              {
-                key: "views",
-                label: "Views",
-                color: adminChartColours.primary,
-              },
-              {
-                key: "comments",
-                label: "Comments",
-                color: adminChartColours.foreground,
-              },
-            ]}
-          />
-          <p className="mt-2 text-xs tabular-nums text-default-600">
-            {rangeText}
-            {hasSignal
-              ? ""
-              : ". No views or comments were recorded in this range, so the lines stay at zero."}
-          </p>
-        </>
+        <AdminActivityChart
+          data={chartData}
+          height={256}
+          summary="Views and comments per day"
+          showLegend
+          series={[
+            {
+              key: "views",
+              label: "Views",
+              color: adminChartColours.primary,
+            },
+            {
+              key: "comments",
+              label: "Comments",
+              color: adminChartColours.foreground,
+            },
+          ]}
+        />
       )}
-    </Panel>
+    </SectionCard>
   );
 };
 
@@ -419,6 +408,12 @@ const TYPE_TINT: Record<IAdminRecentItem["type"], string> = {
   blog: "bg-primary/15 text-primary-accessible",
   member: "bg-success/15 text-success-700 dark:text-success",
   comment: "bg-default-200 text-default-700",
+};
+
+const TYPE_ICON: Record<IAdminRecentItem["type"], ReactNode> = {
+  blog: <RiArticleLine aria-hidden className="size-3.5" />,
+  member: <RiUserAddLine aria-hidden className="size-3.5" />,
+  comment: <RiChat3Line aria-hidden className="size-3.5" />,
 };
 
 const RecentBlock = ({
@@ -435,43 +430,45 @@ const RecentBlock = ({
   const shown = items.slice(0, 6);
 
   return (
-    <Panel>
-      <div className="px-4 pt-4 sm:px-5">
-        <SectionHeading
-          title="Latest activity"
-          description="The most recent articles, joins and comments, mixed."
-          aside={<QuietLink href="/admin/activity-log">Full log</QuietLink>}
-        />
-      </div>
-
+    <SectionCard
+      flush
+      title="Latest activity"
+      description="The most recent articles, joins and comments."
+      footer={<QuietLink href="/admin/activity-log">Full log</QuietLink>}
+    >
       {failed ? (
-        <EmptyState
-          variant="inline"
-          title="Activity could not be loaded"
-          description="The dashboard data did not arrive. Try the request once more."
-          action={<RetryButton onRetry={onRetry} />}
-        />
+        <div className="p-4">
+          <EmptyState
+            variant="inline"
+            title="Activity could not be loaded"
+            description="The dashboard data did not arrive. Try the request once more."
+            action={<RetryButton onRetry={onRetry} />}
+          />
+        </div>
       ) : loading ? (
         <PanelSkeleton rows={4} />
       ) : shown.length === 0 ? (
-        <EmptyState
-          variant="inline"
-          title="Nothing has happened yet"
-          description="Publishing an article or welcoming a member will show up here."
-          action={
-            <Link
-              href="/admin/moderation"
-              className={`inline-flex min-h-11 items-center rounded-md border border-default-300 px-3.5 text-sm font-medium hover:bg-default-100 sm:min-h-9 ${focusRing}`}
-            >
-              Open moderation
-            </Link>
-          }
-        />
+        <div className="p-4">
+          <EmptyState
+            variant="inline"
+            title="Nothing has happened yet"
+            description="Publishing an article or welcoming a member will show up here."
+            action={
+              <Link
+                href="/admin/moderation"
+                className={`inline-flex min-h-11 items-center rounded-md border border-default-300 px-3.5 text-sm font-medium hover:bg-default-100 sm:min-h-9 ${focusRing}`}
+              >
+                Open moderation
+              </Link>
+            }
+          />
+        </div>
       ) : (
-        <ul className="divide-y divide-default/60 border-t border-default/60">
+        <ul className="divide-y divide-default/60">
           {shown.map((item) => {
             const actor = item.actor?.fullName || item.actor?.username;
             const label = TYPE_LABEL[item.type] ?? "Activity";
+            const href = normalizeRecentHref(item.href);
 
             return (
               <li
@@ -480,24 +477,20 @@ const RecentBlock = ({
               >
                 <span
                   aria-hidden
-                  className={`mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-[0.625rem] font-semibold ${
+                  className={`mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md ${
                     TYPE_TINT[item.type] ?? TYPE_TINT.comment
                   }`}
                 >
-                  {item.type === "blog"
-                    ? "AR"
-                    : item.type === "member"
-                      ? "MB"
-                      : "CO"}
+                  {TYPE_ICON[item.type] ?? TYPE_ICON.comment}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
                     <span className="text-xs font-medium text-default-600">
                       {label}
                     </span>
-                    {item.href ? (
+                    {href ? (
                       <Link
-                        href={item.href}
+                        href={href}
                         className={`min-w-0 truncate rounded-sm font-medium hover:text-primary-accessible ${focusRing}`}
                       >
                         {item.title || "Untitled"}
@@ -528,7 +521,7 @@ const RecentBlock = ({
           })}
         </ul>
       )}
-    </Panel>
+    </SectionCard>
   );
 };
 
@@ -542,26 +535,31 @@ const TopArticlesList = ({
   const rows = Array.isArray(articles) ? articles.slice(0, 5) : [];
 
   return (
-    <Panel className="overflow-hidden">
-      <div className="border-b border-default/60 px-4 py-3">
-        <SectionHeading title="Most read articles" />
-      </div>
-
+    <SectionCard
+      flush
+      title="Most read articles"
+      description="All-time top published pieces by view count."
+      footer={
+        <QuietLink href="/admin/analytics">All articles in analytics</QuietLink>
+      }
+    >
       {loading ? (
         <PanelSkeleton rows={4} />
       ) : rows.length === 0 ? (
-        <EmptyState
-          variant="inline"
-          title="No article has a read yet"
-          description="The five most read pieces appear here once readers open them."
-        />
+        <div className="p-4">
+          <EmptyState
+            variant="inline"
+            title="No article has a read yet"
+            description="The five most read pieces appear here once readers open them."
+          />
+        </div>
       ) : (
         <ol className="divide-y divide-default/60">
           {rows.map((article, index) => (
             <li key={article._id}>
               <Link
                 href={`/blogs/${article.slug}`}
-                className={`group flex items-start gap-3 px-4 py-2.5 transition-colors hover:bg-default-50 ${focusRing}`}
+                className={`group flex items-start gap-3 px-4 py-2.5 transition-colors hover:bg-default-50 sm:px-5 ${focusRing}`}
               >
                 <span
                   aria-hidden
@@ -588,11 +586,7 @@ const TopArticlesList = ({
           ))}
         </ol>
       )}
-
-      <div className="border-t border-default/60 px-2 py-1">
-        <QuietLink href="/admin/analytics">All articles in analytics</QuietLink>
-      </div>
-    </Panel>
+    </SectionCard>
   );
 };
 
@@ -606,19 +600,22 @@ const ContributorsList = ({
   const rows = Array.isArray(contributors) ? contributors.slice(0, 5) : [];
 
   return (
-    <Panel className="overflow-hidden">
-      <div className="border-b border-default/60 px-4 py-3">
-        <SectionHeading title="Top contributors, last 30 days" />
-      </div>
-
+    <SectionCard
+      flush
+      title="Top contributors, last 30 days"
+      description="Writers ranked by articles published this month."
+      footer={<QuietLink href="/admin/manage-users">All members</QuietLink>}
+    >
       {loading ? (
         <PanelSkeleton rows={4} />
       ) : rows.length === 0 ? (
-        <EmptyState
-          variant="inline"
-          title="No articles in the last 30 days"
-          description="Writers appear here ranked by how many pieces they published this month."
-        />
+        <div className="p-4">
+          <EmptyState
+            variant="inline"
+            title="No articles in the last 30 days"
+            description="Writers appear here ranked by how many pieces they published this month."
+          />
+        </div>
       ) : (
         <ol className="divide-y divide-default/60">
           {rows.map((person, index) => {
@@ -630,7 +627,7 @@ const ContributorsList = ({
               <li key={person._id}>
                 <Link
                   href={`/admin/manage-users/${person._id}`}
-                  className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-default-50 ${focusRing}`}
+                  className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-default-50 sm:px-5 ${focusRing}`}
                 >
                   <span
                     aria-hidden
@@ -664,11 +661,7 @@ const ContributorsList = ({
           })}
         </ol>
       )}
-
-      <div className="border-t border-default/60 px-2 py-1">
-        <QuietLink href="/admin/manage-users">All members</QuietLink>
-      </div>
-    </Panel>
+    </SectionCard>
   );
 };
 
@@ -686,7 +679,7 @@ const HealthRow = ({
   <li>
     <Link
       href={href}
-      className={`flex min-h-11 items-center justify-between gap-3 rounded-md px-2 py-2 transition-colors hover:bg-default-50 ${focusRing}`}
+      className={`flex min-h-11 items-center justify-between gap-3 px-4 py-2.5 transition-colors hover:bg-default-50 sm:px-5 ${focusRing}`}
     >
       <span className="min-w-0">
         <span className="block text-sm font-medium">{label}</span>
@@ -694,9 +687,9 @@ const HealthRow = ({
           {question}
         </span>
       </span>
-      <span className="flex shrink-0 items-center gap-1 text-sm font-medium tabular-nums">
+      <span className="flex shrink-0 items-center gap-1.5 text-sm font-medium tabular-nums">
         {format(value)}
-        <RiArrowRightLine aria-hidden className="size-3.5 text-default-400" />
+        <RiArrowRightLine aria-hidden className="size-3.5 text-default-500" />
       </span>
     </Link>
   </li>
@@ -755,18 +748,16 @@ const HealthBlock = ({
   ];
 
   return (
-    <Panel>
-      <div className="px-3 pt-4 sm:px-4">
-        <SectionHeading
-          title="Worth a look"
-          description="Counts the API reports on this screen, each linking to where you act on it."
-        />
-      </div>
-
+    <SectionCard
+      flush
+      className="h-full"
+      title="Worth a look"
+      description="Counts from the overview, each linking to where you act on it."
+    >
       {loading ? (
         <PanelSkeleton rows={4} />
       ) : (
-        <ul className="space-y-0.5 border-t border-default/60 px-1 py-1.5 sm:px-2">
+        <ul className="divide-y divide-default/60">
           {rows.map((row) => (
             <HealthRow
               key={row.key}
@@ -778,7 +769,7 @@ const HealthBlock = ({
           ))}
         </ul>
       )}
-    </Panel>
+    </SectionCard>
   );
 };
 
@@ -925,24 +916,24 @@ export default function AdminDashboard() {
         </div>
 
         <div className="min-w-0">
-          <ContributorsList
-            contributors={overview.topContributors}
+          <HealthBlock
+            pending={overview.pending}
+            health={overview.health}
             loading={false}
           />
         </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        <TopArticlesList articles={overview.topArticles} loading={false} />
         <RecentBlock
           items={Array.isArray(overview.recent) ? overview.recent : []}
           loading={false}
           failed={false}
           onRetry={() => void overviewQuery.refetch()}
         />
-        <HealthBlock
-          pending={overview.pending}
-          health={overview.health}
+        <TopArticlesList articles={overview.topArticles} loading={false} />
+        <ContributorsList
+          contributors={overview.topContributors}
           loading={false}
         />
       </div>
