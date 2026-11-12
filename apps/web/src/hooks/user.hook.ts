@@ -7,6 +7,7 @@ import {
   getAllUsers,
   getUserFollowingStatus,
   makeAdmin,
+  resendVerificationEmail,
   unblockUser,
   unfollowUser,
   updateProfile,
@@ -200,6 +201,36 @@ export const useMakeAdmin = () => {
           id: "user-make-admin",
         });
       }
+    },
+  });
+};
+
+export const useResendVerificationEmail = () => {
+  return useMutation<any, Error, string>({
+    mutationKey: ["USER_RESEND_VERIFICATION"],
+    mutationFn: async (userId) => await resendVerificationEmail(userId),
+    onSuccess: (data) => {
+      if (!data?.success) {
+        toast.error(data?.message || "Verification email could not be sent.", {
+          id: "user-resend-verification",
+        });
+        return;
+      }
+
+      const email = data?.data?.email;
+      toast.success(
+        email
+          ? `Verification email sent to ${email}`
+          : "Verification email sent",
+        {
+          id: "user-resend-verification",
+        },
+      );
+    },
+    onError: (error) => {
+      toast.error(error?.message || "Verification email could not be sent.", {
+        id: "user-resend-verification",
+      });
     },
   });
 };

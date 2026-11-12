@@ -26,6 +26,7 @@ import {
   useDeleteUserAccount,
   useDeleteUsersInBulk,
   useMakeAdmin,
+  useResendVerificationEmail,
   useUnblockUser,
 } from "@/hooks/user.hook";
 import type { IUser } from "@/types";
@@ -34,6 +35,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   FiExternalLink,
+  FiMail,
   FiSearch,
   FiSlash,
   FiTrash2,
@@ -170,6 +172,8 @@ const UsersTable = () => {
   const { mutate: blockUser, isPending: isBlocking } = useBlockUser();
   const { mutate: unblockUser, isPending: isUnblocking } = useUnblockUser();
   const { mutate: makeAdmin, isPending: isPromoting } = useMakeAdmin();
+  const { mutate: resendVerification, isPending: isResendingVerification } =
+    useResendVerificationEmail();
   const { mutate: deleteAccount, isPending: isDeleting } =
     useDeleteUserAccount();
   const { mutate: deleteUsersInBulk, isPending: isDeletingInBulk } =
@@ -439,6 +443,36 @@ const UsersTable = () => {
                   )}
 
                   <MenuSeparator />
+
+                  {!user.isVerified && (
+                    <ConfirmDialog
+                      trigger={
+                        <button
+                          type="button"
+                          role="menuitem"
+                          disabled={blocked}
+                          className={menuItem}
+                          title={
+                            blocked
+                              ? "Unblock them before sending verification"
+                              : undefined
+                          }
+                        >
+                          <FiMail aria-hidden className="size-4" />
+                          Resend verification
+                        </button>
+                      }
+                      title={`Resend verification email to ${name}?`}
+                      description={
+                        user.email
+                          ? `Sends a fresh verification link to ${user.email}.`
+                          : "Sends a fresh verification link to this member's email address."
+                      }
+                      confirmLabel="Send verification"
+                      isPending={isResendingVerification}
+                      onConfirm={() => resendVerification(user._id)}
+                    />
+                  )}
 
                   {blocked ? (
                     <ConfirmDialog

@@ -256,6 +256,18 @@ export const makeAdmin = async (id: string) => {
   }
 };
 
+export const resendVerificationEmail = async (id: string) => {
+  try {
+    const res = await axiosInstance.post(
+      `/admin/users/${id}/resend-verification`,
+    );
+
+    return res?.data;
+  } catch (err: any) {
+    return err?.response?.data ?? { success: false, message: err?.message };
+  }
+};
+
 // delete an user account (admin only)
 export const deleteUserAccount = async (id: string) => {
   try {

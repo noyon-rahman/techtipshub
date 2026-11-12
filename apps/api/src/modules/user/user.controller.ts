@@ -135,6 +135,17 @@ const makeAdmin = async (c: Context<TAppBindings, string>) => {
   return sendResponse(c, httpStatus.OK, { data: result });
 };
 
+const resendVerificationEmail = async (c: Context<TAppBindings, string>) => {
+  const { id } = c.req.param() as TRouteParams;
+
+  const result = await userService.resendVerificationEmail(
+    id,
+    c.get("user").email,
+  );
+
+  return sendResponse(c, httpStatus.OK, { data: result });
+};
+
 const deleteUserAccount = async (c: Context<TAppBindings, string>) => {
   const { id } = c.req.param() as TRouteParams;
 
@@ -260,6 +271,7 @@ export const userController = {
   findCurrentHandle,
   blockUser,
   unBlockUser,
+  resendVerificationEmail,
   followUser,
   unfollowUser,
   getLoggedInUserFollowers,

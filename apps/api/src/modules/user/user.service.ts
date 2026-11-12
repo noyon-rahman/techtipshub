@@ -7,7 +7,10 @@ import {
   type TQueryBuilderOptions,
 } from "../../builder";
 import { USER_ROLE, USER_STATUS } from "../../constant";
+import config from "../../config/env";
+import { durationLabel, verifyEmailMessage } from "../../emails";
 import { AppError } from "../../errors";
+import { isEmailConfigured, sendEmail } from "../../utils";
 import { adminLogService } from "../admin/admin-log.service";
 import Category from "../category/category.model";
 import Comment from "../comment/comment.model";
@@ -1486,6 +1489,81 @@ const getFollowingByUserId = async (
   return { result, meta };
 };
 
+const resendVerificationEmail = async (id: string, adminEmail?: string) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid user Id");
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.isDeleted) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Restore the account before sending a verification email",
+    );
+  }
+
+  if (user.status === USER_STATUS.BLOCKED) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Unblock the account before sending a verification email",
+    );
+  }
+
+  if (user.isVerified) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "This email address is already verified",
+    );
+  }
+
+  if (!isEmailConfigured()) {
+    throw new AppError(
+      httpStatus.SERVICE_UNAVAILABLE,
+      "Email sending is not configured on the server",
+    );
+  }
+
+  const verifyToken = User.createToken(
+    { email: user.email, role: user.role },
+    config.JWT_RESET_PASSWORD_SECRET,
+    config.JWT_VERIFY_EMAIL_EXPIRES_IN,
+  );
+
+  const verifyUrl = `${config.API_BASE_URL}/auth/verify-email?email=${encodeURIComponent(
+    user.email,
+  )}&token=${verifyToken}`;
+
+  const mail = await verifyEmailMessage({
+    fullName: user.fullName,
+    verifyUrl,
+    expiresIn: durationLabel(config.JWT_VERIFY_EMAIL_EXPIRES_IN),
+  });
+
+  await sendEmail({
+    to: {
+      name: user.fullName,
+      address: user.email,
+    },
+    sender: "security",
+    category: "email-verification",
+    ...mail,
+  });
+
+  await adminLogService.record({
+    adminEmail,
+    action: "user.resend_verification",
+    targetType: "user",
+    targetId: id,
+    summary: `Resent verification email to ${user.email}`,
+  });
+
+  return { email: user.email };
+};
+
 export const userService = {
   getAllUsers,
   updateProfile,
@@ -1500,6 +1578,7 @@ export const userService = {
   findCurrentHandle,
   blockUser,
   unBlockUser,
+  resendVerificationEmail,
   followUser,
   unfollowUser,
   getLoggedInUserFollowers,

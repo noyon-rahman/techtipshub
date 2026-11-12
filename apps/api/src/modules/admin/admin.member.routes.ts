@@ -25,6 +25,10 @@ adminUserRouter.patch("/:id/restore", userController.restoreUser);
 adminUserRouter.patch("/:id/block", userController.blockUser);
 adminUserRouter.patch("/:id/unblock", userController.unBlockUser);
 adminUserRouter.patch("/:id/make-admin", userController.makeAdmin);
+adminUserRouter.post(
+  "/:id/resend-verification",
+  userController.resendVerificationEmail,
+);
 adminUserRouter.patch(
   "/:id",
   withUploads({
