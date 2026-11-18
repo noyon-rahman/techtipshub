@@ -6,6 +6,7 @@ import THInput from "@/components/form/th-input";
 import PasswordInput from "@/components/form/password-input";
 import THSelect from "@/components/form/th-select";
 import SignupAvatarPicker from "@/components/modules/auth/signup-avatar-picker";
+import { SignupUsernameField } from "@/components/modules/auth/signup-username-field";
 import { useUserRegister } from "@/hooks/auth.hook";
 import { safeRedirectPath } from "@/lib/blog-routes";
 import { signUpValidationSchema } from "@/schemas";
@@ -97,19 +98,7 @@ const SignUpForm = () => {
               />
             </div>
 
-            <div>
-              <label htmlFor="username" className={label}>
-                Username
-              </label>
-              <THInput
-                variant="bordered"
-                radius="lg"
-                name="username"
-                id="username"
-                placeholder="e.g. noyon"
-                description="You can confirm or change it right after you sign in."
-              />
-            </div>
+            <SignupUsernameField />
 
             <div>
               <label htmlFor="email" className={label}>

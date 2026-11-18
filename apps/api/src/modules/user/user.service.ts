@@ -216,7 +216,7 @@ const assertUsernameAvailable = async (
  */
 const readerForUsername = async (userData: JwtPayload) => {
   const user = await User.findOne({ email: userData.email }).select(
-    "username usernameChangedAt usernameOnboardedAt fullName email",
+    "username usernameChangedAt usernameOnboardedAt fullName email googleId +password",
   );
 
   if (!user) {
@@ -258,10 +258,29 @@ const readUsernameOnboarding = async (userData: JwtPayload) => {
     String(user._id),
   );
 
+  // An account is onboarded if usernameOnboardedAt is set, OR if they registered with
+  // a password (where username was explicitly chosen during signup).
+  const hasSetUsername = Boolean(user.usernameOnboardedAt || user.password);
+
+  // If they have set their username via password registration but usernameOnboardedAt
+  // is missing, backfill it so it's permanently recorded.
+  if (!user.usernameOnboardedAt && user.password) {
+    const now = new Date();
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          usernameOnboardedAt: now,
+          usernameChangedAt: user.usernameChangedAt ?? now,
+        },
+      },
+    );
+  }
+
   return {
     currentUsername: user.username,
     suggestedUsername: suggested,
-    onboarded: Boolean(user.usernameOnboardedAt),
+    onboarded: hasSetUsername,
   };
 };
 
@@ -324,19 +343,27 @@ const usernameRefusal = async (username: string, excludeId?: string) => {
  * The wording is the shared rule's own, so the form, the API's validation and
  * this answer cannot describe the same handle three different ways.
  */
-const checkUsernameAvailability = async (userData: JwtPayload, raw: string) => {
-  const user = await readerForUsername(userData);
+const checkUsernameAvailability = async (
+  userData: JwtPayload | undefined,
+  raw: string,
+) => {
+  const user = userData
+    ? await readerForUsername(userData).catch(() => null)
+    : null;
   const username = normaliseUsername(raw);
 
   const problem = usernameProblem(username);
   if (problem) return { username, available: false, reason: problem };
 
   // Keeping the handle you already have is not a refusal; it is a no-change.
-  if (!isUsernameChange(user.username, username)) {
+  if (user && !isUsernameChange(user.username, username)) {
     return { username, available: true, reason: null };
   }
 
-  const refusal = await usernameRefusal(username, String(user._id));
+  const refusal = await usernameRefusal(
+    username,
+    user ? String(user._id) : undefined,
+  );
 
   return { username, available: !refusal, reason: refusal };
 };

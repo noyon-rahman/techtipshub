@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normaliseUsername, usernameProblem } from "@techtipshub/shared";
 
 export const signUpValidationSchema = z.object({
   fullName: z
@@ -16,7 +17,13 @@ export const signUpValidationSchema = z.object({
     .string({
       error: "Username is required",
     })
-    .min(1, "Username is required"),
+    .min(1, "Username is required")
+    .superRefine((val, ctx) => {
+      const problem = usernameProblem(normaliseUsername(val));
+      if (problem) {
+        ctx.addIssue({ code: "custom", message: problem });
+      }
+    }),
   password: z
     .string({
       error: "Password is required",

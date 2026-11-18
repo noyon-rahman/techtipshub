@@ -99,12 +99,13 @@ const UsernameStep = ({ next }: { next: string }) => {
     };
   }, [router, destination]);
 
-  // One request per settled keystroke: typing "ada" asks once after the pause
-  // rather than three times, and the answer that is shown is always the one for
-  // the value in the field.
+  // One request per settled keystroke: typing asks once after the pause
+  // rather than on every raw change, and the answer that is shown is always
+  // the one for the value in the field.
   useEffect(() => {
-    if (!touched || !value) {
+    if (!value) {
       setAvailability(null);
+      setPending("idle");
       return;
     }
 
@@ -114,6 +115,7 @@ const UsernameStep = ({ next }: { next: string }) => {
         available: false,
         reason: shapeProblem,
       });
+      setPending("idle");
       return;
     }
 
@@ -130,21 +132,21 @@ const UsernameStep = ({ next }: { next: string }) => {
       // A failed check is not an answer. Leaving the field without a verdict
       // keeps a network fault from looking like "taken".
       setAvailability(result.success && result.data ? result.data : null);
-    }, 350);
+    }, 300);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [typed, value, touched, shapeProblem]);
+  }, [typed, value, shapeProblem]);
 
   const canSave =
     !loading &&
     pending !== "saving" &&
+    pending !== "checking" &&
     Boolean(value) &&
     !shapeProblem &&
-    // Nothing typed yet: the suggestion is still what is being confirmed.
-    (touched ? availability?.available === true : true);
+    availability?.available === true;
 
   const submit = async () => {
     if (!canSave) return;
@@ -152,7 +154,7 @@ const UsernameStep = ({ next }: { next: string }) => {
     setPending("saving");
     setError(null);
 
-    const result = await completeUsernameOnboardingAction(value);
+    const result = await completeUsernameOnboardingAction(typed);
 
     if (!result.success) {
       setPending("idle");
@@ -172,8 +174,8 @@ const UsernameStep = ({ next }: { next: string }) => {
   const status = (() => {
     if (!value) return null;
     if (shapeProblem) return { ok: false, text: shapeProblem };
-    if (!touched) return { ok: true, text: "This is your suggested username." };
-    if (pending === "checking") return { ok: null, text: "Checking..." };
+    if (pending === "checking")
+      return { ok: null, text: "Checking availability…" };
     if (!availability) return null;
 
     return {
@@ -251,7 +253,7 @@ const UsernameStep = ({ next }: { next: string }) => {
               id="username-status"
               role="status"
               aria-live="polite"
-              className="mt-1 min-h-5 text-sm text-default-600"
+              className="mt-1 min-h-5 text-sm"
             >
               {status && (
                 <span
@@ -259,7 +261,7 @@ const UsernameStep = ({ next }: { next: string }) => {
                     status.ok === false
                       ? "text-danger"
                       : status.ok === true
-                        ? "text-foreground"
+                        ? "text-success font-medium"
                         : "text-default-600"
                   }
                 >

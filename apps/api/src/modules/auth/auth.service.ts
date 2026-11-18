@@ -65,7 +65,12 @@ const register = async (payload: IUser) => {
     throw new AppError(409, "Username is reserved");
   }
 
-  const newUser = await User.create(payload);
+  const now = new Date();
+  const newUser = await User.create({
+    ...payload,
+    usernameOnboardedAt: now,
+    usernameChangedAt: now,
+  });
 
   const jwtPayload = {
     email: newUser.email,
@@ -482,7 +487,9 @@ const resetPassword = async (
     throw new AppError(httpStatus.FORBIDDEN, message);
   }
 
-  const user = await User.findOne({ email: decoded.email }).select("+isDeleted");
+  const user = await User.findOne({ email: decoded.email }).select(
+    "+isDeleted +password",
+  );
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "User not found");
   }
@@ -553,7 +560,9 @@ const userForRefreshToken = async (refreshToken: string) => {
     );
   }
 
-  const user = await User.findOne({ email: decoded.email }).select("+isDeleted");
+  const user = await User.findOne({ email: decoded.email }).select(
+    "+isDeleted +password",
+  );
   if (!user) {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
@@ -624,6 +633,7 @@ const publicUser = (user: {
   profilePicture?: string;
   role: string;
   usernameOnboardedAt?: Date | null;
+  password?: string;
 }) => ({
   _id: String(user._id),
   email: user.email,
@@ -631,10 +641,10 @@ const publicUser = (user: {
   username: user.username,
   profilePicture: user.profilePicture ?? "",
   role: user.role,
-  // The site decides where a sign-in lands from this one flag, so it is
-  // reported here rather than inferred from a handle that looks unset: an
-  // account may share its handle's shape with a provisional one.
-  usernameOnboarded: Boolean(user.usernameOnboardedAt),
+  // The site decides where a sign-in lands from this flag: an account is onboarded
+  // if they confirmed the handle, or if they signed up with a password (where username
+  // was explicitly chosen during registration).
+  usernameOnboarded: Boolean(user.usernameOnboardedAt || user.password),
 });
 
 /**
@@ -663,7 +673,7 @@ const readSession = async (
 
       const current = decoded.email
         ? await User.findOne({ email: decoded.email }).select(
-            "email fullName username profilePicture role tokenVersion status +isDeleted usernameOnboardedAt",
+            "email fullName username profilePicture role tokenVersion status +isDeleted usernameOnboardedAt +password",
           )
         : null;
 
