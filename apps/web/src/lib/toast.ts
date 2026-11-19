@@ -29,11 +29,14 @@ const guarded = (variant: Variant) => {
     emit(textOr(message, FALLBACK[variant]), data);
 };
 
-export const toast = {
+const base = (message?: unknown, data?: ExternalToast) =>
+  sonnerToast(textOr(message, FALLBACK.message), data);
+
+export const toast = Object.assign(base, {
   ...sonnerToast,
   success: guarded("success"),
   error: guarded("error"),
   info: guarded("info"),
   warning: guarded("warning"),
   message: guarded("message"),
-};
+});
