@@ -19,6 +19,7 @@ const nextConfig = {
    * a little is enough, and it stays under the host's request cap.
    */
   experimental: {
+    agentUpgrade: "security",
     serverActions: {
       bodySizeLimit: `${IMAGE_MAX_BYTES + 256 * 1024}`,
     },
