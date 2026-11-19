@@ -300,6 +300,12 @@ Things known to be wrong or unfinished, in the order they matter.
   nothing and produced "Title must be a string" on every publish. `readBody`
   also ignores an empty `uploadedBody` for the same reason. Only the admin
   routes still upload a file.
+- **The profile's Save button must sit inside the editor's `<form>`.** The
+  sticky footer with Cancel and Save is a sibling of the `<form>` `THForm`
+  renders when `ProfileEditFrame` wraps it, so a `type="submit"` button there
+  fires nothing: the editor looks fine, no request is sent, and only social
+  link edits seem to be ignored. `THForm` now wraps `ProfileEditFrame`, which
+  puts the footer inside the form, the shape `login-form.tsx` has always used.
 - **A `THInput` registers last, on purpose.** `register(name)` carries the ref
   react-hook-form reads a value through; spreading it first let a caller's
   `placeholder` replace it, and the field's value then never reached the form.
@@ -421,6 +427,14 @@ Things known to be wrong or unfinished, in the order they matter.
 
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
+
+- 2026-11-20: Profile edits save again. The "Save profile" button sat outside
+  the `<form>` that `THForm` renders, because `ProfileEditFrame` wrapped the
+  form and its sticky footer was a sibling of it: clicking Save submitted
+  nothing, so social link changes silently never reached the API. `THForm` now
+  wraps `ProfileEditFrame`, putting the footer inside the form. The API also
+  accepts an empty `socialLinks` list, so clearing every link works as the
+  field's hint promises. The bio shows a live "N / 280" count as it is typed.
 
 - 2026-11-18: Username onboarding and realtime availability check fix. Password
   registration now sets `usernameOnboardedAt` and `usernameChangedAt` immediately

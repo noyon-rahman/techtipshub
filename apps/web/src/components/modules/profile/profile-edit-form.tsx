@@ -13,7 +13,7 @@ import TopicsSummary from "@/components/modules/profile/topics-summary";
 import UsernameField from "@/components/modules/profile/username-field";
 import { useUpdateProfile, useUpdateSocialLinks } from "@/hooks/user.hook";
 import { IUser, TSocialPlatform } from "@/types";
-import { FieldValues, SubmitHandler } from "react-hook-form";
+import { FieldValues, SubmitHandler, useWatch } from "react-hook-form";
 import { ReactNode, useEffect, useState } from "react";
 import { FiEdit3 } from "react-icons/fi";
 import { BsTwitterX } from "react-icons/bs";
@@ -79,6 +79,18 @@ const socialFields = [
 
 const fieldLabel = "mb-1 block tth-label-sm text-default-600";
 const MAX_BIO = 280;
+
+/** The count sits under the bio so the limit is felt while typing, not after a failed save. */
+const BioCharacterCount = ({ max }: { max: number }) => {
+  const bio = useWatch({ name: "bio" });
+  const count = typeof bio === "string" ? bio.length : 0;
+
+  return (
+    <span className="tabular-nums">
+      A sentence or two reads best. {count} / {max} characters.
+    </span>
+  );
+};
 
 /** The photo the preview should show: a newly picked one wins. */
 const previewPicture = (
@@ -355,14 +367,14 @@ const ProfileEditForm = ({
 
   return (
     <>
-      <ProfileEditFrame
-        isOpen={active}
-        isPending={isPending}
-        filePending={Boolean(selectedImage) || photoRemoved}
-        hint="Changes appear on your public profile and on your articles right away. The username saves on its own."
-        onCancel={cancel}
-      >
-        <THForm onSubmit={onSubmit} defaultValues={defaultValues}>
+      <THForm onSubmit={onSubmit} defaultValues={defaultValues}>
+        <ProfileEditFrame
+          isOpen={active}
+          isPending={isPending}
+          filePending={Boolean(selectedImage) || photoRemoved}
+          hint="Changes appear on your public profile and on your articles right away. The username saves on its own."
+          onCancel={cancel}
+        >
           <div className="space-y-6">
             {lastError && (
               <div
@@ -484,7 +496,7 @@ const ProfileEditForm = ({
                     radius="lg"
                     id="bio"
                     maxLength={MAX_BIO}
-                    description={`A sentence or two reads best. ${MAX_BIO} characters max.`}
+                    description={<BioCharacterCount max={MAX_BIO} />}
                   />
                 </div>
               </div>
@@ -540,8 +552,8 @@ const ProfileEditForm = ({
               <InterestSettings />
             </ProfileFormSection>
           </div>
-        </THForm>
-      </ProfileEditFrame>
+        </ProfileEditFrame>
+      </THForm>
     </>
   );
 };

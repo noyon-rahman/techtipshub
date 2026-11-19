@@ -39,7 +39,6 @@ const updateSocialLinks = z
   .object({
     socialLinks: z
       .array(socialLinkSchema)
-      .min(1, "At least one social link is required")
       .max(6, "No more than 6 social links are allowed")
       .refine(
         (socialLinks) => {
