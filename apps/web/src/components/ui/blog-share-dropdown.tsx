@@ -13,7 +13,7 @@ import { BsTwitterX } from "react-icons/bs";
 import { FaFacebook, FaLinkedin } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import copy from "clipboard-copy";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const BlogShareDropdown = () => {
   const [permalink, setPermalink] = useState("");

@@ -27,7 +27,7 @@ import { readRows } from "@/services/admin/shared";
 import { deleteCommentAsAdmin } from "@/services/blog";
 import type { IAdminCommentsParams, TAdminComment } from "@/types/admin.type";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   keepPreviousData,
   toAdminList,

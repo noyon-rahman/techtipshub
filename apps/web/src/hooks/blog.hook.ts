@@ -15,7 +15,7 @@ import { messageOf } from "@/lib/api-error";
 import type { IVoteResult, TVoteType } from "@techtipshub/shared";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export const useCreateBlog = () => {
   return useMutation<any, Error, Record<string, unknown>>({
@@ -23,12 +23,15 @@ export const useCreateBlog = () => {
     mutationFn: async (payload) => await createBlog(payload),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.errorSources?.[0]?.message || data?.message, {
-          id: "create-blog",
-        });
+        toast.error(
+          data?.errorSources?.[0]?.message ||
+            data?.message ||
+            "We could not create the article.",
+          { id: "create-blog" },
+        );
       }
       if (data.success) {
-        toast.success(data?.message, {
+        toast.success("Article created.", {
           id: "create-blog",
         });
       }
@@ -391,12 +394,12 @@ export const useCommentOnBlog = () => {
       await commentOnBlog(blogId, payload),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "Your comment was not posted.", {
           id: "comment-on-blog",
         });
       }
       if (data.success) {
-        toast.success(data?.message, {
+        toast.success("Comment posted.", {
           id: "comment-on-blog",
         });
       }
@@ -421,12 +424,12 @@ export const useDeleteBlogByAdminUsingId = () => {
       await deleteBlogByAdminUsingId(blogId, reason),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The article was not removed.", {
           id: "delete-blog-by-admin",
         });
       }
       if (data.success) {
-        toast.success(data?.message, {
+        toast.success("Article removed.", {
           id: "delete-blog-by-admin",
         });
       }
@@ -440,12 +443,12 @@ export const useDeleteBlogByUserUsingId = () => {
     mutationFn: async (blogId) => await deleteBlogByUserUsingId(blogId),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The article was not deleted.", {
           id: "delete-blog-by-user",
         });
       }
       if (data.success) {
-        toast.success(data?.message, {
+        toast.success("Article deleted.", {
           id: "delete-blog-by-user",
         });
       }
@@ -513,12 +516,12 @@ export const useDeleteCommentByUser = () => {
     mutationFn: async (commentId) => await deleteCommentByUser(commentId),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The comment was not deleted.", {
           id: "delete-comment-by-user",
         });
       }
       if (data.success) {
-        toast.success(data?.message, {
+        toast.success("Comment deleted.", {
           id: "delete-comment-by-user",
         });
       }
@@ -533,12 +536,12 @@ export const useUpdateCommentByUser = () => {
       await updateCommentByUser(commentId, payload),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "The comment was not updated.", {
           id: "update-comment-by-user",
         });
       }
       if (data.success) {
-        toast.success(data?.message, {
+        toast.success("Comment updated.", {
           id: "update-comment-by-user",
         });
       }

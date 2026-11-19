@@ -17,7 +17,7 @@ import {
 } from "@heroui/react";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { FiEdit3 } from "react-icons/fi";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 const quietButton = `inline-flex min-h-11 items-center gap-1.5 rounded-[6px] border border-default-200 px-3 text-sm font-medium transition-colors hover:bg-default-100 sm:min-h-9 ${focusRing}`;
 

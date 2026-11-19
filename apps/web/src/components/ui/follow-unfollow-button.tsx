@@ -21,7 +21,7 @@ import {
 } from "react";
 import { GoPlus } from "react-icons/go";
 import { HiMinus } from "react-icons/hi2";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { AuthenticationModal } from "../modals";
 
 interface IProps {

@@ -11,7 +11,7 @@ import { Button } from "@heroui/react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import { LuImagePlus } from "react-icons/lu";
 import { useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface IProps {
   blogId: string;

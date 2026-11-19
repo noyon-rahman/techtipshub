@@ -23,7 +23,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuEye, LuRotateCcw, LuTriangleAlert } from "react-icons/lu";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   BlogFormData,
   DraftField,

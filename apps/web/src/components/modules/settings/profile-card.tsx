@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiCamera, FiTrash2 } from "react-icons/fi";
 import { HiOutlineArrowUpRight } from "react-icons/hi2";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface IProps {
   fullName?: string;

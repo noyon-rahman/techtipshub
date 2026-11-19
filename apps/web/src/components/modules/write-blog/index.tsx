@@ -16,7 +16,7 @@ import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuClock, LuEye, LuTrash2 } from "react-icons/lu";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   BlogFormData,
   DraftField,

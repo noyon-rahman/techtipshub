@@ -6,7 +6,7 @@ import {
 } from "@/services/auth";
 import { TLogin } from "@/types";
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 export const useUserRegister = () => {
   return useMutation<any, Error, FormData>({
@@ -14,12 +14,12 @@ export const useUserRegister = () => {
     mutationFn: async (payload) => await registerUser(payload),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "We could not create your account. Try again.", {
           id: "user-register",
         });
       }
       if (data.success) {
-        toast.success(data?.message, {
+        toast.success("Account created. You can sign in now.", {
           id: "user-register",
         });
       }
@@ -32,12 +32,12 @@ export const useUserLogin = () => {
     mutationFn: async (payload) => await loginUser(payload),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "We could not sign you in. Try again.", {
           id: "user-login",
         });
       }
       if (data.success) {
-        toast.success(data?.message, {
+        toast.success("Signed in.", {
           id: "user-login",
         });
       }
@@ -51,7 +51,7 @@ export const useForgetPassword = () => {
     mutationFn: async (payload) => await forgetPassword(payload),
     onSuccess: (data) => {
       if (!data?.success) {
-        toast.error(data?.message, {
+        toast.error(data?.message || "We could not send the reset link. Try again.", {
           id: "password-reset",
         });
       }
