@@ -3,7 +3,7 @@
 import { LuImagePlus } from "react-icons/lu";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import { ChangeEvent, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import { useUpdateCommentByUser } from "@/hooks/blog.hook";
 import {
   Button,

@@ -64,8 +64,8 @@ TechTipsHub is a full-stack publishing platform for developers. A member writes 
 
 It is a **pnpm + Turborepo monorepo** with two separately deployed applications and two shared packages:
 
-- **`apps/web`** — the Next.js 16 site (App Router, React 19, HeroUI, Tailwind CSS v4).
-- **`apps/api`** — the Hono REST API on Node, backed by MongoDB through Mongoose.
+- **`apps/web`**: the Next.js 16 site (App Router, React 19, HeroUI, Tailwind CSS v4).
+- **`apps/api`**: the Hono REST API on Node, backed by MongoDB through Mongoose.
 
 The web app never talks to MongoDB, and the API never renders HTML. The only contract between them is HTTP plus the types in `packages/shared`.
 
@@ -198,7 +198,7 @@ cp apps/api/.env.example apps/api/.env.development
 cp apps/web/.env.example apps/web/.env.development
 ```
 
-**`apps/api/.env.development`** — every key is documented inline in the file. The essentials:
+**`apps/api/.env.development`**: every key is documented inline in the file. The essentials:
 
 | Variable | Purpose |
 | --- | --- |
@@ -215,7 +215,7 @@ cp apps/web/.env.example apps/web/.env.development
 | `AUTH_RATE_LIMIT_MAX` / `AUTH_RATE_LIMIT_WINDOW_MINUTES` | Sign-in / signup rate limiting |
 | `TRUST_PROXY` | Set `true` when the API sits behind a proxy (Vercel) |
 
-**`apps/web/.env.development`** — a smaller set:
+**`apps/web/.env.development`**: a smaller set:
 
 | Variable | Purpose |
 | --- | --- |
@@ -298,11 +298,11 @@ Health check: `GET /health` → `OK✅`
 
 **Request path.** Browser requests reach data three ways:
 
-1. **Server render** — page components call `services/<domain>/` using a server axios instance with the access token from the cookie.
-2. **Server action** — `"use server"` functions for writes that must not depend on CORS (newsletter membership, profile save, article access checks).
-3. **Browser call** — post-paint interactions (votes, follow, view counting, infinite feed pages) go through an **allowlisted** proxy at `app/api/v1/[...path]/route.ts`. Deny-by-default: adding an API route does not make it reachable from the browser.
+1. **Server render**: page components call `services/<domain>/` using a server axios instance with the access token from the cookie.
+2. **Server action**: `"use server"` functions for writes that must not depend on CORS (newsletter membership, profile save, article access checks).
+3. **Browser call**: post-paint interactions (votes, follow, view counting, infinite feed pages) go through an **allowlisted** proxy at `app/api/v1/[...path]/route.ts`. Deny-by-default: adding an API route does not make it reachable from the browser.
 
-**Sessions.** No auth library — the API is the only authority on who is signed in. On sign-in it sets two httpOnly cookies (`tth_access_token`, `tth_refresh_token`). The web app asks `GET /auth/session` and follows the answer; it never decodes a token. The API re-reads the account on every call and refuses a deleted account, a blocked account, a token issued before the last password change, or a token with a stale `tokenVersion`.
+**Sessions.** No auth library: the API is the only authority on who is signed in. On sign-in it sets two httpOnly cookies (`tth_access_token`, `tth_refresh_token`). The web app asks `GET /auth/session` and follows the answer; it never decodes a token. The API re-reads the account on every call and refuses a deleted account, a blocked account, a token issued before the last password change, or a token with a stale `tokenVersion`.
 
 **Data model.** MongoDB collections use snake_case names pinned to each model. Soft delete (`isDeleted`) hides trashed members and articles via `pre("find")` middleware, and the blog model hides drafts unless a query opts in. Article counters (votes, comments, views) are updated with the write that causes them.
 
@@ -313,7 +313,7 @@ See [`Architecture.md`](./Architecture.md) for the full walkthrough.
 ## Security model
 
 - **One authority.** Only the API decides who is signed in; the web app never decodes or trusts a token on its own.
-- **Cookie sessions.** `httpOnly`, `sameSite: Lax`, `secure` in production, one-year lifetime — the API, not the browser clock, decides when a session ends.
+- **Cookie sessions.** `httpOnly`, `sameSite: Lax`, `secure` in production, one-year lifetime: the API, not the browser clock, decides when a session ends.
 - **Session revocation.** Bumping `tokenVersion` makes "sign out everywhere", a password change and a reset actually invalidate a stolen refresh token.
 - **Deny-by-default proxy.** The browser-to-API proxy is an allowlist; a same-origin check protects state-changing calls from cross-site form posts.
 - **Role checks in two places.** `proxy.ts` refuses `/admin` for a non-admin, and the API's `auth(...roles)` middleware refuses it again.
@@ -330,10 +330,10 @@ pnpm test
 
 It runs `scripts/test/run.mjs`, which includes:
 
-- **Format check** — Prettier compliance across the workspace.
-- **Invariants** — structural rules the codebase must hold.
-- **Query filter** — guarantees reader-facing queries hide drafts and trashed content.
-- **Username onboarding** — the handle rules shared by API and web.
+- **Format check**: Prettier compliance across the workspace.
+- **Invariants**: structural rules the codebase must hold.
+- **Query filter**: guarantees reader-facing queries hide drafts and trashed content.
+- **Username onboarding**: the handle rules shared by API and web.
 
 Individual scripts under `scripts/test/` can also be run directly with `tsx` / `node`.
 

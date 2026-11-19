@@ -67,8 +67,6 @@ export const checkUsernameAvailability = async (
   username: string,
   accessToken?: string,
 ): Promise<TLegacyBody<IUsernameAvailability>> => {
-  if (!accessToken) return { success: false, message: SIGNED_OUT };
-
   try {
     const url = new URL(usernameUrl("availability"));
     url.searchParams.set("username", username);

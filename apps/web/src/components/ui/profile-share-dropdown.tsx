@@ -13,7 +13,7 @@ import { FaFacebook, FaLinkedin } from "react-icons/fa";
 import { IoShareOutline } from "react-icons/io5";
 import { PiLink } from "react-icons/pi";
 import copy from "clipboard-copy";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface IProps {
   /**

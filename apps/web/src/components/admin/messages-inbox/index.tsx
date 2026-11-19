@@ -27,7 +27,7 @@ import {
   useTransition,
 } from "react";
 import { FiSearch, FiX } from "react-icons/fi";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 import MessageDetail from "./message-detail";
 import MessageList, { MessageFilters, type InboxActions } from "./message-list";

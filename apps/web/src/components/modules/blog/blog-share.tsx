@@ -5,7 +5,7 @@ import { useState, useSyncExternalStore } from "react";
 import { BsTwitterX } from "react-icons/bs";
 import { FaFacebook, FaLinkedin, FaWhatsapp } from "react-icons/fa";
 import { FiCheck, FiLink, FiMail, FiShare2 } from "react-icons/fi";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 interface IProps {
   /** Canonical path of the article, e.g. `/blogs/my-blog`. */

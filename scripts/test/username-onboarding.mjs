@@ -93,16 +93,22 @@ const run = async () => {
 
   if (!token) return;
 
-  // 2. The screen's state: a suggestion from the name, not yet onboarded.
+  // 2. The screen's state: registered member already set their handle and is onboarded.
   const onboarding = await call("/users/username/onboarding", { token });
-  const suggestion = onboarding.body?.data?.suggestedUsername;
   check(
-    "suggests a handle from the full name",
-    onboarding.body?.data?.onboarded === false && suggestion === "ada_lovelace_check",
-    `got "${suggestion}"`,
+    "registered member is marked as onboarded",
+    onboarding.body?.data?.onboarded === true,
+    `onboarded=${onboarding.body?.data?.onboarded}`,
   );
 
-  // 3. Availability while typing, in the API's own words.
+  // 3. Availability while typing, in the API's own words (accessible to guests and members alike).
+  const guestCheck = await call("/users/username/availability?username=ab");
+  check(
+    "availability answers guest without auth token",
+    guestCheck.status === 200 && guestCheck.body?.data?.available === false,
+    guestCheck.body?.data?.reason,
+  );
+
   const short = await call("/users/username/availability?username=ab", { token });
   check(
     "availability answers a half-typed handle",

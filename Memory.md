@@ -422,6 +422,17 @@ Things known to be wrong or unfinished, in the order they matter.
 One line per meaningful change in state, with the phase it came from. This is
 the only history section here.
 
+- 2026-11-18: Username onboarding and realtime availability check fix. Password
+  registration now sets `usernameOnboardedAt` and `usernameChangedAt` immediately
+  since the handle is chosen during signup, and `readUsernameOnboarding` recognizes
+  accounts with an existing password as onboarded. Users who already have their
+  username are no longer sent to `/welcome/username` after login; only first-time
+  logins without a set username (e.g. Google OAuth sign-in) are prompted.
+  `GET /users/username/availability` now uses `optionalAuth` so unauthenticated guests
+  can check handles, and `SignupUsernameField` provides real-time shape and
+  availability feedback with live profile preview on the signup page as well as
+  immediate check on the onboarding page.
+
 - 2026-11-12: The single-row delete and restore toasts on the articles list, and
   the profile save toast, fell through to `data?.message`. A success body has no
   message, so the profile one rendered empty. They now word themselves ("Article

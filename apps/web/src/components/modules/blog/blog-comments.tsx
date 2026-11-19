@@ -15,7 +15,7 @@ import { useState } from "react";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import { AiOutlineComment } from "react-icons/ai";
 import { LuImagePlus, LuX } from "react-icons/lu";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import type { IComment } from "@/types/comment.type";
 
 interface IProps {

@@ -21,11 +21,10 @@ interface IProps {
 const MAX_TAGS = 8;
 const MAX_TAG_LENGTH = 24;
 
-/** Lowercase, hyphenated, no duplicate separators. */
+/** Hyphenated, trimmed, no duplicate separators, preserving writer casing. */
 export const normaliseTag = (raw: string) =>
   raw
     .trim()
-    .toLowerCase()
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "")
@@ -48,8 +47,11 @@ export const addTags = (
   const rejected: string[] = [];
 
   for (const tag of parseTags(raw)) {
-    if (next.length >= limit || next.includes(tag)) {
-      if (!next.includes(tag)) rejected.push(tag);
+    const isDuplicate = next.some(
+      (existing) => existing.toLowerCase() === tag.toLowerCase(),
+    );
+    if (next.length >= limit || isDuplicate) {
+      if (!isDuplicate) rejected.push(tag);
       continue;
     }
     next.push(tag);
@@ -81,7 +83,13 @@ const TagInput = ({
     // Keep the input's raw text (not the tag) so typing "AI Agent" in two
     // words and pressing Enter cannot lose the first word.
     onChange(next);
-    if (rejected.length || parseTags(raw).every((tag) => tags.includes(tag))) {
+    const parsed = parseTags(raw);
+    const allAlreadyPresent =
+      parsed.length > 0 &&
+      parsed.every((tag) =>
+        tags.some((t) => t.toLowerCase() === tag.toLowerCase()),
+      );
+    if (rejected.length || allAlreadyPresent) {
       onTagsRejected?.(raw, rejected);
       return;
     }
@@ -106,7 +114,10 @@ const TagInput = ({
 
   const unusedSuggestions = suggestions
     .map(normaliseTag)
-    .filter((tag) => tag && !tags.includes(tag))
+    .filter(
+      (tag) =>
+        tag && !tags.some((t) => t.toLowerCase() === tag.toLowerCase()),
+    )
     .slice(0, 6);
 
   const full = tags.length >= MAX_TAGS;

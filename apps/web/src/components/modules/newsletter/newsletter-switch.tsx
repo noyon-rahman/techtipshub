@@ -6,7 +6,7 @@ import {
 } from "@/services/newsletter/actions";
 import { Switch } from "@heroui/react";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 /**
  * The newsletter setting on the profile.

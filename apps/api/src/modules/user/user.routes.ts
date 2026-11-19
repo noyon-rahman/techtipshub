@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { USER_ROLE } from "../../constant";
 import type { TAppBindings } from "../../interface/bindings";
-import { auth, validate, withUploads } from "../../middlewares";
+import { auth, optionalAuth, validate, withUploads } from "../../middlewares";
 import { userController } from "./user.controller";
 import { userValidationSchema } from "./user.validation";
 import { usernameValidationSchema } from "./username.validation";
@@ -63,7 +63,7 @@ userRouter.post(
 
 userRouter.get(
   "/username/availability",
-  auth(USER_ROLE.USER, USER_ROLE.ADMIN),
+  optionalAuth,
   validate({ query: usernameValidationSchema.checkUsernameAvailability }),
   userController.checkUsernameAvailability,
 );

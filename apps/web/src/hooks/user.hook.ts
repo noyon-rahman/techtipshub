@@ -24,7 +24,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 
 /**
  * How this reader stands with one member, as the follow control draws it.

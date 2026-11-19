@@ -14,7 +14,7 @@ import { useId, useMemo, useRef, useState } from "react";
 import { FiCheck } from "react-icons/fi";
 import { LuEye, LuTriangleAlert } from "react-icons/lu";
 import { RiArrowDownSLine } from "react-icons/ri";
-import { toast } from "sonner";
+import { toast } from "@/lib/toast";
 import {
   BlogFormData,
   DraftField,
